@@ -1,81 +1,52 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
-import { router } from 'expo-router';
-import { skillService } from '../src/services/api';
+import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSkillTree, useSearch, useStatistics } from '../src/hooks';
+import { Button, Input, Loading } from '../src/components/ui';
+import { COLORS, SPACING, showErrorAlert } from '../src/utils';
 
 const HomeScreen = () => {
   const [domain, setDomain] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('generate'); // 'generate' | 'search' | 'stats' | 'user'
+  
+  const { loading: skillTreeLoading, generateSkillTree, getRecommendedPath } = useSkillTree();
+  const { loading: searchLoading, searchDomains, getSkillTreeList } = useSearch();
+  const { loading: statsLoading, getStatistics, getLearningReport } = useStatistics();
+  
+  const loading = skillTreeLoading || searchLoading || statsLoading;
 
+  // 生成指定领域的技能树并跳转到技能树页面
   const handleGenerateSkillTree = async () => {
-    if (!domain.trim()) {
-      Alert.alert('错误', '请输入领域名称');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await skillService.generateSkillTree({ domain: domain.trim() });
-      router.push({
-        pathname: '/skill-tree',
-        params: { domain: domain.trim() }
-      });
-    } catch (error) {
-      Alert.alert('错误', '生成技能树失败，请检查网络连接');
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
-    }
+    await generateSkillTree(domain);
   };
 
+  // 搜索热门领域并显示搜索结果
   const handleSearchDomains = async () => {
-    if (!searchKeyword.trim()) {
-      Alert.alert('提示', '请输入搜索关键词');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const result = await skillService.searchPopularDomains(searchKeyword.trim());
+    const result = await searchDomains(searchKeyword);
+    if (result) {
       Alert.alert('搜索结果', `找到 ${result.total} 个相关领域:\n${result.results.join(', ')}`);
-    } catch (error) {
-      Alert.alert('错误', '搜索失败，请检查网络连接');
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
+  // 获取应用统计数据并显示统计信息
   const handleGetStatistics = async () => {
-    setLoading(true);
-    try {
-      const stats = await skillService.getStatistics();
+    const stats = await getStatistics();
+    if (stats) {
       Alert.alert('应用统计', 
         `总技能树: ${stats.totalTrees}\n` +
         `总用户数: ${stats.totalUsers}\n` +
         `平均进度: ${stats.averageProgress}%\n` +
-        `热门领域: ${stats.popularDomains.map(d => d.domain).join(', ')}`
+        `热门领域: ${stats.popularDomains.map((d: any) => d.domain).join(', ')}`
       );
-    } catch (error) {
-      Alert.alert('错误', '获取统计信息失败');
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
+  // 获取指定领域的推荐学习路径并显示路径信息
   const handleGetRecommendedPath = async () => {
-    if (!domain.trim()) {
-      Alert.alert('错误', '请输入领域名称');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const path = await skillService.getRecommendedPath(domain.trim());
-      const pathDescription = path.path.map(step => 
+    const path = await getRecommendedPath(domain);
+    if (path) {
+      const pathDescription = path.path.map((step: any) => 
         `第${step.step}步: ${step.topic} (${step.estimatedTime})`
       ).join('\n');
       
@@ -86,18 +57,13 @@ const HomeScreen = () => {
         `总时间: ${path.totalEstimatedTime}\n\n` +
         `学习路径:\n${pathDescription}`
       );
-    } catch (error) {
-      Alert.alert('错误', '获取推荐路径失败');
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
+  // 获取用户学习报告并显示报告信息
   const handleGetLearningReport = async () => {
-    setLoading(true);
-    try {
-      const report = await skillService.getUserLearningReport('user1');
+    const report = await getLearningReport('user1');
+    if (report) {
       Alert.alert('学习报告', 
         `用户: ${report.userId}\n` +
         `统计周期: ${report.period}\n\n` +
@@ -107,150 +73,130 @@ const HomeScreen = () => {
         `连续学习: ${report.summary.streakDays}天\n\n` +
         `推荐建议:\n${report.recommendations.join('\n')}`
       );
-    } catch (error) {
-      Alert.alert('错误', '获取学习报告失败');
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
+  // 获取应用中的技能树列表并显示列表信息
   const handleGetSkillTreeList = async () => {
-    setLoading(true);
-    try {
-      const result = await skillService.getSkillTreeList(1, 5);
-      const treeNames = result.trees.map(tree => tree.name).join(', ');
+    const result = await getSkillTreeList(1, 5);
+    if (result) {
+      const treeNames = result.trees.map((tree: any) => tree.name).join(', ');
       Alert.alert('技能树列表', 
         `共 ${result.total} 个技能树\n\n` +
         `前5个技能树:\n${treeNames}`
       );
-    } catch (error) {
-      Alert.alert('错误', '获取技能树列表失败');
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
+  // 渲染生成技能树的标签页内容
   const renderGenerateTab = () => (
     <View style={styles.tabContent}>
       <Text style={styles.tabTitle}>生成技能树</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="请输入你想学习的领域（如：前端开发、后端开发）"
+      <Input
         value={domain}
         onChangeText={setDomain}
+        placeholder="请输入你想学习的领域（如：前端开发、后端开发）"
         onSubmitEditing={handleGenerateSkillTree}
       />
       
-      <TouchableOpacity 
-        style={[styles.button, loading && styles.buttonDisabled]}
+      <Button
+        title={loading ? '生成中...' : '生成技能树'}
         onPress={handleGenerateSkillTree}
         disabled={loading}
-      >
-        <Text style={styles.buttonText}>
-          {loading ? '生成中...' : '生成技能树'}
-        </Text>
-      </TouchableOpacity>
+        fullWidth
+      />
 
-      <TouchableOpacity 
-        style={[styles.secondaryButton, loading && styles.buttonDisabled]}
+      <Button
+        title="获取推荐学习路径"
         onPress={handleGetRecommendedPath}
         disabled={loading || !domain.trim()}
-      >
-        <Text style={styles.secondaryButtonText}>获取推荐学习路径</Text>
-      </TouchableOpacity>
+        variant="secondary"
+        fullWidth
+      />
     </View>
   );
 
+  // 渲染搜索热门领域的标签页内容
   const renderSearchTab = () => (
     <View style={styles.tabContent}>
       <Text style={styles.tabTitle}>搜索热门领域</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="输入关键词搜索热门领域"
+      <Input
         value={searchKeyword}
         onChangeText={setSearchKeyword}
+        placeholder="输入关键词搜索热门领域"
         onSubmitEditing={handleSearchDomains}
       />
       
-      <TouchableOpacity 
-        style={[styles.button, loading && styles.buttonDisabled]}
+      <Button
+        title={loading ? '搜索中...' : '搜索领域'}
         onPress={handleSearchDomains}
         disabled={loading}
-      >
-        <Text style={styles.buttonText}>
-          {loading ? '搜索中...' : '搜索领域'}
-        </Text>
-      </TouchableOpacity>
+        fullWidth
+      />
 
-      <TouchableOpacity 
-        style={[styles.secondaryButton, loading && styles.buttonDisabled]}
+      <Button
+        title="查看技能树列表"
         onPress={handleGetSkillTreeList}
         disabled={loading}
-      >
-        <Text style={styles.secondaryButtonText}>查看技能树列表</Text>
-      </TouchableOpacity>
+        variant="secondary"
+        fullWidth
+      />
     </View>
   );
 
+  // 渲染数据统计的标签页内容
   const renderStatsTab = () => (
     <View style={styles.tabContent}>
       <Text style={styles.tabTitle}>数据统计</Text>
       
-      <TouchableOpacity 
-        style={[styles.button, loading && styles.buttonDisabled]}
+      <Button
+        title={loading ? '加载中...' : '查看应用统计'}
         onPress={handleGetStatistics}
         disabled={loading}
-      >
-        <Text style={styles.buttonText}>
-          {loading ? '加载中...' : '查看应用统计'}
-        </Text>
-      </TouchableOpacity>
+        fullWidth
+      />
 
-      <TouchableOpacity 
-        style={[styles.secondaryButton, loading && styles.buttonDisabled]}
+      <Button
+        title="查看我的学习报告"
         onPress={handleGetLearningReport}
         disabled={loading}
-      >
-        <Text style={styles.secondaryButtonText}>查看我的学习报告</Text>
-      </TouchableOpacity>
+        variant="secondary"
+        fullWidth
+      />
     </View>
   );
 
   return (
-    <ScrollView style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView style={styles.container}>
       <Text style={styles.title}>LearnFlow</Text>
       <Text style={styles.subtitle}>技能树学习助手</Text>
       
       {/* 选项卡导航 */}
       <View style={styles.tabContainer}>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'generate' && styles.activeTab]}
+        <Button
+          title="生成"
           onPress={() => setActiveTab('generate')}
-        >
-          <Text style={[styles.tabText, activeTab === 'generate' && styles.activeTabText]}>
-            生成
-          </Text>
-        </TouchableOpacity>
+          variant={activeTab === 'generate' ? 'primary' : 'outline'}
+          size="small"
+          fullWidth={false}
+        />
         
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'search' && styles.activeTab]}
+        <Button
+          title="搜索"
           onPress={() => setActiveTab('search')}
-        >
-          <Text style={[styles.tabText, activeTab === 'search' && styles.activeTabText]}>
-            搜索
-          </Text>
-        </TouchableOpacity>
+          variant={activeTab === 'search' ? 'primary' : 'outline'}
+          size="small"
+          fullWidth={false}
+        />
         
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'stats' && styles.activeTab]}
+        <Button
+          title="统计"
           onPress={() => setActiveTab('stats')}
-        >
-          <Text style={[styles.tabText, activeTab === 'stats' && styles.activeTabText]}>
-            统计
-          </Text>
-        </TouchableOpacity>
+          variant={activeTab === 'stats' ? 'primary' : 'outline'}
+          size="small"
+          fullWidth={false}
+        />
       </View>
 
       {/* 选项卡内容 */}
@@ -258,16 +204,17 @@ const HomeScreen = () => {
       {activeTab === 'search' && renderSearchTab()}
       {activeTab === 'stats' && renderStatsTab()}
 
-      {loading && (
-        <View style={styles.loadingOverlay}>
-          <Text style={styles.loadingText}>处理中...</Text>
-        </View>
-      )}
-    </ScrollView>
+      <Loading visible={loading} message="处理中..." />
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',

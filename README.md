@@ -1,33 +1,43 @@
 ## 项目结构
 ```
 LearnFlow/
-├── mobile/                    # React Native移动端应用
-│   ├── src/
-│   │   ├── components/        # 可复用组件
+├── mobile/                    # React Native移动端应用（基于Expo）
+│   ├── app/                  # Expo Router页面目录
+│   │   ├── _layout.tsx       # 应用根布局和路由配置
+│   │   ├── index.tsx         # 首页 - 技能树生成和搜索功能
+│   │   └── skill-tree.tsx    # 技能树展示页面
+│   ├── src/                  # 源代码目录
+│   │   ├── components/       # 可复用组件层
 │   │   │   ├── ui/           # 基础UI组件
+│   │   │   │   ├── Button.tsx    # 多功能按钮组件
+│   │   │   │   ├── Input.tsx     # 输入框组件
+│   │   │   │   ├── Loading.tsx   # 加载状态组件
+│   │   │   │   └── index.ts      # UI组件统一导出
 │   │   │   ├── skill-tree/   # 技能树相关组件
-│   │   │   └── common/       # 通用组件
-│   │   ├── screens/          # 页面组件
-│   │   │   ├── HomeScreen.tsx
-│   │   │   ├── SkillTreeScreen.tsx
-│   │   │   └── LinkDetailScreen.tsx
+│   │   │   │   ├── SkillTreeNode.tsx # 技能树节点组件
+│   │   │   │   └── index.ts       # 技能树组件统一导出
+│   │   │   └── index.ts      # 组件统一入口
+│   │   ├── hooks/            # 自定义Hook（业务逻辑层）
+│   │   │   ├── useSkillTree.ts  # 技能树相关逻辑
+│   │   │   ├── useSearch.ts     # 搜索相关逻辑
+│   │   │   ├── useStatistics.ts # 统计相关逻辑
+│   │   │   └── index.ts         # Hook统一导出
 │   │   ├── services/         # API服务层
-│   │   │   ├── api.ts
-│   │   │   └── skillService.ts
-│   │   ├── hooks/            # 自定义Hook
-│   │   │   ├── useSkillTree.ts
-│   │   │   └── useLLM.ts
+│   │   │   └── api.ts        # 网络请求封装
 │   │   ├── types/            # TypeScript类型定义
-│   │   │   ├── skill.ts
-│   │   │   └── api.ts
-│   │   ├── utils/            # 工具函数
-│   │   │   ├── navigation.ts
-│   │   │   └── constants.ts
-│   │   └── navigation/       # 导航配置
-│   │       └── AppNavigator.tsx
-│   ├── assets/               # 静态资源
-│   ├── App.tsx
-│   └── package.json
+│   │   │   └── skill.ts      # 技能树相关类型
+│   │   └── utils/            # 工具函数层
+│   │       ├── constants.ts  # 应用常量配置
+│   │       ├── helpers.ts    # 通用工具函数
+│   │       └── index.ts      # 工具函数统一导出
+│   ├── assets/               # 静态资源目录
+│   │   ├── icons/           # 图标资源
+│   │   ├── images/          # 图片资源
+│   │   └── fonts/           # 字体资源
+│   ├── package.json          # 项目依赖配置
+│   ├── package-lock.json     # 依赖版本锁定
+│   ├── tsconfig.json         # TypeScript编译配置
+│   └── app.json              # Expo应用配置
 ├── server/                   # Node.js后端服务
 │   ├── src/
 │   │   ├── controllers/      # 控制器层

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { SkillNode, SkillTreeRequest } from '../types/skill';
 
-// 使用开发机的实际IP地址，而不是localhost
+// 使用服务机的实际IP地址
 const API_BASE_URL = 'http://192.168.1.109:3001/api';
 
 const api = axios.create({

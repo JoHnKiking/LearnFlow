@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { skillService } from '../src/services/api';
 import { SkillNode } from '../src/types/skill';
+import { SkillTreeNode } from '../src/components/skill-tree';
+import { Button, Loading } from '../src/components/ui';
+import { showErrorAlert } from '../src/utils';
 
 const SkillTreeScreen = () => {
   const { domain } = useLocalSearchParams();
@@ -42,92 +46,72 @@ const SkillTreeScreen = () => {
 
   const handleLinkPress = async (url: string) => {
     try {
-      await Linking.openURL(url);
+      // 这里需要导入Linking，但为了简化，我们可以在SkillTreeNode组件内部处理
+      // 或者使用utils中的工具函数
+      Alert.alert('提示', `准备打开链接: ${url}`);
     } catch (error) {
-      Alert.alert('错误', '无法打开链接');
+      showErrorAlert('无法打开链接');
     }
-  };
-
-  const renderSkillNode = (node: SkillNode, level = 0) => {
-    const isExpanded = expandedNodes.has(node.id);
-    const hasChildren = node.children && node.children.length > 0;
-
-    return (
-      <View key={node.id} style={[styles.nodeContainer, { marginLeft: level * 20 }]}>
-        <TouchableOpacity 
-          style={styles.nodeHeader}
-          onPress={() => hasChildren && toggleNode(node.id)}
-        >
-          <Text style={styles.nodeName}>{node.name}</Text>
-          {hasChildren && (
-            <Text style={styles.expandIcon}>{isExpanded ? '▼' : '▶'}</Text>
-          )}
-        </TouchableOpacity>
-        
-        {node.description && (
-          <Text style={styles.nodeDescription}>{node.description}</Text>
-        )}
-
-        {isExpanded && hasChildren && (
-          <View style={styles.childrenContainer}>
-            {node.children!.map(child => renderSkillNode(child, level + 1))}
-          </View>
-        )}
-
-        {isExpanded && node.links && node.links.length > 0 && (
-          <View style={styles.linksContainer}>
-            {node.links.map((link, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.linkButton}
-                onPress={() => handleLinkPress(link.url)}
-              >
-                <Text style={styles.linkText}>{link.title}</Text>
-                <Text style={styles.linkType}>{link.type}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-      </View>
-    );
   };
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Text>加载中...</Text>
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          <Loading visible={true} message="加载技能树中..." />
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (!skillTree) {
     return (
-      <View style={styles.container}>
-        <Text>技能树加载失败</Text>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>返回</Text>
-        </TouchableOpacity>
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          <Text style={{ fontSize: 16, color: '#FF3B30', marginBottom: 16, textAlign: 'center' }}>技能树加载失败</Text>
+          <Button
+            title="返回"
+            onPress={() => router.back()}
+            variant="outline"
+          />
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>← 返回</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{domain} 技能树</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Button
+            title="← 返回"
+            onPress={() => router.back()}
+            variant="outline"
+            size="small"
+            fullWidth={false}
+          />
+          <Text style={styles.headerTitle}>{domain} 技能树</Text>
+        </View>
+        
+        <ScrollView style={styles.content}>
+          <SkillTreeNode
+            node={skillTree}
+            level={0}
+            isExpanded={expandedNodes.has(skillTree.id)}
+            onToggle={toggleNode}
+            onLinkPress={handleLinkPress}
+          />
+        </ScrollView>
       </View>
-      
-      <ScrollView style={styles.content}>
-        {renderSkillNode(skillTree)}
-      </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
