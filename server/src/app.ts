@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import skillRoutes from './routes/skillRoutes';
+import { skillRoutes } from './routes';
 
 const app = express();
 const PORT = process.env.PORT || 3001;

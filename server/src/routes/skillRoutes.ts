@@ -10,7 +10,7 @@ import {
   searchPopularDomains,
   getRecommendedPath,
   getUserLearningReport
-} from '../controllers/skillController';
+} from '../controllers';
 
 const router = express.Router();
 

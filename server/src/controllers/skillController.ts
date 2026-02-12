@@ -3,7 +3,7 @@ import {
   SkillTreeRequest, 
   SkillTreeListRequest, 
   SaveSkillTreeRequest 
-} from '../types/skill';
+} from '../types';
 import { 
   generateMockSkillTree, 
   getSkillTreeList as getSkillTreeListService, 
@@ -15,7 +15,7 @@ import {
   searchPopularDomains as searchPopularDomainsService,
   getRecommendedPath as getRecommendedPathService,
   getUserLearningReport as getUserLearningReportService
-} from '../services/skillService';
+} from '../services';
 
 // 生成技能树
 export const generateSkillTree = async (req: Request, res: Response) => {
