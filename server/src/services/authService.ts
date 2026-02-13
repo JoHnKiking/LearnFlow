@@ -47,6 +47,67 @@ export class AuthService {
     return this.generateAuthResponse(user, deviceId, deviceType, deviceName);
   }
 
+  // 用户注册
+  static async registerUser(request: CreateUserRequest): Promise<AuthResponse> {
+    const { username, phone, password } = request;
+    
+    if (!username || !phone || !password) {
+      throw new Error('用户名、手机号和密码不能为空');
+    }
+
+    if (password.length < 6) {
+      throw new Error('密码长度至少6位');
+    }
+
+    const connection = await DatabaseConnection.getConnection();
+    
+    // 检查手机号是否已存在
+    const [existingUsers] = await connection.execute(
+      'SELECT id FROM users WHERE phone = ?',
+      [phone]
+    );
+    
+    if ((existingUsers as any[]).length > 0) {
+      throw new Error('手机号已被注册');
+    }
+
+    // 检查用户名是否已存在
+    const [existingUsernames] = await connection.execute(
+      'SELECT id FROM users WHERE username = ?',
+      [username]
+    );
+    
+    if ((existingUsernames as any[]).length > 0) {
+      throw new Error('用户名已被使用');
+    }
+
+    // 密码加密
+    const saltRounds = 12;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+
+    // 创建用户
+    const [result] = await connection.execute(
+      `INSERT INTO users (username, phone, password_hash, status, created_at, updated_at) 
+       VALUES (?, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      [username, phone, passwordHash]
+    );
+
+    const insertResult = result as any;
+    const userId = insertResult.insertId;
+
+    // 获取新创建的用户
+    const [rows] = await connection.execute(
+      'SELECT * FROM users WHERE id = ?',
+      [userId]
+    );
+
+    const user = (rows as any[])[0];
+    const mappedUser = this.mapUserFromDB(user);
+
+    // 生成认证响应
+    return this.generateAuthResponse(mappedUser, 'default-device', 'web', '注册设备');
+  }
+
   // 微信登录
   static async wechatLogin(request: LoginRequest): Promise<AuthResponse> {
     const { wechatCode, deviceId, deviceType, deviceName } = request;

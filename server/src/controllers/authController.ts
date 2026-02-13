@@ -1,8 +1,38 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/authService';
-import { LoginRequest } from '../models';
+import { LoginRequest, CreateUserRequest } from '../models';
 
 export class AuthController {
+  // 用户注册
+  static async register(req: Request, res: Response) {
+    try {
+      const registerRequest: CreateUserRequest = req.body;
+      
+      // 验证必填字段
+      if (!registerRequest.username || !registerRequest.phone || !registerRequest.password) {
+        return res.status(400).json({ error: '用户名、手机号和密码不能为空' });
+      }
+      
+      if (registerRequest.password.length < 6) {
+        return res.status(400).json({ error: '密码长度至少6位' });
+      }
+      
+      // 调用注册服务
+      const authResponse = await AuthService.registerUser(registerRequest);
+      
+      res.json({
+        success: true,
+        data: authResponse
+      });
+    } catch (error) {
+      console.error('注册失败:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : '注册失败'
+      });
+    }
+  }
+
   // 用户登录
   static async login(req: Request, res: Response) {
     try {

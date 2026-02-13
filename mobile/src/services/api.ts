@@ -1,8 +1,13 @@
 import axios from 'axios';
-import { SkillNode, SkillTreeRequest } from '../types/skill';
-
-// 使用服务机的实际IP地址
-const API_BASE_URL = 'http://192.168.1.109:3001/api';
+import { 
+  SkillNode, 
+  SkillTreeRequest,
+  CreateUserRequest, 
+  LoginRequest, 
+  UserResponse,
+  AuthResponse 
+} from '../types/skill';
+import { API_BASE_URL } from '../utils/constants';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -32,6 +37,37 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+export const authService = {
+  // 用户注册
+  register: async (request: CreateUserRequest): Promise<AuthResponse> => {
+    const response = await api.post('/auth/register', request);
+    return response.data.data;
+  },
+
+  // 用户登录
+  login: async (request: LoginRequest): Promise<AuthResponse> => {
+    const response = await api.post('/auth/login', request);
+    return response.data.data;
+  },
+
+  // 刷新令牌
+  refreshToken: async (refreshToken: string, deviceId: string): Promise<AuthResponse> => {
+    const response = await api.post('/auth/refresh-token', { refreshToken, deviceId });
+    return response.data.data;
+  },
+
+  // 验证令牌
+  verifyToken: async (token: string): Promise<any> => {
+    const response = await api.post('/auth/verify-token', { token });
+    return response.data.data;
+  },
+
+  // 用户登出
+  logout: async (): Promise<void> => {
+    await api.post('/auth/logout');
+  },
+};
 
 export const skillService = {
   // 生成技能树
