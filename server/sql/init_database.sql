@@ -6,16 +6,26 @@ CREATE DATABASE IF NOT EXISTS learnflow CHARACTER SET utf8mb4 COLLATE utf8mb4_un
 
 USE learnflow;
 
--- 用户表
+-- 用户表（支持微信/手机号双登录）
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
+    username VARCHAR(50) UNIQUE,
+    email VARCHAR(100) UNIQUE,
+    phone VARCHAR(20) UNIQUE COMMENT '手机号',
+    wechat_openid VARCHAR(100) UNIQUE COMMENT '微信OpenID',
+    wechat_unionid VARCHAR(100) UNIQUE COMMENT '微信UnionID',
+    password_hash VARCHAR(255) COMMENT '密码哈希（手机号登录用）',
+    nickname VARCHAR(100) COMMENT '用户昵称',
+    avatar_url VARCHAR(500) COMMENT '头像URL',
+    last_login_at TIMESTAMP NULL COMMENT '最后登录时间',
+    login_count INT DEFAULT 0 COMMENT '登录次数',
+    status ENUM('active', 'inactive', 'banned') DEFAULT 'active' COMMENT '用户状态',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_username (username),
-    INDEX idx_email (email)
+    INDEX idx_phone (phone),
+    INDEX idx_wechat_openid (wechat_openid),
+    INDEX idx_wechat_unionid (wechat_unionid),
+    INDEX idx_status (status)
 );
 
 -- 技能树表
@@ -66,6 +76,22 @@ CREATE TABLE IF NOT EXISTS popular_domains (
     INDEX idx_popularity (search_count, generated_count)
 );
 
+-- 设备登录记录表（用于记住登录状态）
+CREATE TABLE IF NOT EXISTS device_sessions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    device_id VARCHAR(100) NOT NULL COMMENT '设备唯一标识',
+    device_type ENUM('ios', 'android', 'web') NOT NULL COMMENT '设备类型',
+    device_name VARCHAR(100) COMMENT '设备名称',
+    last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '最后活跃时间',
+    expires_at TIMESTAMP NOT NULL COMMENT '会话过期时间',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_device (user_id, device_id),
+    INDEX idx_expires (expires_at)
+);
+
 -- 插入初始热门领域数据
 INSERT IGNORE INTO popular_domains (domain, search_count, generated_count) VALUES
 ('前端开发', 100, 85),
@@ -77,9 +103,9 @@ INSERT IGNORE INTO popular_domains (domain, search_count, generated_count) VALUE
 ('云计算', 70, 55),
 ('区块链', 50, 35);
 
--- 创建测试用户（密码：test123）
-INSERT IGNORE INTO users (username, email, password_hash) VALUES
-('testuser', 'test@learnflow.com', '$2b$10$examplehashedpassword');
+-- 创建测试用户（支持多种登录方式）
+INSERT IGNORE INTO users (username, email, phone, password_hash, nickname) VALUES
+('testuser', 'test@learnflow.com', '13800138000', '$2b$10$examplehashedpassword', '测试用户');
 
 -- 查看表结构
 SHOW TABLES;
