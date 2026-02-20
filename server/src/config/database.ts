@@ -1,4 +1,7 @@
 import mysql from 'mysql2/promise';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 export interface DatabaseConfig {
   host: string;
@@ -9,7 +12,7 @@ export interface DatabaseConfig {
 }
 
 export const dbConfig: DatabaseConfig = {
-  host: process.env.DB_HOST || 'localhost',
+  host: process.env.DB_HOST || '127.0.0.1', 
   port: parseInt(process.env.DB_PORT || '3306'),
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
@@ -21,8 +24,19 @@ export class DatabaseConnection {
 
   static async getConnection(): Promise<mysql.Connection> {
     if (!this.connection) {
-      this.connection = await mysql.createConnection(dbConfig);
-      console.log('MySQL数据库连接成功');
+      try {
+        this.connection = await mysql.createConnection(dbConfig);
+        console.log('MySQL数据库连接成功');
+      } catch (error) {
+        console.error('MySQL数据库连接失败:', error);
+        console.error('连接配置:', {
+          host: dbConfig.host,
+          port: dbConfig.port,
+          user: dbConfig.user,
+          database: dbConfig.database
+        });
+        throw new Error(`数据库连接失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      }
     }
     return this.connection;
   }

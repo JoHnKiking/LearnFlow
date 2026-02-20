@@ -20,13 +20,18 @@ export class AuthService {
 
   // 手机号登录
   static async phoneLogin(request: LoginRequest): Promise<AuthResponse> {
+    const startTime = Date.now();
     const { phone, password, deviceId, deviceType, deviceName } = request;
     
+    console.log(`[AuthService] 开始用户登录流程 - 手机号: ${phone}`);
+    
     if (!phone || !password) {
+      console.log(`[AuthService] 登录验证失败 - 手机号或密码为空`);
       throw new Error('手机号和密码不能为空');
     }
 
     // 查找用户
+    console.log(`[AuthService] 查询数据库 - 手机号: ${phone}`);
     const connection = await DatabaseConnection.getConnection();
     const [rows] = await connection.execute(
       'SELECT * FROM users WHERE phone = ? AND status = "active"',
@@ -35,24 +40,36 @@ export class AuthService {
     
     const user = (rows as any[])[0];
     if (!user) {
+      console.log(`[AuthService] 登录失败 - 用户不存在: ${phone}`);
       throw new Error('用户不存在');
     }
 
+    console.log(`[AuthService] 用户查询成功 - 用户ID: ${user.id}, 用户名: ${user.username}`);
+
     // 验证密码
+    console.log(`[AuthService] 开始密码验证...`);
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {
+      console.log(`[AuthService] 登录失败 - 密码错误: ${phone}`);
       throw new Error('密码错误');
     }
 
-    return this.generateAuthResponse(user, deviceId, deviceType, deviceName);
+    console.log(`[AuthService] 密码验证成功`);
+    
+    const authResponse = await this.generateAuthResponse(user, deviceId, deviceType, deviceName);
+    
+    const duration = Date.now() - startTime;
+    console.log(`[AuthService] 用户登录流程完成 - 手机号: ${phone}, 总耗时: ${duration}ms`);
+    
+    return authResponse;
   }
 
-  // 用户注册（沙盒模式 - 内存模拟）
+  // 用户注册（数据库存储）
   static async registerUser(request: CreateUserRequest): Promise<AuthResponse> {
     const startTime = Date.now();
     const { username, phone, password } = request;
     
-    console.log(`[AuthService] 开始用户注册流程（沙盒模式） - 用户名: ${username}, 手机号: ${phone}`);
+    console.log(`[AuthService] 开始用户注册流程 - 用户名: ${username}, 手机号: ${phone}`);
     
     if (!username || !phone || !password) {
       console.log(`[AuthService] 注册验证失败 - 缺少必填字段`);
@@ -64,27 +81,67 @@ export class AuthService {
       throw new Error('密码长度至少6位');
     }
 
-    // 沙盒模式：内存模拟用户数据
-    console.log(`[AuthService] 沙盒模式 - 使用内存模拟用户数据`);
+    console.log(`[AuthService] 获取数据库连接...`);
+    const connection = await DatabaseConnection.getConnection();
     
-    // 模拟用户数据
-    const mockUser = {
-      id: Date.now(), // 使用时间戳作为模拟ID
-      username: username,
-      phone: phone,
-      status: 'active',
-      created_at: new Date(),
-      updated_at: new Date()
-    };
+    // 检查手机号是否已存在
+    console.log(`[AuthService] 检查手机号是否已存在: ${phone}`);
+    const [existingUsers] = await connection.execute(
+      'SELECT id FROM users WHERE phone = ?',
+      [phone]
+    );
+    
+    if ((existingUsers as any[]).length > 0) {
+      console.log(`[AuthService] 手机号已被注册: ${phone}`);
+      throw new Error('手机号已被注册');
+    }
 
-    console.log(`[AuthService] 模拟用户创建成功 - 用户ID: ${mockUser.id}`);
+    // 检查用户名是否已存在
+    console.log(`[AuthService] 检查用户名是否已存在: ${username}`);
+    const [existingUsernames] = await connection.execute(
+      'SELECT id FROM users WHERE username = ?',
+      [username]
+    );
+    
+    if ((existingUsernames as any[]).length > 0) {
+      console.log(`[AuthService] 用户名已被使用: ${username}`);
+      throw new Error('用户名已被使用');
+    }
+
+    // 密码加密
+    console.log(`[AuthService] 开始密码加密...`);
+    const saltRounds = 12;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+    console.log(`[AuthService] 密码加密完成`);
+
+    // 创建用户
+    console.log(`[AuthService] 开始创建用户记录...`);
+    const [result] = await connection.execute(
+      `INSERT INTO users (username, phone, password_hash, status, created_at, updated_at) 
+       VALUES (?, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      [username, phone, passwordHash]
+    );
+
+    const insertResult = result as any;
+    const userId = insertResult.insertId;
+    console.log(`[AuthService] 用户创建成功 - 用户ID: ${userId}`);
+
+    // 获取新创建的用户
+    console.log(`[AuthService] 获取新创建的用户信息...`);
+    const [rows] = await connection.execute(
+      'SELECT * FROM users WHERE id = ?',
+      [userId]
+    );
+
+    const user = (rows as any[])[0];
+    const mappedUser = this.mapUserFromDB(user);
 
     // 生成认证响应
     console.log(`[AuthService] 生成认证令牌...`);
-    const authResponse = this.generateAuthResponse(mockUser as any, 'default-device', 'web', '注册设备');
+    const authResponse = this.generateAuthResponse(mappedUser, 'default-device', 'web', '注册设备');
     
     const duration = Date.now() - startTime;
-    console.log(`[AuthService] 用户注册流程完成（沙盒模式） - 用户名: ${username}, 总耗时: ${duration}ms`);
+    console.log(`[AuthService] 用户注册流程完成 - 用户名: ${username}, 总耗时: ${duration}ms`);
     
     return authResponse;
   }
@@ -173,7 +230,7 @@ export class AuthService {
     deviceType: 'ios' | 'android' | 'web',
     deviceName?: string
   ): Promise<AuthResponse> {
-    console.log(`[AuthService] 生成认证令牌（沙盒模式） - 用户ID: ${user.id}`);
+    console.log(`[AuthService] 生成认证令牌 - 用户ID: ${user.id}`);
     
     // 生成JWT令牌
     const accessToken = jwt.sign(
@@ -188,8 +245,18 @@ export class AuthService {
       { expiresIn: this.REFRESH_TOKEN_EXPIRES_IN as any }
     );
 
-    // 沙盒模式：跳过数据库操作
-    console.log(`[AuthService] 沙盒模式 - 跳过设备会话和登录信息更新`);
+    // 创建设备会话
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30天
+    await DatabaseService.createDeviceSession({
+      userId: user.id,
+      deviceId,
+      deviceType,
+      deviceName,
+      expiresAt
+    });
+
+    // 更新用户登录信息
+    await DatabaseService.updateUserLoginInfo(user.id);
 
     return {
       user: this.mapToUserResponse(user),

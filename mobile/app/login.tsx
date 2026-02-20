@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Button, Input, Loading } from '../src/components/ui';
 import { COLORS, SPACING, showErrorAlert } from '../src/utils';
+import { authService } from '../src/services/api';
+import { saveAuthData } from '../src/utils/auth';
 
 const LoginScreen = () => {
   const [loginType, setLoginType] = useState<'phone' | 'wechat'>('phone');
@@ -19,15 +21,22 @@ const LoginScreen = () => {
 
     setLoading(true);
     try {
-      // 这里调用登录API
-      // const user = await authService.login({ type: 'phone', phone, password });
+      // 调用真实登录API
+      const authResponse = await authService.login({ 
+        phone, 
+        password,
+        deviceId: 'mobile-device',
+        type: 'phone',
+        deviceType: 'android',
+        deviceName: '移动设备'
+      });
       
-      // 模拟登录成功
-      setTimeout(() => {
-        setLoading(false);
-        Alert.alert('登录成功', '欢迎回来！');
-        router.replace('/home');
-      }, 1000);
+      // 保存认证信息
+      await saveAuthData(authResponse);
+      
+      setLoading(false);
+      Alert.alert('登录成功', '欢迎回来！');
+      router.replace('/(tabs)');
     } catch (error) {
       setLoading(false);
       showErrorAlert('登录失败', error as string);
@@ -44,7 +53,7 @@ const LoginScreen = () => {
       setTimeout(() => {
         setLoading(false);
         Alert.alert('登录成功', '欢迎回来！');
-        router.replace('/home');
+        router.replace('/(tabs)');
       }, 1000);
     } catch (error) {
       setLoading(false);

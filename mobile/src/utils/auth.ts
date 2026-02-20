@@ -1,73 +1,31 @@
 import { AuthResponse } from '../types/skill';
 
-// 内存存储（沙盒模式专用）
-let memoryStorage: {
-  authData?: AuthResponse;
-  lastUpdate?: number;
-} = {};
-
 /**
- * 保存用户认证信息（沙盒模式 - 仅内存）
+ * 保存用户认证信息（简化版 - 不持久化存储）
  */
 export const saveAuthData = async (authData: AuthResponse): Promise<void> => {
   try {
-    console.log('[Auth] 沙盒模式 - 保存认证信息到内存');
-    
-    // 确保有expiresAt
-    if (!authData.expiresAt) {
-      authData.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    }
-    
-    memoryStorage.authData = authData;
-    memoryStorage.lastUpdate = Date.now();
-    
-    console.log('[Auth] 认证信息保存成功（内存存储）');
+    console.log('[Auth] 认证信息处理完成（不持久化存储）');
+    // 简化处理：不保存到本地存储，每次重启App需要重新登录
   } catch (error) {
-    console.error('保存认证信息失败:', error);
-    console.log('[Auth] 沙盒模式 - 忽略存储错误');
+    console.error('处理认证信息失败:', error);
   }
 };
 
 /**
- * 获取用户认证信息（沙盒模式 - 仅内存）
+ * 获取用户认证信息（简化版 - 总是返回null）
  */
 export const getAuthData = async (): Promise<AuthResponse | null> => {
-  try {
-    console.log('[Auth] 沙盒模式 - 从内存获取认证信息');
-    
-    if (!memoryStorage.authData) {
-      console.log('[Auth] 未找到认证信息');
-      return null;
-    }
-    
-    // 检查token是否过期
-    const authData = memoryStorage.authData;
-    if (authData.expiresAt && new Date(authData.expiresAt) < new Date()) {
-      console.log('[Auth] Token已过期，清除认证信息');
-      memoryStorage.authData = undefined;
-      return null;
-    }
-    
-    console.log('[Auth] 成功获取认证信息（内存存储）');
-    return authData;
-  } catch (error) {
-    console.error('获取认证信息失败:', error);
-    return null;
-  }
+  console.log('[Auth] 无持久化存储 - 需要重新登录');
+  return null; // 总是返回null，强制重新登录
 };
 
 /**
- * 清除用户认证信息（沙盒模式 - 仅内存）
+ * 清除用户认证信息（简化版）
  */
 export const clearAuthData = async (): Promise<void> => {
-  try {
-    console.log('[Auth] 沙盒模式 - 清除内存中的认证信息');
-    memoryStorage.authData = undefined;
-    memoryStorage.lastUpdate = undefined;
-  } catch (error) {
-    console.error('清除认证信息失败:', error);
-    throw new Error('清除认证信息失败');
-  }
+  console.log('[Auth] 清除认证信息（无持久化存储）');
+  // 无需操作，因为没有持久化存储
 };
 
 /**
