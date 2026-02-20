@@ -1,11 +1,27 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Button } from '../../src/components/ui';
 import { COLORS, SPACING } from '../../src/utils/constants';
+import { getCurrentUser } from '../../src/utils/auth';
 
 const ProfileScreen = () => {
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const currentUser = await getCurrentUser();
+        setUser(currentUser);
+      } catch (error) {
+        console.error('加载用户数据失败:', error);
+      }
+    };
+
+    loadUserData();
+  }, []);
+
   const handleViewSkillTrees = () => {
     Alert.alert('功能开发中', '查看我的技能树功能即将推出');
   };
@@ -36,10 +52,16 @@ const ProfileScreen = () => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>L</Text>
+            <Text style={styles.avatarText}>
+              {user?.username ? user.username.charAt(0).toUpperCase() : 'L'}
+            </Text>
           </View>
-          <Text style={styles.username}>LearnFlow用户</Text>
-          <Text style={styles.userInfo}>手机号: 138****8888</Text>
+          <Text style={styles.username}>
+            {user?.username || 'LearnFlow用户'}
+          </Text>
+          <Text style={styles.userInfo}>
+            手机号: {user?.phone ? `${user.phone.slice(0,3)}****${user.phone.slice(-4)}` : '未设置'}
+          </Text>
         </View>
 
         <View style={styles.statsContainer}>

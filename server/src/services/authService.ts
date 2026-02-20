@@ -47,65 +47,46 @@ export class AuthService {
     return this.generateAuthResponse(user, deviceId, deviceType, deviceName);
   }
 
-  // 用户注册
+  // 用户注册（沙盒模式 - 内存模拟）
   static async registerUser(request: CreateUserRequest): Promise<AuthResponse> {
+    const startTime = Date.now();
     const { username, phone, password } = request;
     
+    console.log(`[AuthService] 开始用户注册流程（沙盒模式） - 用户名: ${username}, 手机号: ${phone}`);
+    
     if (!username || !phone || !password) {
+      console.log(`[AuthService] 注册验证失败 - 缺少必填字段`);
       throw new Error('用户名、手机号和密码不能为空');
     }
 
     if (password.length < 6) {
+      console.log(`[AuthService] 注册验证失败 - 密码长度不足`);
       throw new Error('密码长度至少6位');
     }
 
-    const connection = await DatabaseConnection.getConnection();
+    // 沙盒模式：内存模拟用户数据
+    console.log(`[AuthService] 沙盒模式 - 使用内存模拟用户数据`);
     
-    // 检查手机号是否已存在
-    const [existingUsers] = await connection.execute(
-      'SELECT id FROM users WHERE phone = ?',
-      [phone]
-    );
-    
-    if ((existingUsers as any[]).length > 0) {
-      throw new Error('手机号已被注册');
-    }
+    // 模拟用户数据
+    const mockUser = {
+      id: Date.now(), // 使用时间戳作为模拟ID
+      username: username,
+      phone: phone,
+      status: 'active',
+      created_at: new Date(),
+      updated_at: new Date()
+    };
 
-    // 检查用户名是否已存在
-    const [existingUsernames] = await connection.execute(
-      'SELECT id FROM users WHERE username = ?',
-      [username]
-    );
-    
-    if ((existingUsernames as any[]).length > 0) {
-      throw new Error('用户名已被使用');
-    }
-
-    // 密码加密
-    const saltRounds = 12;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
-
-    // 创建用户
-    const [result] = await connection.execute(
-      `INSERT INTO users (username, phone, password_hash, status, created_at, updated_at) 
-       VALUES (?, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-      [username, phone, passwordHash]
-    );
-
-    const insertResult = result as any;
-    const userId = insertResult.insertId;
-
-    // 获取新创建的用户
-    const [rows] = await connection.execute(
-      'SELECT * FROM users WHERE id = ?',
-      [userId]
-    );
-
-    const user = (rows as any[])[0];
-    const mappedUser = this.mapUserFromDB(user);
+    console.log(`[AuthService] 模拟用户创建成功 - 用户ID: ${mockUser.id}`);
 
     // 生成认证响应
-    return this.generateAuthResponse(mappedUser, 'default-device', 'web', '注册设备');
+    console.log(`[AuthService] 生成认证令牌...`);
+    const authResponse = this.generateAuthResponse(mockUser as any, 'default-device', 'web', '注册设备');
+    
+    const duration = Date.now() - startTime;
+    console.log(`[AuthService] 用户注册流程完成（沙盒模式） - 用户名: ${username}, 总耗时: ${duration}ms`);
+    
+    return authResponse;
   }
 
   // 微信登录
@@ -192,6 +173,8 @@ export class AuthService {
     deviceType: 'ios' | 'android' | 'web',
     deviceName?: string
   ): Promise<AuthResponse> {
+    console.log(`[AuthService] 生成认证令牌（沙盒模式） - 用户ID: ${user.id}`);
+    
     // 生成JWT令牌
     const accessToken = jwt.sign(
       { userId: user.id, type: 'access' },
@@ -205,18 +188,8 @@ export class AuthService {
       { expiresIn: this.REFRESH_TOKEN_EXPIRES_IN as any }
     );
 
-    // 创建设备会话
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30天
-    await DatabaseService.createDeviceSession({
-      userId: user.id,
-      deviceId,
-      deviceType,
-      deviceName,
-      expiresAt
-    });
-
-    // 更新用户登录信息
-    await DatabaseService.updateUserLoginInfo(user.id);
+    // 沙盒模式：跳过数据库操作
+    console.log(`[AuthService] 沙盒模式 - 跳过设备会话和登录信息更新`);
 
     return {
       user: this.mapToUserResponse(user),
