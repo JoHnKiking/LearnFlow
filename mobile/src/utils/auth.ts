@@ -69,27 +69,15 @@ export const checkAuthStatus = async (): Promise<boolean> => {
 };
 
 /**
- * 获取当前用户信息（沙盒模式 - 仅内存）
+ * 获取当前用户信息
  */
 export const getCurrentUser = async () => {
-  try {
-    console.log('[Auth] 沙盒模式 - 从内存获取用户信息');
-    return memoryStorage.authData?.user || null;
-  } catch (error) {
-    console.error('获取用户信息失败:', error);
-    return null;
-  }
+  return null; 
 };
 
 /**
- * 获取访问令牌（沙盒模式 - 仅内存）
+ * 获取访问令牌
  */
 export const getAccessToken = async (): Promise<string | null> => {
-  try {
-    console.log('[Auth] 沙盒模式 - 从内存获取访问令牌');
-    return memoryStorage.authData?.accessToken || null;
-  } catch (error) {
-    console.error('获取访问令牌失败:', error);
-    return null;
-  }
+  return null; 
 };
