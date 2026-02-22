@@ -245,15 +245,28 @@ export class AuthService {
       { expiresIn: this.REFRESH_TOKEN_EXPIRES_IN as any }
     );
 
-    // 创建设备会话
+    // 检查是否已存在设备会话
+    const existingSession = await DatabaseService.getDeviceSession(user.id, deviceId);
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30天
-    await DatabaseService.createDeviceSession({
-      userId: user.id,
-      deviceId,
-      deviceType,
-      deviceName,
-      expiresAt
-    });
+    
+    if (existingSession) {
+      // 更新现有会话的过期时间
+      console.log(`[AuthService] 更新现有设备会话 - 会话ID: ${existingSession.id}`);
+      await DatabaseService.updateDeviceSession(existingSession.id, {
+        expiresAt,
+        lastActiveAt: new Date()
+      });
+    } else {
+      // 创建新的设备会话
+      console.log(`[AuthService] 创建设备会话 - 用户ID: ${user.id}, 设备ID: ${deviceId}`);
+      await DatabaseService.createDeviceSession({
+        userId: user.id,
+        deviceId,
+        deviceType,
+        deviceName,
+        expiresAt
+      });
+    }
 
     // 更新用户登录信息
     await DatabaseService.updateUserLoginInfo(user.id);

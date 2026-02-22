@@ -24,17 +24,17 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS device_sessions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    devic    devic    devic    devic    devic    devic    deos'    devic    devic    d NULL,
-    device_name VARCHAR(100),
-    access_token VARCHAR(500),
-    refresh_token VARCHAR(500),
-    expires_at TIMESTAMP NOT NULL,
+    device_id VARCHAR(100) NOT NULL COMMENT '设备唯一标识',
+    device_type ENUM('ios', 'android', 'web') NOT NULL COMMENT '设备类型',
+    device_name VARCHAR(100) COMMENT '设备名称',
+    last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '最后活跃时间',
+    expires_at TIMESTAMP NOT NULL COMMENT '会话过期时间',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE KEY unique_user_device (user_id, device_id),
-    INDEX idx_user_id (user_id),
-    INDEX idx_device_id (device_id)
+    INDEX idx_user_device (user_id, device_id),
+    INDEX idx_expires (expires_at)
 );
 
 -- 技能树表
