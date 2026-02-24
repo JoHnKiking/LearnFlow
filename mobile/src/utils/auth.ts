@@ -1,31 +1,60 @@
 import { AuthResponse } from '../types/skill';
 
+// 使用内存存储作为临时解决方案，避免Expo Go环境下的权限问题
+let memoryStorage: { [key: string]: string } = {};
+const AUTH_STORAGE_KEY = 'auth_data';
+
 /**
- * 保存用户认证信息（简化版 - 不持久化存储）
+ * 保存用户认证信息到内存存储（临时解决方案）
  */
 export const saveAuthData = async (authData: AuthResponse): Promise<void> => {
   try {
-    console.log('[Auth] 认证信息处理完成（不持久化存储）');
-    // 简化处理：不保存到本地存储，每次重启App需要重新登录
+    memoryStorage[AUTH_STORAGE_KEY] = JSON.stringify(authData);
+    console.log('[Auth] 认证信息保存到内存成功');
   } catch (error) {
-    console.error('处理认证信息失败:', error);
+    console.error('保存认证信息失败:', error);
   }
 };
 
 /**
- * 获取用户认证信息（简化版 - 总是返回null）
+ * 从内存存储获取用户认证信息
  */
 export const getAuthData = async (): Promise<AuthResponse | null> => {
-  console.log('[Auth] 无持久化存储 - 需要重新登录');
-  return null; // 总是返回null，强制重新登录
+  try {
+    const authDataString = memoryStorage[AUTH_STORAGE_KEY];
+    if (authDataString) {
+      const authData = JSON.parse(authDataString);
+      // 转换日期字符串为Date对象
+      if (authData.user && authData.user.createdAt) {
+        authData.user.createdAt = new Date(authData.user.createdAt);
+      }
+      if (authData.user && authData.user.lastLoginAt) {
+        authData.user.lastLoginAt = new Date(authData.user.lastLoginAt);
+      }
+      if (authData.expiresAt) {
+        authData.expiresAt = new Date(authData.expiresAt);
+      }
+      console.log('[Auth] 从内存获取认证信息成功');
+      return authData;
+    }
+    console.log('[Auth] 未找到认证信息');
+    return null;
+  } catch (error) {
+    console.error('获取认证信息失败:', error);
+    return null;
+  }
 };
 
 /**
- * 清除用户认证信息（简化版）
+ * 清除用户认证信息
  */
 export const clearAuthData = async (): Promise<void> => {
-  console.log('[Auth] 清除认证信息（无持久化存储）');
-  // 无需操作，因为没有持久化存储
+  try {
+    delete memoryStorage[AUTH_STORAGE_KEY];
+    console.log('[Auth] 认证信息从内存清除成功');
+  } catch (error) {
+    console.error('清除认证信息失败:', error);
+  }
 };
 
 /**
@@ -72,12 +101,26 @@ export const checkAuthStatus = async (): Promise<boolean> => {
  * 获取当前用户信息
  */
 export const getCurrentUser = async () => {
-  return null; 
+  try {
+    const authData = await getAuthData();
+    console.log('[Auth] 当前用户信息:', authData?.user || '无');
+    return authData?.user || null;
+  } catch (error) {
+    console.error('获取当前用户信息失败:', error);
+    return null;
+  }
 };
 
 /**
  * 获取访问令牌
  */
 export const getAccessToken = async (): Promise<string | null> => {
-  return null; 
+  try {
+    const authData = await getAuthData();
+    console.log('[Auth] 获取访问令牌:', authData?.accessToken || '无');
+    return authData?.accessToken || null;
+  } catch (error) {
+    console.error('获取访问令牌失败:', error);
+    return null;
+  }
 };
