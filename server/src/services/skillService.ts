@@ -1,5 +1,6 @@
 import { SkillNode, SkillTreeListRequest, UserProgress, SkillTreeStats, SaveSkillTreeRequest } from '../types/skill';
 import { DatabaseService } from './databaseService';
+import { LLMService, LLMProvider } from './llmService';
 
 // 预置技能树数据（用于生成新技能树）
 const mockSkillTrees: Record<string, SkillNode> = {
@@ -74,12 +75,52 @@ const mockSkillTrees: Record<string, SkillNode> = {
   }
 };
 
-// 生成技能树（使用模拟数据，但保存到数据库）
+// 初始化LLM服务（根据环境变量配置）
+const initLLMService = (): LLMService | null => {
+  const apiKey = process.env.LLM_API_KEY;
+  const provider = process.env.LLM_PROVIDER as LLMProvider;
+  
+  if (!apiKey || !provider) {
+    console.warn('LLM service not configured. Using mock data instead.');
+    return null;
+  }
+  
+  return new LLMService({
+    provider,
+    apiKey,
+    baseURL: process.env.LLM_BASE_URL,
+    model: process.env.LLM_MODEL
+  });
+};
+
+const llmService = initLLMService();
+
+// 生成技能树（优先使用LLM，失败时回退到模拟数据）
 export const generateMockSkillTree = async (domain: string, level: string = 'beginner'): Promise<SkillNode> => {
   // 更新热门领域统计
   await DatabaseService.incrementDomainGeneratedCount(domain);
   
-  // 从模拟数据获取或生成新技能树
+  // 优先使用LLM生成技能树
+  if (llmService) {
+    try {
+      console.log(`Generating skill tree for domain: ${domain}, level: ${level} using LLM`);
+      const skillTree = await llmService.generateSkillTree({
+        domain,
+        level: level as 'beginner' | 'intermediate' | 'advanced',
+        language: '中文',
+        maxDepth: 4,
+        includeResources: true
+      });
+      
+      console.log('Skill tree generated successfully by LLM');
+      return skillTree;
+    } catch (error) {
+      console.warn('LLM generation failed, falling back to mock data:', error);
+    }
+  }
+  
+  // 回退到模拟数据
+  console.log(`Using mock data for domain: ${domain}`);
   let skillTree = mockSkillTrees[domain];
   
   if (!skillTree) {
