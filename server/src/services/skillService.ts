@@ -116,11 +116,16 @@ export const generateMockSkillTree = async (domain: string, level: string = 'beg
       return skillTree;
     } catch (error) {
       console.warn('LLM generation failed, falling back to mock data:', error);
+      console.error('LLM error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
     }
   }
   
   // 回退到模拟数据
   console.log(`Using mock data for domain: ${domain}`);
+  console.log('Available mock domains:', Object.keys(mockSkillTrees));
   let skillTree = mockSkillTrees[domain];
   
   if (!skillTree) {
