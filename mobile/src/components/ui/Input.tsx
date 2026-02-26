@@ -1,6 +1,6 @@
 import React from 'react';
 import { TextInput, StyleSheet, Text, View } from 'react-native';
-import { COLORS, SPACING } from '../../utils/constants';
+import { COLORS, SPACING, PIXEL_COLORS } from '../../utils/constants';
 
 interface InputProps {
   value: string;
@@ -35,7 +35,7 @@ const Input: React.FC<InputProps> = ({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={COLORS.TEXT_SECONDARY}
+        placeholderTextColor={PIXEL_COLORS.PIXEL_LIGHT_GRAY}
         secureTextEntry={secureTextEntry}
         editable={!disabled}
         onSubmitEditing={onSubmitEditing}
@@ -52,30 +52,30 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.TEXT_PRIMARY,
+    color: PIXEL_COLORS.TEXT_PRIMARY,
     marginBottom: SPACING.SMALL,
   },
   input: {
     width: '100%',
     height: 50,
     borderWidth: 1,
-    borderColor: COLORS.BORDER,
+    borderColor: PIXEL_COLORS.PIXEL_GRAY,
     borderRadius: 8,
     paddingHorizontal: SPACING.MEDIUM,
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: PIXEL_COLORS.BACKGROUND_LIGHT,
     fontSize: 16,
-    color: COLORS.TEXT_PRIMARY,
+    color: PIXEL_COLORS.TEXT_PRIMARY,
   },
   input_disabled: {
-    backgroundColor: COLORS.BACKGROUND,
-    color: COLORS.TEXT_SECONDARY,
+    backgroundColor: PIXEL_COLORS.PIXEL_GRAY,
+    color: PIXEL_COLORS.TEXT_SECONDARY,
   },
   input_error: {
-    borderColor: COLORS.ERROR,
+    borderColor: PIXEL_COLORS.ERROR,
   },
   errorText: {
     fontSize: 14,
-    color: COLORS.ERROR,
+    color: PIXEL_COLORS.ERROR,
     marginTop: SPACING.SMALL,
   },
 });

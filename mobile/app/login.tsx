@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Button, Input, Loading } from '../src/components/ui';
-import { COLORS, SPACING, showErrorAlert } from '../src/utils';
+import { PixelButton, PixelCard, PixelLoading, PixelInput } from '../src/components/ui';
+import { PIXEL_COLORS, SPACING, showErrorAlert } from '../src/utils';
 import { authService } from '../src/services/api';
 import { saveAuthData } from '../src/utils/auth';
 
@@ -21,7 +21,6 @@ const LoginScreen = () => {
 
     setLoading(true);
     try {
-      // 调用真实登录API
       const authResponse = await authService.login({ 
         phone, 
         password,
@@ -31,7 +30,6 @@ const LoginScreen = () => {
         deviceName: '移动设备'
       });
       
-      // 保存认证信息
       await saveAuthData(authResponse);
       
       setLoading(false);
@@ -46,10 +44,6 @@ const LoginScreen = () => {
   const handleWechatLogin = async () => {
     setLoading(true);
     try {
-      // 这里调用微信登录API
-      // const user = await authService.login({ type: 'wechat' });
-      
-      // 模拟微信登录成功
       setTimeout(() => {
         setLoading(false);
         Alert.alert('登录成功', '欢迎回来！');
@@ -68,7 +62,7 @@ const LoginScreen = () => {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <Loading visible={true} message="登录中..." />
+        <PixelLoading text="登录中..." />
       </SafeAreaView>
     );
   }
@@ -78,10 +72,10 @@ const LoginScreen = () => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={styles.title}>LearnFlow</Text>
-          <Text style={styles.subtitle}>技能学习路径管理</Text>
+          <Text style={styles.subtitle}>知识星球探索</Text>
         </View>
 
-        <View style={styles.loginContainer}>
+        <PixelCard style={styles.loginContainer}>
           <View style={styles.tabContainer}>
             <Text 
               style={[styles.tab, loginType === 'phone' && styles.activeTab]}
@@ -99,27 +93,32 @@ const LoginScreen = () => {
 
           {loginType === 'phone' ? (
             <View style={styles.form}>
-              <Input
+              <PixelInput
+                label="手机号"
                 placeholder="请输入手机号"
                 value={phone}
                 onChangeText={setPhone}
               />
-              <Input
+              <PixelInput
+                label="密码"
                 placeholder="请输入密码"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
               />
-              <Button 
+              <PixelButton 
                 title="登录" 
                 onPress={handlePhoneLogin}
+                fullWidth={true}
               />
             </View>
           ) : (
             <View style={styles.wechatContainer}>
-              <Button
+              <PixelButton
                 title="微信一键登录"
                 onPress={handleWechatLogin}
+                variant="success"
+                fullWidth={true}
               />
             </View>
           )}
@@ -132,7 +131,7 @@ const LoginScreen = () => {
               </Text>
             </Text>
           </View>
-        </View>
+        </PixelCard>
       </ScrollView>
     </SafeAreaView>
   );
@@ -141,7 +140,7 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.BACKGROUND,
+    backgroundColor: PIXEL_COLORS.BACKGROUND,
   },
   scrollContent: {
     flexGrow: 1,
@@ -153,49 +152,45 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.XLARGE,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: COLORS.PRIMARY,
+    fontSize: 36,
+    fontWeight: '800',
+    color: PIXEL_COLORS.PIXEL_CYAN,
     marginBottom: SPACING.SMALL,
+    letterSpacing: 4,
   },
   subtitle: {
     fontSize: 16,
-    color: COLORS.TEXT_SECONDARY,
+    color: PIXEL_COLORS.TEXT_SECONDARY,
+    letterSpacing: 2,
   },
   loginContainer: {
-    backgroundColor: COLORS.WHITE,
-    borderRadius: 12,
     padding: SPACING.LARGE,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
   },
   tabContainer: {
     flexDirection: 'row',
     marginBottom: SPACING.LARGE,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.BORDER,
+    borderBottomWidth: 2,
+    borderBottomColor: PIXEL_COLORS.PIXEL_GRAY,
   },
   tab: {
     flex: 1,
     textAlign: 'center',
     paddingVertical: SPACING.MEDIUM,
     fontSize: 16,
-    color: COLORS.TEXT_SECONDARY,
+    color: PIXEL_COLORS.TEXT_SECONDARY,
+    fontWeight: '600',
+    letterSpacing: 1,
   },
   activeTab: {
-    color: COLORS.PRIMARY,
-    fontWeight: 'bold',
-    borderBottomWidth: 2,
-    borderBottomColor: COLORS.PRIMARY,
+    color: PIXEL_COLORS.PIXEL_CYAN,
+    fontWeight: '800',
+    borderBottomWidth: 3,
+    borderBottomColor: PIXEL_COLORS.PIXEL_CYAN,
   },
   form: {
     gap: SPACING.MEDIUM,
   },
   wechatContainer: {
-    alignItems: 'center',
     paddingVertical: SPACING.LARGE,
   },
   registerContainer: {
@@ -203,11 +198,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   registerText: {
-    color: COLORS.TEXT_SECONDARY,
+    color: PIXEL_COLORS.TEXT_SECONDARY,
+    fontSize: 14,
   },
   registerLink: {
-    color: COLORS.PRIMARY,
-    fontWeight: 'bold',
+    color: PIXEL_COLORS.PIXEL_CYAN,
+    fontWeight: '800',
     marginLeft: 4,
   },
 });

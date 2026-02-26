@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Button, Input, Loading } from '../src/components/ui';
+import { PixelButton, PixelCard, PixelLoading, PixelInput } from '../src/components/ui';
 import { authService } from '../src/services/api';
 import { saveAuthData } from '../src/utils/auth';
-import { COLORS, SPACING, showErrorAlert } from '../src/utils';
+import { PIXEL_COLORS, SPACING, showErrorAlert } from '../src/utils';
 
 const RegisterScreen = () => {
   const [username, setUsername] = useState('');
@@ -32,17 +32,14 @@ const RegisterScreen = () => {
 
     setLoading(true);
     try {
-      // 调用真实的注册API
       const authResponse = await authService.register({ username, phone, password });
       
-      // 保存认证信息到本地存储
       await saveAuthData(authResponse);
       
       setLoading(false);
       Alert.alert('注册成功', '账号创建成功！');
       
-      // 注册成功后直接登录，跳转到主页面
-      router.replace('/(tabs)');
+      router.replace('/onboarding');
     } catch (error) {
       setLoading(false);
       showErrorAlert('注册失败', error as string);
@@ -56,7 +53,7 @@ const RegisterScreen = () => {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <Loading visible={true} message="注册中..." />
+        <PixelLoading text="注册中..." />
       </SafeAreaView>
     );
   }
@@ -69,37 +66,38 @@ const RegisterScreen = () => {
           <Text style={styles.subtitle}>创建您的LearnFlow账号</Text>
         </View>
 
-        <View style={styles.formContainer}>
-          <Input
+        <PixelCard style={styles.formContainer}>
+          <PixelInput
+            label="用户名"
             placeholder="请输入用户名"
             value={username}
             onChangeText={setUsername}
-            label="用户名"
           />
-          <Input
+          <PixelInput
+            label="手机号"
             placeholder="请输入手机号"
             value={phone}
             onChangeText={setPhone}
-            label="手机号"
           />
-          <Input
+          <PixelInput
+            label="密码"
             placeholder="请输入密码（至少6位）"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
-            label="密码"
           />
-          <Input
+          <PixelInput
+            label="确认密码"
             placeholder="请再次输入密码"
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry
-            label="确认密码"
           />
           
-          <Button 
+          <PixelButton 
             title="注册" 
             onPress={handleRegister}
+            fullWidth={true}
           />
 
           <View style={styles.loginContainer}>
@@ -110,7 +108,7 @@ const RegisterScreen = () => {
               </Text>
             </Text>
           </View>
-        </View>
+        </PixelCard>
       </ScrollView>
     </SafeAreaView>
   );
@@ -119,7 +117,7 @@ const RegisterScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.BACKGROUND,
+    backgroundColor: PIXEL_COLORS.BACKGROUND,
   },
   scrollContent: {
     flexGrow: 1,
@@ -131,38 +129,33 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.XLARGE,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: COLORS.PRIMARY,
+    fontSize: 36,
+    fontWeight: '800',
+    color: PIXEL_COLORS.PIXEL_CYAN,
     marginBottom: SPACING.SMALL,
+    letterSpacing: 2,
   },
   subtitle: {
     fontSize: 16,
-    color: COLORS.TEXT_SECONDARY,
+    color: PIXEL_COLORS.TEXT_SECONDARY,
     textAlign: 'center',
+    letterSpacing: 1,
   },
   formContainer: {
-    backgroundColor: COLORS.WHITE,
-    borderRadius: 12,
     padding: SPACING.LARGE,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
     gap: SPACING.MEDIUM,
   },
-
   loginContainer: {
     marginTop: SPACING.LARGE,
     alignItems: 'center',
   },
   loginText: {
-    color: COLORS.TEXT_SECONDARY,
+    color: PIXEL_COLORS.TEXT_SECONDARY,
+    fontSize: 14,
   },
   loginLink: {
-    color: COLORS.PRIMARY,
-    fontWeight: 'bold',
+    color: PIXEL_COLORS.PIXEL_CYAN,
+    fontWeight: '800',
     marginLeft: 4,
   },
 });

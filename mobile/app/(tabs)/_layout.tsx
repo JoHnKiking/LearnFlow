@@ -38,6 +38,18 @@ export default function TabLayout() {
           title: '我的',
         }}
       />
+      <Tabs.Screen
+        name="monster"
+        options={{
+          title: '怪兽',
+        }}
+      />
+      <Tabs.Screen
+        name="notes"
+        options={{
+          title: '笔记',
+        }}
+      />
     </Tabs>
   );
 }

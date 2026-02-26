@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Loading } from '../src/components/ui';
-import { checkAuthStatus } from '../src/utils/auth';
+import { checkAuthStatus, getAuthData } from '../src/utils/auth';
 import { COLORS, SPACING } from '../src/utils';
 
 const IndexScreen = () => {
@@ -14,8 +14,15 @@ const IndexScreen = () => {
         const isAuthenticated = await checkAuthStatus();
         
         if (isAuthenticated) {
-          // 用户已登录，跳转到主页面
-          router.replace('/(tabs)');
+          // 用户已登录，检查是否是首次使用
+          const authData = await getAuthData();
+          if (authData && authData.user && authData.user.loginCount <= 1) {
+            // 首次使用，显示引导页面
+            router.replace('/onboarding');
+          } else {
+            // 非首次使用，跳转到主页面
+            router.replace('/(tabs)');
+          }
         } else {
           // 用户未登录，跳转到登录页面
           router.replace('/login');

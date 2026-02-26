@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CUTE_COLORS, SPACING, BORDER_RADIUS } from '../../src/utils/constants';
+import { PIXEL_COLORS, SPACING, PIXEL_BORDERS } from '../../src/utils/constants';
+import { PixelCard, PixelButton } from '../../src/components/ui';
 
 const MonsterScreen = () => {
   const getGreeting = () => {
@@ -12,6 +13,10 @@ const MonsterScreen = () => {
     return '晚上好！今天学了什么？';
   };
 
+  const currentEnergy = 7;
+  const maxEnergy = 10;
+  const expProgress = 25;
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -19,7 +24,7 @@ const MonsterScreen = () => {
       </View>
       
       <ScrollView style={styles.content}>
-        <View style={styles.monsterCard}>
+        <PixelCard variant="highlight" style={styles.monsterCard}>
           <View style={styles.monsterInfo}>
             <View style={styles.monsterEmojiContainer}>
               <Text style={styles.monsterEmoji}>🐲</Text>
@@ -34,46 +39,52 @@ const MonsterScreen = () => {
             <Text style={styles.sectionLabel}>✨ 经验值</Text>
             <View style={styles.progressContainer}>
               <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: '25%' }]} />
+                <View style={[styles.progressFill, { width: `${expProgress}%` }]} />
               </View>
-              <Text style={styles.progressText}>25%</Text>
+              <Text style={styles.progressText}>{expProgress}%</Text>
             </View>
           </View>
           
           <View style={styles.energySection}>
             <Text style={styles.sectionLabel}>⚡ 体力</Text>
             <View style={styles.energyContainer}>
-              <View style={[styles.energyDot, { backgroundColor: CUTE_COLORS.PINK }]} />
-              <View style={[styles.energyDot, { backgroundColor: CUTE_COLORS.PINK }]} />
-              <View style={[styles.energyDot, { backgroundColor: CUTE_COLORS.PINK }]} />
-              <View style={[styles.energyDot, { backgroundColor: CUTE_COLORS.PINK }]} />
-              <View style={[styles.energyDot, { backgroundColor: CUTE_COLORS.PINK }]} />
-              <View style={[styles.energyDot, { backgroundColor: CUTE_COLORS.PINK }]} />
-              <View style={[styles.energyDot, { backgroundColor: CUTE_COLORS.PINK }]} />
-              <View style={[styles.energyDot, { backgroundColor: CUTE_COLORS.LIGHT_GRAY }]} />
-              <View style={[styles.energyDot, { backgroundColor: CUTE_COLORS.LIGHT_GRAY }]} />
-              <View style={[styles.energyDot, { backgroundColor: CUTE_COLORS.LIGHT_GRAY }]} />
+              {Array.from({ length: maxEnergy }).map((_, index) => (
+                <View 
+                  key={index}
+                  style={[
+                    styles.energyDot, 
+                    { 
+                      backgroundColor: index < currentEnergy 
+                        ? PIXEL_COLORS.PIXEL_PINK 
+                        : PIXEL_COLORS.PIXEL_GRAY 
+                    }
+                  ]} 
+                />
+              ))}
             </View>
-            <Text style={styles.energyText}>7/10</Text>
+            <Text style={styles.energyText}>{currentEnergy}/{maxEnergy}</Text>
           </View>
-        </View>
+        </PixelCard>
 
-        <View style={styles.greetingCard}>
+        <PixelCard style={styles.greetingCard}>
           <Text style={styles.greetingText}>{getGreeting()}</Text>
-        </View>
+        </PixelCard>
 
         <View style={styles.chatSection}>
           <Text style={styles.chatTitle}>💬 和怪兽聊天</Text>
-          <View style={styles.chatBox}>
+          <PixelCard style={styles.chatBox}>
             <View style={styles.emptyChat}>
               <Text style={styles.emptyChatText}>和我说说话吧~</Text>
               <Text style={styles.emptyChatHint}>让我陪你一起学习！</Text>
             </View>
-          </View>
+          </PixelCard>
           
-          <View style={styles.button}>
-            <Text style={styles.buttonText}>开始聊天</Text>
-          </View>
+          <PixelButton 
+            title="开始聊天" 
+            onPress={() => {}} 
+            variant="primary"
+            fullWidth={true}
+          />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -83,32 +94,25 @@ const MonsterScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: CUTE_COLORS.WARM_WHITE,
+    backgroundColor: PIXEL_COLORS.BACKGROUND,
   },
   header: {
     padding: SPACING.LARGE,
-    borderBottomWidth: 3,
-    borderBottomColor: CUTE_COLORS.LIGHT_PINK,
+    borderBottomWidth: PIXEL_BORDERS.MEDIUM,
+    borderBottomColor: PIXEL_COLORS.PIXEL_GRAY,
   },
   title: {
     fontSize: 28,
     fontWeight: '800',
-    color: CUTE_COLORS.DARK_GRAY,
+    color: PIXEL_COLORS.TEXT_PRIMARY,
+    letterSpacing: 2,
   },
   content: {
     flex: 1,
     padding: SPACING.LARGE,
   },
   monsterCard: {
-    backgroundColor: CUTE_COLORS.CREAM,
-    borderRadius: BORDER_RADIUS.LARGE,
-    padding: SPACING.LARGE,
     marginBottom: SPACING.LARGE,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
   },
   monsterInfo: {
     flexDirection: 'row',
@@ -118,11 +122,12 @@ const styles = StyleSheet.create({
   monsterEmojiContainer: {
     width: 100,
     height: 100,
-    borderRadius: BORDER_RADIUS.XLARGE,
-    backgroundColor: CUTE_COLORS.PINK,
+    backgroundColor: PIXEL_COLORS.PIXEL_PINK,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING.LARGE,
+    borderWidth: PIXEL_BORDERS.MEDIUM,
+    borderColor: PIXEL_COLORS.PIXEL_ORANGE,
   },
   monsterEmoji: {
     fontSize: 60,
@@ -133,12 +138,14 @@ const styles = StyleSheet.create({
   monsterName: {
     fontSize: 28,
     fontWeight: '800',
-    color: CUTE_COLORS.DARK_GRAY,
+    color: PIXEL_COLORS.TEXT_PRIMARY,
     marginBottom: SPACING.SMALL,
+    letterSpacing: 1,
   },
   monsterLevel: {
     fontSize: 18,
-    color: CUTE_COLORS.GRAY,
+    color: PIXEL_COLORS.PIXEL_CYAN,
+    fontWeight: '700',
   },
   statsSection: {
     marginBottom: SPACING.LARGE,
@@ -146,8 +153,9 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 16,
     fontWeight: '700',
-    color: CUTE_COLORS.DARK_GRAY,
+    color: PIXEL_COLORS.TEXT_PRIMARY,
     marginBottom: SPACING.MEDIUM,
+    letterSpacing: 1,
   },
   progressContainer: {
     flexDirection: 'row',
@@ -155,23 +163,21 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     flex: 1,
-    height: 20,
-    backgroundColor: CUTE_COLORS.WHITE,
-    borderRadius: BORDER_RADIUS.LARGE,
+    height: 24,
+    backgroundColor: PIXEL_COLORS.PIXEL_GRAY,
     overflow: 'hidden',
     marginRight: SPACING.MEDIUM,
-    borderWidth: 2,
-    borderColor: CUTE_COLORS.LIGHT_PINK,
+    borderWidth: PIXEL_BORDERS.SMALL,
+    borderColor: PIXEL_COLORS.PIXEL_LIGHT_GRAY,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: CUTE_COLORS.PINK,
-    borderRadius: BORDER_RADIUS.LARGE,
+    backgroundColor: PIXEL_COLORS.PIXEL_GREEN,
   },
   progressText: {
     fontSize: 16,
     fontWeight: '700',
-    color: CUTE_COLORS.PINK,
+    color: PIXEL_COLORS.PIXEL_GREEN,
   },
   energySection: {
     alignItems: 'center',
@@ -185,32 +191,24 @@ const styles = StyleSheet.create({
   energyDot: {
     width: 24,
     height: 24,
-    borderRadius: 12,
     margin: 4,
-    borderWidth: 2,
-    borderColor: CUTE_COLORS.LIGHT_PINK,
+    borderWidth: PIXEL_BORDERS.SMALL,
+    borderColor: PIXEL_COLORS.PIXEL_PINK,
   },
   energyText: {
     fontSize: 18,
     fontWeight: '700',
-    color: CUTE_COLORS.PINK,
+    color: PIXEL_COLORS.PIXEL_PINK,
   },
   greetingCard: {
-    backgroundColor: CUTE_COLORS.LIGHT_BLUE,
-    borderRadius: BORDER_RADIUS.LARGE,
-    padding: SPACING.LARGE,
     marginBottom: SPACING.LARGE,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
   },
   greetingText: {
     fontSize: 18,
-    color: CUTE_COLORS.DARK_GRAY,
+    color: PIXEL_COLORS.TEXT_PRIMARY,
     lineHeight: 28,
     textAlign: 'center',
+    letterSpacing: 0.5,
   },
   chatSection: {
     flex: 1,
@@ -218,51 +216,27 @@ const styles = StyleSheet.create({
   chatTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: CUTE_COLORS.DARK_GRAY,
+    color: PIXEL_COLORS.TEXT_PRIMARY,
     marginBottom: SPACING.MEDIUM,
+    letterSpacing: 1,
   },
   chatBox: {
     height: 200,
     marginBottom: SPACING.MEDIUM,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: CUTE_COLORS.WHITE,
-    borderRadius: BORDER_RADIUS.LARGE,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
   },
   emptyChat: {
     alignItems: 'center',
   },
   emptyChatText: {
     fontSize: 18,
-    color: CUTE_COLORS.GRAY,
+    color: PIXEL_COLORS.TEXT_SECONDARY,
     marginBottom: SPACING.SMALL,
   },
   emptyChatHint: {
     fontSize: 14,
-    color: CUTE_COLORS.LIGHT_PINK,
-  },
-  button: {
-    backgroundColor: CUTE_COLORS.PINK,
-    borderRadius: BORDER_RADIUS.MEDIUM,
-    height: 52,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  buttonText: {
-    color: CUTE_COLORS.WHITE,
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    color: PIXEL_COLORS.PIXEL_CYAN,
   },
 });
 

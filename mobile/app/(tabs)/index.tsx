@@ -2,8 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Button } from '../../src/components/ui';
-import { COLORS, SPACING } from '../../src/utils/constants';
+import { PixelButton, PixelCard } from '../../src/components/ui';
+import { PIXEL_COLORS, SPACING } from '../../src/utils/constants';
 
 const HomeScreen = () => {
   const handleGenerateSkillTree = () => {
@@ -18,45 +18,71 @@ const HomeScreen = () => {
     router.push('/(tabs)/profile');
   };
 
+  const handleViewMonster = () => {
+    router.push('/(tabs)/monster');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={styles.title}>LearnFlow</Text>
-          <Text style={styles.subtitle}>技能学习路径管理</Text>
+          <Text style={styles.subtitle}>知识星球探索</Text>
         </View>
 
         <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
+          <PixelCard style={styles.statCard}>
             <Text style={styles.statNumber}>3</Text>
             <Text style={styles.statLabel}>技能树</Text>
-          </View>
-          <View style={styles.statCard}>
+          </PixelCard>
+          <PixelCard style={styles.statCard}>
             <Text style={styles.statNumber}>45%</Text>
             <Text style={styles.statLabel}>平均进度</Text>
-          </View>
-          <View style={styles.statCard}>
+          </PixelCard>
+          <PixelCard style={styles.statCard}>
             <Text style={styles.statNumber}>12</Text>
             <Text style={styles.statLabel}>学习小时</Text>
-          </View>
+          </PixelCard>
         </View>
+
+        <PixelCard style={styles.monsterPreview}>
+          <View style={styles.monsterPreviewContent}>
+            <Text style={styles.monsterEmoji}>🐲</Text>
+            <View style={styles.monsterPreviewInfo}>
+              <Text style={styles.monsterPreviewName}>小怪兽</Text>
+              <Text style={styles.monsterPreviewLevel}>Lv.1 · 7/10 体力</Text>
+            </View>
+            <PixelButton 
+              title="查看" 
+              onPress={handleViewMonster} 
+              variant="secondary"
+              size="small"
+            />
+          </View>
+        </PixelCard>
 
         <View style={styles.actionsContainer}>
-          <Button 
+          <PixelButton 
             title="生成技能树" 
             onPress={handleGenerateSkillTree}
+            variant="primary"
+            fullWidth={true}
           />
-          <Button 
+          <PixelButton 
             title="搜索技能树" 
             onPress={handleSearchSkillTree}
+            variant="success"
+            fullWidth={true}
           />
-          <Button 
+          <PixelButton 
             title="查看我的技能树" 
             onPress={handleViewProfile}
+            variant="warning"
+            fullWidth={true}
           />
         </View>
 
-        <View style={styles.recentContainer}>
+        <PixelCard style={styles.recentContainer}>
           <Text style={styles.sectionTitle}>最近技能树</Text>
           <View style={styles.recentList}>
             <View style={styles.recentItem}>
@@ -72,7 +98,7 @@ const HomeScreen = () => {
               <Text style={styles.recentProgress}>进度: 45%</Text>
             </View>
           </View>
-        </View>
+        </PixelCard>
       </ScrollView>
     </SafeAreaView>
   );
@@ -81,7 +107,7 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.BACKGROUND,
+    backgroundColor: PIXEL_COLORS.BACKGROUND,
   },
   scrollContent: {
     padding: SPACING.LARGE,
@@ -91,81 +117,98 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.XLARGE,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: COLORS.PRIMARY,
+    fontSize: 36,
+    fontWeight: '800',
+    color: PIXEL_COLORS.PIXEL_CYAN,
     marginBottom: SPACING.SMALL,
+    letterSpacing: 4,
   },
   subtitle: {
     fontSize: 16,
-    color: COLORS.TEXT_SECONDARY,
+    color: PIXEL_COLORS.TEXT_SECONDARY,
+    letterSpacing: 2,
   },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: SPACING.XLARGE,
+    marginBottom: SPACING.LARGE,
   },
   statCard: {
     flex: 1,
-    backgroundColor: COLORS.WHITE,
-    borderRadius: 8,
-    padding: SPACING.MEDIUM,
-    alignItems: 'center',
     marginHorizontal: SPACING.SMALL,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    alignItems: 'center',
+    padding: SPACING.MEDIUM,
   },
   statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.PRIMARY,
+    fontSize: 28,
+    fontWeight: '800',
+    color: PIXEL_COLORS.PIXEL_GREEN,
+    letterSpacing: 1,
   },
   statLabel: {
     fontSize: 12,
-    color: COLORS.TEXT_SECONDARY,
+    color: PIXEL_COLORS.TEXT_SECONDARY,
     marginTop: 4,
+    letterSpacing: 1,
+  },
+  monsterPreview: {
+    marginBottom: SPACING.LARGE,
+  },
+  monsterPreviewContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  monsterEmoji: {
+    fontSize: 48,
+    marginRight: SPACING.MEDIUM,
+  },
+  monsterPreviewInfo: {
+    flex: 1,
+  },
+  monsterPreviewName: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: PIXEL_COLORS.TEXT_PRIMARY,
+    marginBottom: 4,
+    letterSpacing: 1,
+  },
+  monsterPreviewLevel: {
+    fontSize: 14,
+    color: PIXEL_COLORS.PIXEL_PINK,
+    fontWeight: '600',
   },
   actionsContainer: {
     gap: SPACING.MEDIUM,
-    marginBottom: SPACING.XLARGE,
+    marginBottom: SPACING.LARGE,
   },
-
-  recentContainer: {
-    backgroundColor: COLORS.WHITE,
-    borderRadius: 12,
-    padding: SPACING.LARGE,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
+  recentContainer: {},
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.TEXT_PRIMARY,
+    fontSize: 20,
+    fontWeight: '800',
+    color: PIXEL_COLORS.TEXT_PRIMARY,
     marginBottom: SPACING.MEDIUM,
+    letterSpacing: 2,
   },
   recentList: {
     gap: SPACING.MEDIUM,
   },
   recentItem: {
     padding: SPACING.MEDIUM,
-    backgroundColor: COLORS.BACKGROUND,
-    borderRadius: 8,
+    backgroundColor: PIXEL_COLORS.BACKGROUND,
+    borderWidth: 2,
+    borderColor: PIXEL_COLORS.PIXEL_GRAY,
   },
   recentTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.TEXT_PRIMARY,
+    fontWeight: '700',
+    color: PIXEL_COLORS.TEXT_PRIMARY,
     marginBottom: 4,
+    letterSpacing: 0.5,
   },
   recentProgress: {
     fontSize: 14,
-    color: COLORS.TEXT_SECONDARY,
+    color: PIXEL_COLORS.PIXEL_CYAN,
+    fontWeight: '600',
   },
 });
 

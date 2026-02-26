@@ -103,6 +103,125 @@ INSERT IGNORE INTO popular_domains (domain, search_count, generated_count) VALUE
 ('云计算', 70, 55),
 ('区块链', 50, 35);
 
+-- 怪兽表
+CREATE TABLE IF NOT EXISTS monsters (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL COMMENT '怪兽名称',
+    style VARCHAR(50) DEFAULT 'default' COMMENT '怪兽风格',
+    personality VARCHAR(50) DEFAULT 'neutral' COMMENT '性格倾向：活泼/沉稳/叛逆',
+    personality_params JSON COMMENT '性格参数',
+    level INT DEFAULT 1 COMMENT '等级',
+    exp INT DEFAULT 0 COMMENT '经验值',
+    energy INT DEFAULT 10 COMMENT '体力值',
+    max_energy INT DEFAULT 10 COMMENT '最大体力值',
+    last_energy_recovery TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '上次体力恢复时间',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id)
+);
+
+-- 学习领域表
+CREATE TABLE IF NOT EXISTS domains (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    name VARCHAR(200) NOT NULL COMMENT '领域名称',
+    type ENUM('preset', 'custom') DEFAULT 'preset' COMMENT '类型：预设/自定义',
+    mind_map_data JSON COMMENT '思维导图数据',
+    progress DECIMAL(5,2) DEFAULT 0.00 COMMENT '学习进度百分比',
+    is_active BOOLEAN DEFAULT TRUE COMMENT '是否活跃',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id)
+);
+
+-- 节点进度表
+CREATE TABLE IF NOT EXISTS node_progress (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    domain_id INT NOT NULL,
+    node_id VARCHAR(100) NOT NULL COMMENT '节点ID',
+    status ENUM('pending', 'doing', 'done') DEFAULT 'pending' COMMENT '状态：未解锁/进行中/已完成',
+    study_time INT DEFAULT 0 COMMENT '学习时长（分钟）',
+    notes TEXT COMMENT '节点笔记',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (domain_id) REFERENCES domains(id) ON DELETE CASCADE,
+    INDEX idx_user_domain (user_id, domain_id),
+    INDEX idx_status (status),
+    UNIQUE KEY unique_user_node (user_id, domain_id, node_id)
+);
+
+-- 学习记录表
+CREATE TABLE IF NOT EXISTS study_records (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    domain_id INT NOT NULL,
+    node_id VARCHAR(100) NOT NULL COMMENT '节点ID',
+    start_time TIMESTAMP NULL COMMENT '开始时间',
+    end_time TIMESTAMP NULL COMMENT '结束时间',
+    duration INT DEFAULT 0 COMMENT '学习时长（分钟）',
+    progress_before DECIMAL(5,2) DEFAULT 0.00 COMMENT '学习前进度',
+    progress_after DECIMAL(5,2) DEFAULT 0.00 COMMENT '学习后进度',
+    reward_obtained JSON COMMENT '获得的奖励',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (domain_id) REFERENCES domains(id) ON DELETE CASCADE,
+    INDEX idx_user_domain (user_id, domain_id),
+    INDEX idx_created_at (created_at)
+);
+
+-- 笔记表
+CREATE TABLE IF NOT EXISTS notes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    date DATE NOT NULL COMMENT '笔记日期',
+    content TEXT COMMENT '笔记内容',
+    monster_comment TEXT COMMENT '怪兽评论',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id),
+    INDEX idx_date (date)
+);
+
+-- 奖励表
+CREATE TABLE IF NOT EXISTS rewards (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    type ENUM('exp', 'energy', 'item', 'badge') NOT NULL COMMENT '奖励类型',
+    amount INT DEFAULT 0 COMMENT '奖励数量',
+    source VARCHAR(200) COMMENT '奖励来源',
+    claimed BOOLEAN DEFAULT FALSE COMMENT '是否已领取',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id),
+    INDEX idx_claimed (claimed)
+);
+
+-- 怪兽消息表
+CREATE TABLE IF NOT EXISTS monster_messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    role ENUM('user', 'monster') NOT NULL COMMENT '消息角色',
+    content TEXT NOT NULL COMMENT '消息内容',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id),
+    INDEX idx_created_at (created_at)
+);
+
+-- 更新用户表，添加怪兽相关字段
+ALTER TABLE users 
+ADD COLUMN IF NOT EXISTS monster_name VARCHAR(100) COMMENT '怪兽名称',
+ADD COLUMN IF NOT EXISTS monster_style VARCHAR(50) COMMENT '怪兽风格',
+ADD COLUMN IF NOT EXISTS monster_personality VARCHAR(50) COMMENT '怪兽性格',
+ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN DEFAULT FALSE COMMENT '是否完成新手引导';
+
 -- 创建测试用户（支持多种登录方式）
 INSERT IGNORE INTO users (username, email, phone, password_hash, nickname) VALUES
 ('testuser', 'test@learnflow.com', '13800138000', '$2b$10$examplehashedpassword', '测试用户');
@@ -115,3 +234,10 @@ DESCRIBE users;
 DESCRIBE skill_trees;
 DESCRIBE learning_records;
 DESCRIBE popular_domains;
+DESCRIBE monsters;
+DESCRIBE domains;
+DESCRIBE node_progress;
+DESCRIBE study_records;
+DESCRIBE notes;
+DESCRIBE rewards;
+DESCRIBE monster_messages;

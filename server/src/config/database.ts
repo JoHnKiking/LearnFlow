@@ -19,6 +19,12 @@ export const dbConfig: DatabaseConfig = {
   database: process.env.DB_NAME || 'learnflow'
 };
 
+// 创建连接池
+export const pool = mysql.createPool({
+  ...dbConfig,
+  connectionLimit: 10
+});
+
 export class DatabaseConnection {
   private static connection: mysql.Connection | null = null;
 
