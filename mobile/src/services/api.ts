@@ -33,6 +33,23 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
+    // 对于400错误（客户端错误），不记录错误日志，只提取错误信息
+    if (error.response && error.response.status === 400) {
+      // 提取后端返回的具体错误信息
+      if (error.response.data) {
+        const backendError = error.response.data;
+        if (backendError.error) {
+          // 返回后端的具体错误消息
+          return Promise.reject(new Error(backendError.error));
+        } else if (backendError.message) {
+          return Promise.reject(new Error(backendError.message));
+        }
+      }
+      // 如果没有具体错误信息，返回通用错误
+      return Promise.reject(new Error('注册失败，请检查输入信息'));
+    }
+    
+    // 对于其他错误（如网络错误、500错误等），记录日志
     console.error('API Response Error:', error.message);
     return Promise.reject(error);
   }

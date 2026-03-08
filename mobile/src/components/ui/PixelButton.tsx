@@ -137,10 +137,10 @@ const styles = StyleSheet.create({
   },
   shadowLayer: {
     position: 'absolute',
-    bottom: -PIXEL_BORDERS.MEDIUM,
+    top: -PIXEL_BORDERS.MEDIUM,
+    left: -PIXEL_BORDERS.MEDIUM,
     right: -PIXEL_BORDERS.MEDIUM,
-    width: '100%',
-    height: '100%',
+    bottom: -PIXEL_BORDERS.MEDIUM,
     zIndex: 0,
   },
   text: {

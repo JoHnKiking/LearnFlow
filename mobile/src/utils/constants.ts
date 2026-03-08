@@ -37,7 +37,7 @@ export const PIXEL_COLORS = {
   NODE_DONE: '#3AE374',
 } as const;
 
-// 颜色常量（兼容旧代码）
+// 颜色常量
 export const COLORS = {
   PRIMARY: PIXEL_COLORS.PRIMARY,
   SUCCESS: PIXEL_COLORS.SUCCESS,
@@ -50,7 +50,7 @@ export const COLORS = {
   BORDER: PIXEL_COLORS.BORDER,
 } as const;
 
-// 风格颜色常量（兼容旧代码）
+// 风格颜色常量
 export const CUTE_COLORS = {
   WARM_WHITE: PIXEL_COLORS.BACKGROUND_LIGHT,
   PINK: PIXEL_COLORS.PIXEL_PINK,

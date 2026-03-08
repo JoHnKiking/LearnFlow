@@ -42,7 +42,25 @@ const RegisterScreen = () => {
       router.replace('/onboarding');
     } catch (error) {
       setLoading(false);
-      showErrorAlert('注册失败', error as string);
+      
+      // 根据后端错误信息显示具体的提示
+      if (error && typeof error === 'object' && 'message' in error) {
+        const errorMessage = error.message as string;
+        
+        if (errorMessage.includes('手机号已被注册')) {
+          Alert.alert('注册失败', '该手机号已被注册，请更换手机号或使用登录功能');
+        } else if (errorMessage.includes('用户名已被使用')) {
+          Alert.alert('注册失败', '该用户名已被使用，请选择其他用户名');
+        } else if (errorMessage.includes('密码长度至少6位')) {
+          Alert.alert('注册失败', '密码长度至少6位，请设置更长的密码');
+        } else if (errorMessage.includes('用户名、手机号和密码不能为空')) {
+          Alert.alert('注册失败', '请填写所有必填字段');
+        } else {
+          showErrorAlert('注册失败', errorMessage);
+        }
+      } else {
+        showErrorAlert('注册失败', '注册过程中发生未知错误');
+      }
     }
   };
 
