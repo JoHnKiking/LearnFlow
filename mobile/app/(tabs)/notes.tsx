@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CUTE_COLORS, SPACING, BORDER_RADIUS } from '../../src/utils/constants';
+import { COLORS } from '../../src/utils/constants';
 
 interface Note {
   id: string;
@@ -44,17 +44,17 @@ const NotesScreen = () => {
 
   const getNoteColor = (index: number) => {
     const colors = [
-      CUTE_COLORS.PINK,
-      CUTE_COLORS.SKY_BLUE,
-      CUTE_COLORS.MINT,
-      CUTE_COLORS.BUTTER_YELLOW,
-      CUTE_COLORS.LAVENDER,
+      COLORS.PINK,
+      COLORS.PRIMARY,
+      COLORS.SUCCESS,
+      COLORS.ORANGE,
+      COLORS.PURPLE,
     ];
     return colors[index % colors.length];
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>📒 我的笔记</Text>
       </View>
@@ -63,7 +63,7 @@ const NotesScreen = () => {
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView style={styles.content}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.inputCard}>
             <Text style={styles.inputLabel}>✏️ 写点什么吧~</Text>
             <TextInput
@@ -71,7 +71,7 @@ const NotesScreen = () => {
               value={newNote}
               onChangeText={setNewNote}
               placeholder="今天学了什么？"
-              placeholderTextColor={CUTE_COLORS.GRAY}
+              placeholderTextColor={COLORS.TEXT_TERTIARY}
               multiline={true}
               textAlignVertical="top"
             />
@@ -82,6 +82,7 @@ const NotesScreen = () => {
               ]}
               onPress={handleAddNote}
               disabled={!newNote.trim()}
+              activeOpacity={0.7}
             >
               <Text
                 style={[
@@ -115,6 +116,8 @@ const NotesScreen = () => {
               ))
             )}
           </View>
+
+          <View style={styles.bottomPadding} />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -124,141 +127,128 @@ const NotesScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: CUTE_COLORS.WARM_WHITE,
+    backgroundColor: COLORS.BACKGROUND,
   },
   header: {
-    padding: SPACING.LARGE,
-    borderBottomWidth: 3,
-    borderBottomColor: CUTE_COLORS.LIGHT_PINK,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.BORDER_LIGHT,
   },
   title: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: '800',
-    color: CUTE_COLORS.DARK_GRAY,
+    color: COLORS.TEXT_PRIMARY,
   },
   keyboardView: {
     flex: 1,
   },
-  content: {
-    flex: 1,
-    padding: SPACING.LARGE,
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
   inputCard: {
-    backgroundColor: CUTE_COLORS.CREAM,
-    borderRadius: BORDER_RADIUS.LARGE,
-    padding: SPACING.LARGE,
-    marginBottom: SPACING.LARGE,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    borderRadius: 16,
+    backgroundColor: COLORS.BACKGROUND_LIGHT,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER_LIGHT,
+    padding: 16,
+    marginBottom: 20,
   },
   inputLabel: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '700',
-    color: CUTE_COLORS.DARK_GRAY,
-    marginBottom: SPACING.MEDIUM,
+    color: COLORS.TEXT_PRIMARY,
+    marginBottom: 12,
   },
   textArea: {
-    height: 120,
-    borderWidth: 2,
-    borderColor: CUTE_COLORS.LIGHT_PINK,
-    backgroundColor: CUTE_COLORS.WHITE,
-    paddingHorizontal: SPACING.MEDIUM,
-    paddingVertical: SPACING.MEDIUM,
-    fontSize: 16,
-    color: CUTE_COLORS.DARK_GRAY,
-    borderRadius: BORDER_RADIUS.MEDIUM,
-    marginBottom: SPACING.MEDIUM,
+    minHeight: 100,
+    borderRadius: 12,
+    backgroundColor: COLORS.BACKGROUND,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER_LIGHT,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: COLORS.TEXT_PRIMARY,
+    marginBottom: 12,
   },
   saveButton: {
-    height: 52,
+    height: 48,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: BORDER_RADIUS.MEDIUM,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    borderRadius: 12,
   },
   saveButtonActive: {
-    backgroundColor: CUTE_COLORS.PINK,
+    backgroundColor: COLORS.PINK,
   },
   saveButtonDisabled: {
-    backgroundColor: CUTE_COLORS.GRAY,
+    backgroundColor: COLORS.TEXT_TERTIARY,
   },
   saveButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
-    letterSpacing: 0.5,
   },
   saveButtonTextActive: {
-    color: CUTE_COLORS.WHITE,
+    color: '#fff',
   },
   saveButtonTextDisabled: {
-    color: CUTE_COLORS.DARK_GRAY,
+    color: COLORS.TEXT_TERTIARY,
   },
   notesSection: {
     flex: 1,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: CUTE_COLORS.DARK_GRAY,
-    marginBottom: SPACING.MEDIUM,
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.TEXT_PRIMARY,
+    marginBottom: 12,
   },
   emptyCard: {
-    backgroundColor: CUTE_COLORS.LIGHT_BLUE,
-    borderRadius: BORDER_RADIUS.LARGE,
-    padding: SPACING.XLARGE,
+    borderRadius: 16,
+    backgroundColor: COLORS.BACKGROUND_LIGHT,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER_LIGHT,
+    padding: 32,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
   },
   emptyText: {
-    fontSize: 18,
-    color: CUTE_COLORS.DARK_GRAY,
-    marginBottom: SPACING.SMALL,
+    fontSize: 15,
+    color: COLORS.TEXT_SECONDARY,
+    marginBottom: 4,
   },
   emptyHint: {
-    fontSize: 14,
-    color: CUTE_COLORS.GRAY,
+    fontSize: 13,
+    color: COLORS.TEXT_TERTIARY,
   },
   noteCard: {
-    backgroundColor: CUTE_COLORS.WHITE,
-    borderRadius: BORDER_RADIUS.LARGE,
-    padding: SPACING.MEDIUM,
-    marginBottom: SPACING.MEDIUM,
-    borderWidth: 2,
-    borderColor: CUTE_COLORS.LIGHT_PINK,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    borderRadius: 16,
+    backgroundColor: COLORS.BACKGROUND_LIGHT,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER_LIGHT,
+    padding: 16,
+    marginBottom: 12,
   },
   noteHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: SPACING.MEDIUM,
+    marginBottom: 12,
   },
   noteEmoji: {
-    fontSize: 24,
-    marginRight: SPACING.MEDIUM,
+    fontSize: 20,
+    marginRight: 12,
   },
   noteDate: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
   },
   noteContent: {
-    fontSize: 16,
-    color: CUTE_COLORS.DARK_GRAY,
-    lineHeight: 24,
+    fontSize: 15,
+    color: COLORS.TEXT_PRIMARY,
+    lineHeight: 22,
+  },
+  bottomPadding: {
+    height: 100,
   },
 });
 

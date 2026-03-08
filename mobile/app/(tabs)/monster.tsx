@@ -1,8 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { PIXEL_COLORS, SPACING, PIXEL_BORDERS } from '../../src/utils/constants';
-import { PixelCard, PixelButton } from '../../src/components/ui';
+import { COLORS } from '../../src/utils/constants';
 
 const MonsterScreen = () => {
   const getGreeting = () => {
@@ -18,13 +17,13 @@ const MonsterScreen = () => {
   const expProgress = 25;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>我的怪兽</Text>
-      </View>
-      
-      <ScrollView style={styles.content}>
-        <PixelCard variant="highlight" style={styles.monsterCard}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text style={styles.title}>我的怪兽</Text>
+        </View>
+        
+        <View style={styles.monsterCard}>
           <View style={styles.monsterInfo}>
             <View style={styles.monsterEmojiContainer}>
               <Text style={styles.monsterEmoji}>🐲</Text>
@@ -55,8 +54,8 @@ const MonsterScreen = () => {
                     styles.energyDot, 
                     { 
                       backgroundColor: index < currentEnergy 
-                        ? PIXEL_COLORS.PIXEL_PINK 
-                        : PIXEL_COLORS.PIXEL_GRAY 
+                        ? COLORS.PINK 
+                        : COLORS.TEXT_TERTIARY 
                     }
                   ]} 
                 />
@@ -64,28 +63,31 @@ const MonsterScreen = () => {
             </View>
             <Text style={styles.energyText}>{currentEnergy}/{maxEnergy}</Text>
           </View>
-        </PixelCard>
+        </View>
 
-        <PixelCard style={styles.greetingCard}>
+        <View style={styles.greetingCard}>
           <Text style={styles.greetingText}>{getGreeting()}</Text>
-        </PixelCard>
+        </View>
 
         <View style={styles.chatSection}>
           <Text style={styles.chatTitle}>💬 和怪兽聊天</Text>
-          <PixelCard style={styles.chatBox}>
+          <View style={styles.chatBox}>
             <View style={styles.emptyChat}>
               <Text style={styles.emptyChatText}>和我说说话吧~</Text>
               <Text style={styles.emptyChatHint}>让我陪你一起学习！</Text>
             </View>
-          </PixelCard>
+          </View>
           
-          <PixelButton 
-            title="开始聊天" 
-            onPress={() => {}} 
-            variant="primary"
-            fullWidth={true}
-          />
+          <TouchableOpacity 
+            style={styles.chatButton}
+            onPress={() => {}}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.chatButtonText}>开始聊天</Text>
+          </TouchableOpacity>
         </View>
+
+        <View style={styles.bottomPadding} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -94,68 +96,69 @@ const MonsterScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: PIXEL_COLORS.BACKGROUND,
+    backgroundColor: COLORS.BACKGROUND,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
   header: {
-    padding: SPACING.LARGE,
-    borderBottomWidth: PIXEL_BORDERS.MEDIUM,
-    borderBottomColor: PIXEL_COLORS.PIXEL_GRAY,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: '800',
-    color: PIXEL_COLORS.TEXT_PRIMARY,
-    letterSpacing: 2,
-  },
-  content: {
-    flex: 1,
-    padding: SPACING.LARGE,
+    color: COLORS.TEXT_PRIMARY,
   },
   monsterCard: {
-    marginBottom: SPACING.LARGE,
+    borderRadius: 24,
+    backgroundColor: COLORS.BACKGROUND_LIGHT,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER_LIGHT,
+    padding: 20,
+    marginBottom: 20,
   },
   monsterInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: SPACING.LARGE,
+    marginBottom: 24,
   },
   monsterEmojiContainer: {
-    width: 100,
-    height: 100,
-    backgroundColor: PIXEL_COLORS.PIXEL_PINK,
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    backgroundColor: COLORS.PINK,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: SPACING.LARGE,
-    borderWidth: PIXEL_BORDERS.MEDIUM,
-    borderColor: PIXEL_COLORS.PIXEL_ORANGE,
+    marginRight: 16,
+    borderWidth: 2,
+    borderColor: COLORS.ORANGE,
   },
   monsterEmoji: {
-    fontSize: 60,
+    fontSize: 48,
   },
   monsterDetails: {
     flex: 1,
   },
   monsterName: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '800',
-    color: PIXEL_COLORS.TEXT_PRIMARY,
-    marginBottom: SPACING.SMALL,
-    letterSpacing: 1,
+    color: COLORS.TEXT_PRIMARY,
+    marginBottom: 4,
   },
   monsterLevel: {
-    fontSize: 18,
-    color: PIXEL_COLORS.PIXEL_CYAN,
+    fontSize: 16,
+    color: COLORS.PRIMARY,
     fontWeight: '700',
   },
   statsSection: {
-    marginBottom: SPACING.LARGE,
+    marginBottom: 24,
   },
   sectionLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
-    color: PIXEL_COLORS.TEXT_PRIMARY,
-    marginBottom: SPACING.MEDIUM,
-    letterSpacing: 1,
+    color: COLORS.TEXT_PRIMARY,
+    marginBottom: 12,
   },
   progressContainer: {
     flexDirection: 'row',
@@ -163,21 +166,20 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     flex: 1,
-    height: 24,
-    backgroundColor: PIXEL_COLORS.PIXEL_GRAY,
+    height: 20,
+    backgroundColor: COLORS.TEXT_TERTIARY,
     overflow: 'hidden',
-    marginRight: SPACING.MEDIUM,
-    borderWidth: PIXEL_BORDERS.SMALL,
-    borderColor: PIXEL_COLORS.PIXEL_LIGHT_GRAY,
+    marginRight: 12,
+    borderRadius: 8,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: PIXEL_COLORS.PIXEL_GREEN,
+    backgroundColor: COLORS.SUCCESS,
   },
   progressText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
-    color: PIXEL_COLORS.PIXEL_GREEN,
+    color: COLORS.SUCCESS,
   },
   energySection: {
     alignItems: 'center',
@@ -186,43 +188,51 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    marginBottom: SPACING.SMALL,
+    marginBottom: 8,
   },
   energyDot: {
-    width: 24,
-    height: 24,
+    width: 20,
+    height: 20,
     margin: 4,
-    borderWidth: PIXEL_BORDERS.SMALL,
-    borderColor: PIXEL_COLORS.PIXEL_PINK,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: COLORS.PINK,
   },
   energyText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
-    color: PIXEL_COLORS.PIXEL_PINK,
+    color: COLORS.PINK,
   },
   greetingCard: {
-    marginBottom: SPACING.LARGE,
+    borderRadius: 16,
+    backgroundColor: COLORS.BACKGROUND_LIGHT,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER_LIGHT,
+    padding: 16,
+    marginBottom: 20,
   },
   greetingText: {
-    fontSize: 18,
-    color: PIXEL_COLORS.TEXT_PRIMARY,
-    lineHeight: 28,
+    fontSize: 15,
+    color: COLORS.TEXT_PRIMARY,
+    lineHeight: 24,
     textAlign: 'center',
-    letterSpacing: 0.5,
   },
   chatSection: {
     flex: 1,
   },
   chatTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: PIXEL_COLORS.TEXT_PRIMARY,
-    marginBottom: SPACING.MEDIUM,
-    letterSpacing: 1,
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.TEXT_PRIMARY,
+    marginBottom: 12,
   },
   chatBox: {
-    height: 200,
-    marginBottom: SPACING.MEDIUM,
+    height: 180,
+    borderRadius: 16,
+    backgroundColor: COLORS.BACKGROUND_LIGHT,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER_LIGHT,
+    marginBottom: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -230,13 +240,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyChatText: {
-    fontSize: 18,
-    color: PIXEL_COLORS.TEXT_SECONDARY,
-    marginBottom: SPACING.SMALL,
+    fontSize: 16,
+    color: COLORS.TEXT_SECONDARY,
+    marginBottom: 4,
   },
   emptyChatHint: {
-    fontSize: 14,
-    color: PIXEL_COLORS.PIXEL_CYAN,
+    fontSize: 13,
+    color: COLORS.PRIMARY,
+  },
+  chatButton: {
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: COLORS.PRIMARY,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chatButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  bottomPadding: {
+    height: 100,
   },
 });
 

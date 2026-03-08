@@ -269,6 +269,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.SMALL,
     borderWidth: 2,
     borderColor: CUTE_COLORS.LIGHT_PINK,
+    backgroundColor: CUTE_COLORS.WHITE,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -281,7 +282,7 @@ const styles = StyleSheet.create({
   optionButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: CUTE_COLORS.DARK_GRAY,
+    color: '#2A2A4A',
   },
   optionButtonTextActive: {
     color: CUTE_COLORS.WHITE,
