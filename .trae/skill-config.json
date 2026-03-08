@@ -1,0 +1,24 @@
+{
+  "disabledSkills": [
+    "visualization-expert",
+    "ux-designer",
+    "technical-writer",
+    "strategy-advisor",
+    "sprint-planner",
+    "editor",
+    "email-drafter",
+    "fact-checker",
+    "meeting-notes",
+    "python-expert",
+    "content-creator",
+    "data-analyst",
+    "debugger",
+    "decision-helper",
+    "deep-research",
+    "app-store-publishing",
+    "fullstack-developer",
+    "academic-researcher",
+    "code-reviewer",
+    "project-planner"
+  ]
+}
