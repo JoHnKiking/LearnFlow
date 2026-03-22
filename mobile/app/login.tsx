@@ -6,10 +6,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../src/utils/constants';
 import { authService } from '../src/services/api';
 import { saveAuthData } from '../src/utils/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { showErrorAlert, createKeyboardPositioningListener, measureInputPosition, measureInputPositionByRef, getInputPositioningStyle } from '../src/utils';
 
 const LoginScreen = () => {
-  const [loginType, setLoginType] = useState<'phone' | 'wechat'>('phone');
+  const [loginType, setLoginType] = useState<'login' | 'register'>('login');
+  const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,6 +24,7 @@ const LoginScreen = () => {
   const passwordInputRef = useRef<TextInput>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const phoneInputRef = useRef<TextInput>(null);
+  const nameInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     const cleanup = createKeyboardPositioningListener(
@@ -67,6 +70,21 @@ const LoginScreen = () => {
     }, 100);
   };
 
+  // 处理名字输入框焦点事件
+  const handleNameInputFocus = () => {
+    // 延迟执行，确保键盘已经弹出
+    setTimeout(() => {
+      measureInputPositionByRef(nameInputRef, (yPosition) => {
+        setActiveInputY(yPosition);
+        // 当键盘弹出时，滚动到输入框上方1cm位置
+        if (scrollViewRef.current) {
+          const scrollOffset = Math.max(0, yPosition - 40); // 进一步减少偏移量，上移约0.5cm
+          scrollViewRef.current.scrollTo({ y: scrollOffset, animated: true });
+        }
+      });
+    }, 100);
+  };
+
   // 处理密码输入框焦点事件
   const handlePasswordInputFocus = () => {
     // 延迟执行，确保键盘已经弹出
@@ -82,7 +100,7 @@ const LoginScreen = () => {
     }, 100);
   };
 
-  const handlePhoneLogin = async () => {
+  const handleLogin = async () => {
     if (!phone || !password) {
       Alert.alert('错误', '请输入手机号和密码');
       return;
@@ -103,26 +121,79 @@ const LoginScreen = () => {
       
       setLoading(false);
       Alert.alert('登录成功', '欢迎回来！');
-      router.replace('/(tabs)');
+      
+      // 检查是否已完成新手教程
+      const onboardingCompleted = await AsyncStorage.getItem('onboardingCompleted');
+      if (onboardingCompleted === 'true') {
+        router.replace('/(tabs)');
+      } else {
+        router.replace('/splash');
+      }
     } catch (error) {
       setLoading(false);
       showErrorAlert('登录失败', error as string);
     }
   };
 
-  const handleWechatLogin = async () => {
+  const handleSubmit = async () => {
+    if (loginType === 'register' && (!name || !phone || !password)) {
+      Alert.alert('错误', '请填写完整信息');
+      return;
+    }
+    if (loginType === 'login' && (!phone || !password)) {
+      Alert.alert('错误', '请输入手机号和密码');
+      return;
+    }
+
     setLoading(true);
     try {
-      setTimeout(() => {
-        setLoading(false);
+      let authResponse;
+      
+      if (loginType === 'register') {
+        // 注册新用户
+        authResponse = await authService.register({ 
+          username: name,
+          phone: phone,
+          password
+        });
+      } else {
+        // 登录
+        authResponse = await authService.login({ 
+          phone: phone, 
+          password,
+          deviceId: 'mobile-device',
+          type: 'phone',
+          deviceType: 'android',
+          deviceName: '移动设备'
+        });
+      }
+      
+      await saveAuthData(authResponse);
+      
+      setLoading(false);
+      
+      if (loginType === 'register') {
+        Alert.alert('注册成功', '欢迎加入 LearnFlow！');
+        // 新用户注册后进入新手教程
+        await AsyncStorage.setItem('onboardingCompleted', 'false');
+        router.replace('/splash');
+      } else {
         Alert.alert('登录成功', '欢迎回来！');
-        router.replace('/(tabs)');
-      }, 1000);
+        // 检查是否已完成新手教程
+        const onboardingCompleted = await AsyncStorage.getItem('onboardingCompleted');
+        if (onboardingCompleted === 'true') {
+          router.replace('/(tabs)');
+        } else {
+          router.replace('/splash');
+        }
+      }
     } catch (error) {
       setLoading(false);
-      showErrorAlert('微信登录失败', error as string);
+      showErrorAlert(loginType === 'register' ? '注册失败' : '登录失败', error as string);
     }
   };
+
+
 
   const handleRegister = () => {
     router.push('/register');
@@ -161,31 +232,44 @@ const LoginScreen = () => {
           <View style={styles.tabContainer}>
             <View style={styles.tabSwitcher}>
               <TouchableOpacity
-                style={[styles.tabButton, loginType === 'phone' && styles.activeTabButton]}
-                onPress={() => setLoginType('phone')}
+                style={[styles.tabButton, loginType === 'login' && styles.activeTabButton]}
+                onPress={() => setLoginType('login')}
               >
-                <Text style={[styles.tabText, loginType === 'phone' && styles.activeTabText]}>
+                <Text style={[styles.tabText, loginType === 'login' && styles.activeTabText]}>
                   登录
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.tabButton, loginType === 'wechat' && styles.activeTabButton]}
-                onPress={() => setLoginType('wechat')}
+                style={[styles.tabButton, loginType === 'register' && styles.activeTabButton]}
+                onPress={() => setLoginType('register')}
               >
-                <Text style={[styles.tabText, loginType === 'wechat' && styles.activeTabText]}>
-                  微信登录
+                <Text style={[styles.tabText, loginType === 'register' && styles.activeTabText]}>
+                  注册
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
 
           {/* 表单 */}
-          {loginType === 'phone' ? (
-            <View style={styles.formContainer}>
-              <View 
-              style={styles.inputContainer}
-              onLayout={handleInputLayout}
-            >
+          <View style={styles.formContainer}>
+            {loginType === 'register' && (
+              <View style={styles.inputContainer} onLayout={handleInputLayout}>
+                <Ionicons name="person" size={20} color={COLORS.PRIMARY} style={styles.inputIcon} />
+                <TextInput
+                  ref={nameInputRef}
+                  style={styles.textInput}
+                  placeholder="你的名字"
+                  placeholderTextColor={COLORS.TEXT_SECONDARY}
+                  value={name}
+                  onChangeText={setName}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  onFocus={handleNameInputFocus}
+                />
+              </View>
+            )}
+            
+            <View style={styles.inputContainer} onLayout={handleInputLayout}>
               <Ionicons name="call" size={20} color={COLORS.PRIMARY} style={styles.inputIcon} />
               <TextInput
                 ref={phoneInputRef}
@@ -236,33 +320,17 @@ const LoginScreen = () => {
 
               <TouchableOpacity
                 style={[styles.loginButton, loading && styles.loginButtonDisabled]}
-                onPress={handlePhoneLogin}
+                onPress={handleSubmit}
                 disabled={loading}
                 activeOpacity={0.7}
               >
                 {loading ? (
                   <View style={styles.loadingSpinner} />
                 ) : (
-                  <Text style={styles.loginButtonText}>登录</Text>
+                  <Text style={styles.loginButtonText}>{loginType === 'login' ? '登录' : '创建账号'}</Text>
                 )}
               </TouchableOpacity>
             </View>
-          ) : (
-            <View style={styles.wechatContainer}>
-              <TouchableOpacity
-                style={[styles.wechatButton, loading && styles.wechatButtonDisabled]}
-                onPress={handleWechatLogin}
-                disabled={loading}
-                activeOpacity={0.7}
-              >
-                {loading ? (
-                  <View style={styles.loadingSpinner} />
-                ) : (
-                  <Text style={styles.wechatButtonText}>微信一键登录</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          )}
 
           {/* 分割线 */}
           <View style={styles.divider}>

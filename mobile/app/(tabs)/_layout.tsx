@@ -7,33 +7,28 @@ export default function TabLayout() {
     <Tabs
       screenOptions={({ route }) => ({
         tabBarActiveTintColor: COLORS.PRIMARY,
-        tabBarInactiveTintColor: COLORS.TEXT_TERTIARY,
+        tabBarInactiveTintColor: '#6B7280',
         headerShown: false,
         tabBarStyle: {
           backgroundColor: 'rgba(15, 20, 50, 0.95)',
-          borderTopColor: COLORS.BORDER_DARK,
+          borderTopColor: 'rgba(93, 155, 250, 0.2)',
           borderTopWidth: 1,
           paddingTop: 8,
           paddingBottom: 8,
           height: 64,
         },
         tabBarLabelStyle: {
-          fontSize: 10,
+          fontSize: 11,
           fontWeight: '500',
+          fontFamily: 'Courier',
         },
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap;
 
           if (route.name === 'index') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'generate') {
-            iconName = focused ? 'add-circle' : 'add-circle-outline';
-          } else if (route.name === 'search') {
-            iconName = focused ? 'search' : 'search-outline';
+            iconName = focused ? 'map' : 'map-outline';
           } else if (route.name === 'monster') {
-            iconName = focused ? 'game-controller' : 'game-controller-outline';
-          } else if (route.name === 'notes') {
-            iconName = focused ? 'book' : 'book-outline';
+            iconName = focused ? 'sparkles' : 'sparkles-outline';
           } else if (route.name === 'profile') {
             iconName = focused ? 'person' : 'person-outline';
           } else {
@@ -47,31 +42,13 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: '首页',
-        }}
-      />
-      <Tabs.Screen
-        name="generate"
-        options={{
-          title: '生成',
-        }}
-      />
-      <Tabs.Screen
-        name="search"
-        options={{
-          title: '搜索',
+          title: '地图',
         }}
       />
       <Tabs.Screen
         name="monster"
         options={{
           title: '怪兽',
-        }}
-      />
-      <Tabs.Screen
-        name="notes"
-        options={{
-          title: '笔记',
         }}
       />
       <Tabs.Screen
