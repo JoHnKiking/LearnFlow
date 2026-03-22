@@ -1,3 +1,8 @@
+---
+name: frontend-migration
+description: "Expert guidance for migrating UI styles while preserving business logic. Use when: needing to update app appearance, adopt new design system, refactor UI with existing functionality, or when user mentions style migration, UI redesign, frontend refactoring, or copying design from existing project."
+---
+
 ```markdown
 ---
 name: frontend-migration-expert
@@ -185,33 +190,3 @@ Provide migration recommendations with:
 
 *Created for frontend style migration projects*
 ```
-
----
-
-## 📝 使用说明
-
-这个模板的核心设计逻辑：
-
-### 1. **元信息层**
-- `name`: 技能的唯一标识
-- `description`: 一句话说明技能用途，包含触发关键词
-
-### 2. **角色定位**
-明确告诉AI现在要扮演前端重构专家的角色
-
-### 3. **应用场景**
-列出所有可能触发这个技能的场景，方便匹配用户需求
-
-### 4. **知识库**
-- **核心原则**：逻辑与表现分离
-- **迁移策略**：什么该留什么该改
-- **模式库**：不同场景的最佳实践
-
-### 5. **输出规范**
-标准化回答结构，确保每次建议都完整专业
-
-### 6. **示例演示**
-通过具体例子展示如何应用这个技能
-
-### 7. **质量保障**
-列出常见陷阱和最佳实践，帮助用户避免踩坑
