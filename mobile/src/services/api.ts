@@ -33,6 +33,26 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
+    // 网络连接错误
+    if (error.code === 'NETWORK_ERROR' || error.code === 'ECONNREFUSED') {
+      console.error('网络连接失败，请检查网络连接和服务器状态');
+      console.error('当前API地址:', API_BASE_URL);
+      return Promise.reject(new Error('网络连接失败，请检查网络连接'));
+    }
+    
+    // DNS解析错误
+    if (error.code === 'ENOTFOUND') {
+      console.error('DNS解析失败，无法连接到服务器');
+      console.error('域名解析失败:', error.hostname);
+      return Promise.reject(new Error('无法连接到服务器，请检查网络设置'));
+    }
+    
+    // 超时错误
+    if (error.code === 'ECONNABORTED') {
+      console.error('请求超时，服务器响应过慢');
+      return Promise.reject(new Error('请求超时，请检查网络连接'));
+    }
+    
     // 对于400错误（客户端错误），不记录错误日志，只提取错误信息
     if (error.response && error.response.status === 400) {
       // 提取后端返回的具体错误信息

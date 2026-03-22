@@ -6,32 +6,63 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = parseInt(process.env.PORT || '3001', 10);
 
 // 请求日志中间件
 app.use((req, res, next) => {
   const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] ${req.method} ${req.url} - IP: ${req.ip}`);
+  
+  // 获取客户端真实IP（考虑代理情况）
+  const clientIP = req.headers['x-forwarded-for'] || 
+                   req.headers['x-real-ip'] || 
+                   req.connection.remoteAddress || 
+                   req.socket.remoteAddress ||
+                   req.ip ||
+                   'unknown';
+  
+  // 获取用户代理信息
+  const userAgent = req.headers['user-agent'] || 'unknown';
+  
+  // 判断是否为移动设备
+  const isMobile = /Mobile|Android|iPhone|iPad|iPod/i.test(userAgent);
+  const deviceType = isMobile ? '移动设备' : '桌面设备';
+  
+  // 记录详细连接信息
+  console.log(`🌐 [${timestamp}] 新连接 - ${deviceType}`);
+  console.log(`   📍 来源IP: ${clientIP}`);
+  console.log(`   🔗 请求: ${req.method} ${req.url}`);
+  console.log(`   📱 用户代理: ${userAgent.substring(0, 100)}${userAgent.length > 100 ? '...' : ''}`);
+  console.log(`   📊 请求头:`, {
+    host: req.headers.host,
+    origin: req.headers.origin,
+    referer: req.headers.referer
+  });
   
   // 记录请求体（敏感信息如密码会过滤）
   if (req.body && Object.keys(req.body).length > 0) {
     const logBody = { ...req.body };
     if (logBody.password) logBody.password = '***';
     if (logBody.confirmPassword) logBody.confirmPassword = '***';
-    console.log(`[${timestamp}] Request Body:`, JSON.stringify(logBody));
+    console.log(`   📝 请求体:`, JSON.stringify(logBody));
   }
   
   // 记录响应时间
   const start = Date.now();
   res.on('finish', () => {
     const duration = Date.now() - start;
-    console.log(`[${timestamp}] Response: ${res.statusCode} - ${duration}ms`);
+    console.log(`   ✅ 响应: ${res.statusCode} - ${duration}ms`);
+    console.log(`   ---`);
   });
   
   next();
 });
 
-app.use(cors());
+app.use(cors({
+  origin: ['https://heterotrichous-gerty-catadromous.ngrok-free.dev', 'http://localhost:3001'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // API路由
@@ -66,9 +97,10 @@ app.use((error: any, req: any, res: any, next: any) => {
   });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 LearnFlow Server started at ${new Date().toISOString()}`);
   console.log(`📍 Server is running on port ${PORT}`);
   console.log(`🌐 Health check: http://localhost:${PORT}/`);
+  console.log(`🌐 External access: http://0.0.0.0:${PORT}/`);
   console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
