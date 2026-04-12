@@ -2,17 +2,24 @@ import { Alert, Keyboard, Platform, Dimensions, LayoutAnimation } from 'react-na
 
 // 通用工具函数
 
+/** 将 unknown 错误转为可展示、可传给原生 Alert 的纯文本 */
+export const toErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) return error.message || '请稍后重试';
+  if (typeof error === 'string') return error;
+  return '请稍后重试';
+};
+
 /**
- * 显示错误提示
+ * 显示错误提示（参数顺序与 Alert.alert 一致：标题、正文）
  */
-export const showErrorAlert = (message: string, title: string = '错误') => {
+export const showErrorAlert = (title: string, message: string) => {
   Alert.alert(title, message);
 };
 
 /**
  * 显示成功提示
  */
-export const showSuccessAlert = (message: string, title: string = '成功') => {
+export const showSuccessAlert = (title: string, message: string) => {
   Alert.alert(title, message);
 };
 
@@ -21,7 +28,7 @@ export const showSuccessAlert = (message: string, title: string = '成功') => {
  */
 export const validateInput = (input: string, fieldName: string): boolean => {
   if (!input.trim()) {
-    showErrorAlert(`请输入${fieldName}`);
+    showErrorAlert('错误', `请输入${fieldName}`);
     return false;
   }
   return true;

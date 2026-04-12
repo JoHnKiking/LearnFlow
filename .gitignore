@@ -32,6 +32,7 @@ yarn-error.*
 
 # 环境变量文件
 .env*.local
+mobile/.env
 
 # TypeScript 构建信息
 *.tsbuildinfo

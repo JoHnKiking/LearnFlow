@@ -7,7 +7,7 @@ import { COLORS } from '../src/utils/constants';
 import { authService } from '../src/services/api';
 import { saveAuthData } from '../src/utils/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { showErrorAlert, createKeyboardPositioningListener, measureInputPosition, measureInputPositionByRef, getInputPositioningStyle } from '../src/utils';
+import { showErrorAlert, toErrorMessage, createKeyboardPositioningListener, measureInputPosition, measureInputPositionByRef, getInputPositioningStyle } from '../src/utils';
 
 const LoginScreen = () => {
   const [loginType, setLoginType] = useState<'login' | 'register'>('login');
@@ -131,7 +131,7 @@ const LoginScreen = () => {
       }
     } catch (error) {
       setLoading(false);
-      showErrorAlert('登录失败', error as string);
+      showErrorAlert('登录失败', toErrorMessage(error));
     }
   };
 
@@ -189,7 +189,10 @@ const LoginScreen = () => {
       }
     } catch (error) {
       setLoading(false);
-      showErrorAlert(loginType === 'register' ? '注册失败' : '登录失败', error as string);
+      showErrorAlert(
+        loginType === 'register' ? '注册失败' : '登录失败',
+        toErrorMessage(error)
+      );
     }
   };
 

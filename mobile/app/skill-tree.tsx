@@ -50,7 +50,7 @@ const SkillTreeScreen = () => {
       // 或者使用utils中的工具函数
       Alert.alert('提示', `准备打开链接: ${url}`);
     } catch (error) {
-      showErrorAlert('无法打开链接');
+      showErrorAlert('错误', '无法打开链接');
     }
   };
 

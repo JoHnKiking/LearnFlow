@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../src/utils/constants';
 import { authService } from '../src/services/api';
 import { saveAuthData } from '../src/utils/auth';
-import { showErrorAlert, createKeyboardPositioningListener, measureInputPosition, measureInputPositionByRef, getInputPositioningStyle } from '../src/utils';
+import { showErrorAlert, toErrorMessage, createKeyboardPositioningListener, measureInputPosition, measureInputPositionByRef, getInputPositioningStyle } from '../src/utils';
 
 const RegisterScreen = () => {
   const [username, setUsername] = useState('');
@@ -156,7 +156,7 @@ const RegisterScreen = () => {
           showErrorAlert('注册失败', errorMessage);
         }
       } else {
-        showErrorAlert('注册失败', error as string);
+        showErrorAlert('注册失败', toErrorMessage(error));
       }
     }
   };

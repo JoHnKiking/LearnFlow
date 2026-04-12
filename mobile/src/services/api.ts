@@ -33,6 +33,13 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
+    // Axios 无法建连时常无 response，仅 message 为 Network Error
+    if (!error.response && error.message === 'Network Error') {
+      return Promise.reject(
+        new Error('无法连接服务器，请检查手机网络、服务器是否在线，以及 API 地址是否正确')
+      );
+    }
+
     // 网络连接错误
     if (error.code === 'NETWORK_ERROR' || error.code === 'ECONNREFUSED') {
       console.error('网络连接失败，请检查网络连接和服务器状态');
