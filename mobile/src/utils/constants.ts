@@ -1,7 +1,9 @@
 // 应用常量配置
 // export const API_BASE_URL = 'https://heterotrichous-gerty-catadromous.ngrok-free.dev/api';
 // export const API_BASE_URL = 'http://localhost:3001/api';
-export const API_BASE_URL = 'http://192.168.1.122:3001/api';
+// export const API_BASE_URL = 'http://192.168.1.122:3001/api';
+// export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001/api';
+export const API_BASE_URL = 'http://119.91.133.45:3001/api';
 export const APP_NAME = 'LearnFlow';
 export const APP_VERSION = '1.0.0';
 
