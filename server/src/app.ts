@@ -57,12 +57,38 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(cors({
-  origin: ['https://heterotrichous-gerty-catadromous.ngrok-free.dev', 'http://localhost:3001'],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+function isAllowedCorsOrigin(origin: string | undefined): boolean {
+  if (!origin) return true;
+  try {
+    const { hostname, protocol } = new URL(origin);
+    if (protocol !== 'http:' && protocol !== 'https:') return false;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') return true;
+    if (
+      hostname.endsWith('.ngrok-free.app') ||
+      hostname.endsWith('.ngrok-free.dev') ||
+      hostname.endsWith('.ngrok.app') ||
+      hostname.endsWith('.ngrok.io')
+    ) {
+      return true;
+    }
+    const extras =
+      process.env.CORS_ORIGINS?.split(',').map((s) => s.trim()).filter(Boolean) ?? [];
+    return extras.includes(origin);
+  } catch {
+    return false;
+  }
+}
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      callback(null, isAllowedCorsOrigin(origin));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 app.use(express.json());
 
 // API路由

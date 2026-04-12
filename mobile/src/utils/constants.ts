@@ -1,10 +1,8 @@
 // 应用常量配置
-// export const API_BASE_URL = 'https://heterotrichous-gerty-catadromous.ngrok-free.dev/api';
-// export const API_BASE_URL = 'http://localhost:3001/api';
-// export const API_BASE_URL = 'http://192.168.1.122:3001/api';
-// export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001/api';
-// export const API_BASE_URL = 'http://119.91.133.45:3001/api';
-export const API_BASE_URL = 'http://120.204.135.36:3001/api';
+// 公网 / 跨网调试：在 mobile/.env 设置 EXPO_PUBLIC_API_URL=https://<子域>.ngrok-free.app/api
+// 或启动前：EXPO_PUBLIC_API_URL=https://xxx.ngrok-free.app/api npx expo start
+export const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001/api';
 export const APP_NAME = 'LearnFlow';
 export const APP_VERSION = '1.0.0';
 

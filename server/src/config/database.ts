@@ -41,6 +41,12 @@ export class DatabaseConnection {
           user: dbConfig.user,
           database: dbConfig.database
         });
+        const err = error as { code?: string };
+        if (err.code === 'ER_ACCESS_DENIED_ERROR') {
+          console.error(
+            '提示: 用户名或密码不对。请修改 server/.env 中的 DB_USER、DB_PASSWORD，使其与在本机执行 mysql -u <用户> -p 能登录的凭据一致；若 root 无密码则清空 DB_PASSWORD。仍失败时可尝试将 DB_HOST 在 127.0.0.1 与 localhost 之间切换（两者在 MySQL 里可能是不同登录方式）。'
+          );
+        }
         throw new Error(`数据库连接失败: ${error instanceof Error ? error.message : '未知错误'}`);
       }
     }
