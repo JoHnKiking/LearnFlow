@@ -124,9 +124,11 @@ const LoginScreen = () => {
       
       // 检查是否已完成新手教程
       const onboardingCompleted = await AsyncStorage.getItem('onboardingCompleted');
-      if (onboardingCompleted === 'true') {
+      if (onboardingCompleted === 'true' || onboardingCompleted === null) {
+        // 已完成或未设置（旧用户），直接进入主界面
         router.replace('/(tabs)');
       } else {
+        // 未完成，进入新手教程
         router.replace('/splash');
       }
     } catch (error) {
@@ -178,15 +180,17 @@ const LoginScreen = () => {
         await AsyncStorage.setItem('onboardingCompleted', 'false');
         router.replace('/splash');
       } else {
-        Alert.alert('登录成功', '欢迎回来！');
-        // 检查是否已完成新手教程
-        const onboardingCompleted = await AsyncStorage.getItem('onboardingCompleted');
-        if (onboardingCompleted === 'true') {
-          router.replace('/(tabs)');
-        } else {
-          router.replace('/splash');
+          Alert.alert('登录成功', '欢迎回来！');
+          // 检查是否已完成新手教程
+          const onboardingCompleted = await AsyncStorage.getItem('onboardingCompleted');
+          if (onboardingCompleted === 'true' || onboardingCompleted === null) {
+            // 已完成或未设置（旧用户），直接进入主界面
+            router.replace('/(tabs)');
+          } else {
+            // 未完成，进入新手教程
+            router.replace('/splash');
+          }
         }
-      }
     } catch (error) {
       setLoading(false);
       showErrorAlert(

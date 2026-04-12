@@ -14,16 +14,8 @@ const IndexScreen = () => {
         const isAuthenticated = await checkAuthStatus();
         const onboardingCompleted = await AsyncStorage.getItem('onboardingCompleted');
 
-        if (isAuthenticated && onboardingCompleted === 'true') {
-          // 已登录且完成新手教程，直接进入主界面
-          router.replace('/(tabs)');
-        } else if (isAuthenticated && onboardingCompleted !== 'true') {
-          // 已登录但未完成新手教程，进入新手教程
-          router.replace('/splash');
-        } else {
-          // 未登录，进入登录页面
-          router.replace('/login');
-        }
+        // 暂时关闭自动登录功能，每次启动都进入登录页面
+        router.replace('/login');
       } catch (error) {
         console.error('初始化应用失败:', error);
         router.replace('/login');
