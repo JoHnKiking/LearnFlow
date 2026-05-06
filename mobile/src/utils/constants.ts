@@ -144,3 +144,56 @@ export const DEFAULT_CONFIG = {
   MAX_ENERGY: 10,
   POMODORO_MINUTES: 25,
 } as const;
+
+// 怪兽配置
+export const MONSTER_CONFIG = {
+  TYPES: {
+    LIVELY: 'lively',
+    CALM: 'calm',
+    REBEL: 'rebel',
+  } as const,
+
+  STAMINA: {
+    BASE_MAX: 100,
+    CALM_BONUS: 20,
+    COST_PER_JUMP: 10,
+    GAME_BONUS: 20,
+    REBEL_MULTIPLIER: 2,
+  } as const,
+
+  ENERGY: {
+    BASE_MAX: 50,
+    COST_PER_TOKEN: 0.05,
+    GAME_BONUS: 5,
+  } as const,
+
+  DAILY_RESET: {
+    HOUR: 5,
+    MINUTE: 0,
+  } as const,
+
+  POMODORO: {
+    TIME_OPTIONS: [25, 45, 60, 90, 120, 180] as const,
+  } as const,
+
+  PERSONALITIES: {
+    lively: {
+      name: '活力小怪',
+      traits: ['单次学习任务时长 -5分钟', '适合快节奏碎片化学习'],
+    },
+    calm: {
+      name: '沉稳小怪',
+      traits: ['每日体力额外 +20点', '可多跳转2次', '擅长深度思考'],
+    },
+    rebel: {
+      name: '叛逆小怪',
+      traits: ['小游戏获得的体力、能量全部双倍', '勇于探索挑战'],
+    },
+  } as const,
+
+  COLORS: {
+    lively: { primary: '#FF7D00', secondary: '#E66900' },
+    calm: { primary: '#5D9BFA', secondary: '#4A7FD4' },
+    rebel: { primary: '#7B5EA7', secondary: '#5A4280' },
+  } as const,
+};

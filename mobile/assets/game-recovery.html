@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>游戏恢复 - LearnFlow</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background: #1A1A2E;
+            color: #E8E8F0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #5D9BFA;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .game-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .game-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .game-btn.sudoku {
+            background: rgba(93, 155, 250, 0.2);
+            color: #5D9BFA;
+            border: 2px solid rgba(93, 155, 250, 0.3);
+        }
+
+        .game-btn.sudoku.active {
+            background: #5D9BFA;
+            color: white;
+        }
+
+        .game-btn.sokoban {
+            background: rgba(255, 125, 0, 0.2);
+            color: #FF7D00;
+            border: 2px solid rgba(255, 125, 0, 0.3);
+        }
+
+        .game-btn.sokoban.active {
+            background: #FF7D00;
+            color: white;
+        }
+
+        .game-container {
+            display: none;
+            background: #16213E;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(93, 155, 250, 0.2);
+        }
+
+        .game-container.active {
+            display: block;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .game-title {
+            font-size: 18px;
+            color: #FFD700;
+        }
+
+        .new-game-btn {
+            padding: 8px 16px;
+            background: rgba(93, 155, 250, 0.2);
+            color: #5D9BFA;
+            border: 1px solid rgba(93, 155, 250, 0.3);
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .new-game-btn:hover {
+            background: #5D9BFA;
+            color: white;
+        }
+
+        /* 数独样式 */
+        .sudoku-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 1px;
+            background: #0F1030;
+            border: 2px solid #5D9BFA;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .sudoku-cell {
+            aspect-ratio: 1;
+            background: #1A1A2E;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            border: none;
+            color: #E8E8F0;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .sudoku-cell:nth-child(3n) {
+            border-right: 1px solid #5D9BFA;
+        }
+
+        .sudoku-cell:nth-child(9n) {
+            border-right: none;
+        }
+
+        .sudoku-cell:nth-child(n+19):nth-child(-n+27),
+        .sudoku-cell:nth-child(n+46):nth-child(-n+54) {
+            border-bottom: 1px solid #5D9BFA;
+        }
+
+        .sudoku-cell.given {
+            color: #5D9BFA;
+            font-weight: bold;
+            cursor: default;
+        }
+
+        .sudoku-cell.selected {
+            background: rgba(93, 155, 250, 0.3);
+        }
+
+        .sudoku-cell.conflict {
+            background: rgba(255, 107, 107, 0.3);
+            color: #FF6B6B;
+        }
+
+        .sudoku-cell.correct {
+            background: rgba(58, 227, 116, 0.2);
+        }
+
+        .sudoku-cell.user-input {
+            color: #FFD700;
+        }
+
+        .number-pad {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .number-btn {
+            padding: 12px;
+            background: rgba(93, 155, 250, 0.2);
+            color: #5D9BFA;
+            border: 1px solid rgba(93, 155, 250, 0.3);
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+            transition: all 0.2s;
+        }
+
+        .number-btn:hover {
+            background: #5D9BFA;
+            color: white;
+        }
+
+        .number-btn.clear {
+            background: rgba(255, 107, 107, 0.2);
+            color: #FF6B6B;
+            border-color: rgba(255, 107, 107, 0.3);
+        }
+
+        .number-btn.clear:hover {
+            background: #FF6B6B;
+            color: white;
+        }
+
+        .hint-btn {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 215, 0, 0.15);
+            color: #FFD700;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+            transition: all 0.2s;
+            margin-bottom: 10px;
+        }
+
+        .hint-btn:hover {
+            background: rgba(255, 215, 0, 0.3);
+        }
+
+        /* 推箱子样式 */
+        .sokoban-grid {
+            display: grid;
+            gap: 2px;
+            background: #0F1030;
+            border: 2px solid #FF7D00;
+            border-radius: 8px;
+            padding: 8px;
+            margin-bottom: 15px;
+        }
+
+        .sokoban-cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            border-radius: 4px;
+        }
+
+        .sokoban-cell.wall {
+            background: #3A3A5C;
+        }
+
+        .sokoban-cell.floor {
+            background: #1A1A2E;
+        }
+
+        .sokoban-cell.target {
+            background: rgba(255, 215, 0, 0.2);
+        }
+
+        .sokoban-cell.player {
+            background: rgba(93, 155, 250, 0.3);
+        }
+
+        .sokoban-cell.box {
+            background: rgba(255, 125, 0, 0.4);
+        }
+
+        .sokoban-cell.box-on-target {
+            background: rgba(58, 227, 116, 0.4);
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 5px;
+        }
+
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(93, 155, 250, 0.2);
+            color: #5D9BFA;
+            border: 1px solid rgba(93, 155, 250, 0.3);
+            border-radius: 12px;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .control-btn:hover,
+        .control-btn:active {
+            background: #5D9BFA;
+            color: white;
+        }
+
+        .level-info {
+            text-align: center;
+            color: #8888AA;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        /* 答案操作按钮 */
+        .solution-nav {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .solution-nav-btn {
+            flex: 1;
+            padding: 12px 8px;
+            background: rgba(255, 215, 0, 0.15);
+            color: #FFD700;
+            border: 2px solid rgba(255, 215, 0, 0.4);
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .solution-nav-btn:hover:not(:disabled) {
+            background: rgba(255, 215, 0, 0.3);
+        }
+
+        .solution-nav-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* 解法显示区域 */
+        .solution-display {
+            background: rgba(255, 215, 0, 0.08);
+            border: 1px solid rgba(255, 215, 0, 0.25);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .solution-title {
+            color: #FFD700;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .solution-steps {
+            color: #E8E8F0;
+            font-size: 14px;
+            line-height: 1.8;
+            word-break: break-all;
+        }
+
+        /* 弹窗样式 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #16213E;
+            border: 2px solid #FFD700;
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            max-width: 90%;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            color: #FFD700;
+            margin-bottom: 15px;
+        }
+
+        .modal-text {
+            color: #E8E8F0;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+
+        .modal-rewards {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .reward-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .reward-value {
+            color: #FFD700;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .reward-label {
+            color: #8888AA;
+            font-size: 12px;
+        }
+
+        .modal-btn {
+            padding: 12px 30px;
+            background: #5D9BFA;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        /* 响应式 */
+        @media (min-width: 500px) {
+            .sudoku-cell {
+                font-size: 22px;
+            }
+            
+            .control-btn {
+                width: 70px;
+                height: 70px;
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 游戏恢复</h1>
+        
+        <div class="game-selector">
+            <button class="game-btn sudoku active" onclick="selectGame('sudoku')">数独</button>
+            <button class="game-btn sokoban" onclick="selectGame('sokoban')">推箱子</button>
+        </div>
+
+        <!-- 数独游戏 -->
+        <div class="game-container active" id="sudoku-container">
+            <div class="game-header">
+                <span class="game-title">🧩 数独</span>
+                <button class="new-game-btn" onclick="initSudoku()">新游戏</button>
+            </div>
+            <div class="sudoku-grid" id="sudoku-grid"></div>
+            <div class="number-pad">
+                <button class="number-btn" onclick="inputNumber(1)">1</button>
+                <button class="number-btn" onclick="inputNumber(2)">2</button>
+                <button class="number-btn" onclick="inputNumber(3)">3</button>
+                <button class="number-btn" onclick="inputNumber(4)">4</button>
+                <button class="number-btn" onclick="inputNumber(5)">5</button>
+                <button class="number-btn" onclick="inputNumber(6)">6</button>
+                <button class="number-btn" onclick="inputNumber(7)">7</button>
+                <button class="number-btn" onclick="inputNumber(8)">8</button>
+                <button class="number-btn" onclick="inputNumber(9)">9</button>
+                <button class="number-btn clear" onclick="clearCell()">清除</button>
+            </div>
+            <button class="hint-btn" onclick="showSudokuAnswer()">💡 放弃奖励查看答案</button>
+        </div>
+
+        <!-- 推箱子游戏 -->
+        <div class="game-container" id="sokoban-container">
+            <div class="game-header">
+                <span class="game-title">📦 推箱子</span>
+                <button class="new-game-btn" onclick="initSokoban()">新游戏</button>
+            </div>
+            
+            <div class="level-info" id="level-info">关卡: 1</div>
+            
+            <!-- 答案操作按钮 -->
+            <div class="solution-nav">
+                <button class="solution-nav-btn" onclick="solveSokoban()">💡 获取答案</button>
+                <button class="solution-nav-btn" onclick="playNextStep()" disabled>▶️ 下一步</button>
+                <button class="solution-nav-btn" onclick="playAllSteps()" disabled>⏩ 全部执行</button>
+            </div>
+            
+            <!-- 解法显示区域 -->
+            <div class="solution-display" id="solution-display">
+                <div class="solution-title">📝 解题步骤</div>
+                <div class="solution-steps" id="solution-steps">点击「获取答案」查看解法</div>
+            </div>
+            
+            <div class="sokoban-grid" id="sokoban-grid"></div>
+            
+            <div class="controls">
+                <div class="controls-row">
+                    <button class="control-btn" onclick="movePlayer(0, -1)">⬆️</button>
+                </div>
+                <div class="controls-row">
+                    <button class="control-btn" onclick="movePlayer(-1, 0)">⬅️</button>
+                    <button class="control-btn" onclick="movePlayer(0, 0)">🔄</button>
+                    <button class="control-btn" onclick="movePlayer(1, 0)">➡️</button>
+                </div>
+                <div class="controls-row">
+                    <button class="control-btn" onclick="movePlayer(0, 1)">⬇️</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 胜利弹窗 -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-title">🎉 胜利！</div>
+            <div class="modal-text">恭喜你完成游戏！</div>
+            <div class="modal-rewards">
+                <div class="reward-item">
+                    <div class="reward-value">+5</div>
+                    <div class="reward-label">体力</div>
+                </div>
+                <div class="reward-item">
+                    <div class="reward-value">+3</div>
+                    <div class="reward-label">能量</div>
+                </div>
+            </div>
+            <button class="modal-btn" onclick="closeModal()">太棒了！</button>
+        </div>
+    </div>
+
+    <script>
+        let currentGame = 'sudoku';
+        let selectedCell = null;
+        
+        // ==================== 数独 ====================
+        let sudokuBoard = [];
+        let sudokuSolution = [];
+        let sudokuGiven = [];
+
+        function selectGame(game) {
+            currentGame = game;
+            document.querySelectorAll('.game-container').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.game-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(`${game}-container`).classList.add('active');
+            document.querySelector(`.game-btn.${game}`).classList.add('active');
+            
+            if (game === 'sudoku' && sudokuBoard.length === 0) initSudoku();
+            if (game === 'sokoban' && !window.sokobanLevels) initSokoban();
+        }
+
+        function isValid(board, row, col, num) {
+            for (let i = 0; i < 9; i++) {
+                if (board[row][i] === num || board[i][col] === num) return false;
+                const boxRow = Math.floor(row / 3) * 3 + Math.floor(i / 3);
+                const boxCol = Math.floor(col / 3) * 3 + i % 3;
+                if (board[boxRow][boxCol] === num) return false;
+            }
+            return true;
+        }
+
+        function solveSudoku(board) {
+            for (let row = 0; row < 9; row++) {
+                for (let col = 0; col < 9; col++) {
+                    if (board[row][col] === 0) {
+                        const nums = shuffleArray([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+                        for (let num of nums) {
+                            if (isValid(board, row, col, num)) {
+                                board[row][col] = num;
+                                if (solveSudoku(board)) return true;
+                                board[row][col] = 0;
+                            }
+                        }
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function generateSudoku() {
+            const board = Array(9).fill(null).map(() => Array(9).fill(0));
+            solveSudoku(board);
+            return board;
+        }
+
+        function createPuzzle(board) {
+            const puzzle = board.map(row => [...row]);
+            const cellsToRemove = 40 + Math.floor(Math.random() * 6);
+            let removed = 0;
+            
+            while (removed < cellsToRemove) {
+                const row = Math.floor(Math.random() * 9);
+                const col = Math.floor(Math.random() * 9);
+                if (puzzle[row][col] !== 0) {
+                    puzzle[row][col] = 0;
+                    removed++;
+                }
+            }
+            return puzzle;
+        }
+
+        function initSudoku() {
+            sudokuSolution = generateSudoku();
+            sudokuBoard = createPuzzle(sudokuSolution);
+            sudokuGiven = sudokuBoard.map(row => row.map(cell => cell !== 0));
+            selectedCell = null;
+            renderSudoku();
+        }
+
+        function renderSudoku() {
+            const grid = document.getElementById('sudoku-grid');
+            grid.innerHTML = '';
+            
+            for (let row = 0; row < 9; row++) {
+                for (let col = 0; col < 9; col++) {
+                    const cell = document.createElement('button');
+                    cell.className = 'sudoku-cell';
+                    if (sudokuGiven[row][col]) cell.classList.add('given');
+                    if (selectedCell && selectedCell.row === row && selectedCell.col === col) {
+                        cell.classList.add('selected');
+                    }
+                    if (sudokuBoard[row][col] !== 0) {
+                        cell.textContent = sudokuBoard[row][col];
+                        if (!sudokuGiven[row][col]) cell.classList.add('user-input');
+                    }
+                    cell.onclick = () => selectSudokuCell(row, col);
+                    grid.appendChild(cell);
+                }
+            }
+            checkConflicts();
+        }
+
+        function selectSudokuCell(row, col) {
+            if (sudokuGiven[row][col]) return;
+            selectedCell = { row, col };
+            renderSudoku();
+        }
+
+        function inputNumber(num) {
+            if (!selectedCell) return;
+            const { row, col } = selectedCell;
+            sudokuBoard[row][col] = num;
+            renderSudoku();
+            checkWin();
+        }
+
+        function clearCell() {
+            if (!selectedCell) return;
+            const { row, col } = selectedCell;
+            sudokuBoard[row][col] = 0;
+            renderSudoku();
+        }
+
+        function checkConflicts() {
+            const cells = document.querySelectorAll('.sudoku-cell');
+            cells.forEach(cell => cell.classList.remove('conflict', 'correct'));
+            
+            for (let row = 0; row < 9; row++) {
+                for (let col = 0; col < 9; col++) {
+                    const val = sudokuBoard[row][col];
+                    if (val === 0) continue;
+                    
+                    let conflict = false;
+                    for (let i = 0; i < 9; i++) {
+                        if (i !== col && sudokuBoard[row][i] === val) conflict = true;
+                        if (i !== row && sudokuBoard[i][col] === val) conflict = true;
+                    }
+                    
+                    const boxRow = Math.floor(row / 3) * 3;
+                    const boxCol = Math.floor(col / 3) * 3;
+                    for (let i = 0; i < 3; i++) {
+                        for (let j = 0; j < 3; j++) {
+                            if ((boxRow + i !== row || boxCol + j !== col) && 
+                                sudokuBoard[boxRow + i][boxCol + j] === val) {
+                                conflict = true;
+                            }
+                        }
+                    }
+                    
+                    const cellIdx = row * 9 + col;
+                    if (conflict) {
+                        cells[cellIdx].classList.add('conflict');
+                    } else if (!sudokuGiven[row][col] && val === sudokuSolution[row][col]) {
+                        cells[cellIdx].classList.add('correct');
+                    }
+                }
+            }
+        }
+
+        function checkWin() {
+            for (let row = 0; row < 9; row++) {
+                for (let col = 0; col < 9; col++) {
+                    if (sudokuBoard[row][col] !== sudokuSolution[row][col]) return;
+                }
+            }
+            showVictory();
+        }
+
+        function showSudokuAnswer() {
+            if (confirm('确定要放弃奖励查看答案吗？')) {
+                sudokuBoard = sudokuSolution.map(row => [...row]);
+                renderSudoku();
+            }
+        }
+
+        // ==================== 推箱子 ====================
+        const sokobanLevels = [
+            {
+                name: "关卡 1 - 入门",
+                map: [
+                    "#####",
+                    "#@$ #",
+                    "# . #",
+                    "#####"
+                ]
+            },
+            {
+                name: "关卡 2 - 简单",
+                map: [
+                    "  #####",
+                    "###  #",
+                    "# $  #",
+                    "# .$ #",
+                    "#@.  #",
+                    "######"
+                ]
+            },
+            {
+                name: "关卡 3 - 中等",
+                map: [
+                    "########",
+                    "#      #",
+                    "# .$@$ #",
+                    "# .    #",
+                    "########"
+                ]
+            },
+            {
+                name: "关卡 4 - 进阶",
+                map: [
+                    "  ######",
+                    "###   #",
+                    "#  $  #",
+                    "# $.@ #",
+                    "# .$  #",
+                    "#######"
+                ]
+            },
+            {
+                name: "关卡 5 - 挑战",
+                map: [
+                    "########",
+                    "# .$.  #",
+                    "# $ $  #",
+                    "#@ ....#",
+                    "########"
+                ]
+            }
+        ];
+
+        window.sokobanLevels = sokobanLevels;
+        let currentLevel = 0;
+        let sokobanBoard = [];
+        let playerPos = { x: 0, y: 0 };
+        let solutionSteps = [];
+        let currentStepIndex = 0;
+        let isPlayingSolution = false;
+
+        function initSokoban() {
+            currentLevel = Math.floor(Math.random() * sokobanLevels.length);
+            loadLevel(currentLevel);
+        }
+
+        function loadLevel(levelIdx) {
+            const level = sokobanLevels[levelIdx];
+            document.getElementById('level-info').textContent = level.name;
+            
+            sokobanBoard = level.map.map(row => row.split(''));
+            
+            for (let y = 0; y < sokobanBoard.length; y++) {
+                for (let x = 0; x < sokobanBoard[y].length; x++) {
+                    if (sokobanBoard[y][x] === '@') {
+                        playerPos = { x, y };
+                        sokobanBoard[y][x] = ' ';
+                    }
+                }
+            }
+            
+            resetSolution();
+            renderSokoban();
+        }
+
+        function renderSokoban() {
+            const grid = document.getElementById('sokoban-grid');
+            const maxCols = Math.max(...sokobanBoard.map(row => row.length));
+            grid.style.gridTemplateColumns = `repeat(${maxCols}, 1fr)`;
+            grid.innerHTML = '';
+            
+            for (let y = 0; y < sokobanBoard.length; y++) {
+                for (let x = 0; x < maxCols; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'sokoban-cell';
+                    
+                    let char = sokobanBoard[y][x] || ' ';
+                    
+                    if (playerPos.x === x && playerPos.y === y) {
+                        cell.classList.add('player');
+                        cell.textContent = '😊';
+                    } else if (char === '#') {
+                        cell.classList.add('wall');
+                        cell.textContent = '🧱';
+                    } else if (char === '$') {
+                        cell.classList.add('box');
+                        cell.textContent = '📦';
+                    } else if (char === '*') {
+                        cell.classList.add('box-on-target');
+                        cell.textContent = '✅';
+                    } else if (char === '.') {
+                        cell.classList.add('target');
+                        cell.textContent = '🎯';
+                    } else {
+                        cell.classList.add('floor');
+                    }
+                    
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        function movePlayer(dx, dy) {
+            if (dx === 0 && dy === 0) {
+                loadLevel(currentLevel);
+                return;
+            }
+            
+            const newX = playerPos.x + dx;
+            const newY = playerPos.y + dy;
+            
+            if (newY < 0 || newY >= sokobanBoard.length ||
+                newX < 0 || newX >= sokobanBoard[newY].length) {
+                return;
+            }
+            
+            const targetCell = sokobanBoard[newY][newX];
+            
+            if (targetCell === '#') return;
+            
+            if (targetCell === '$' || targetCell === '*') {
+                const boxNewX = newX + dx;
+                const boxNewY = newY + dy;
+                
+                if (boxNewY < 0 || boxNewY >= sokobanBoard.length ||
+                    boxNewX < 0 || boxNewX >= sokobanBoard[boxNewY].length) {
+                    return;
+                }
+                
+                const boxTargetCell = sokobanBoard[boxNewY][boxNewX];
+                
+                if (boxTargetCell === ' ' || boxTargetCell === '.') {
+                    sokobanBoard[newY][newX] = (targetCell === '*') ? '.' : ' ';
+                    sokobanBoard[boxNewY][boxNewX] = (boxTargetCell === '.') ? '*' : '$';
+                } else {
+                    return;
+                }
+            }
+            
+            playerPos = { x: newX, y: newY };
+            renderSokoban();
+            checkSokobanWin();
+        }
+
+        function checkSokobanWin() {
+            for (let y = 0; y < sokobanBoard.length; y++) {
+                for (let x = 0; x < sokobanBoard[y].length; x++) {
+                    if (sokobanBoard[y][x] === '$' || sokobanBoard[y][x] === '.') {
+                        return;
+                    }
+                }
+            }
+            showVictory();
+        }
+
+        function resetSolution() {
+            solutionSteps = [];
+            currentStepIndex = 0;
+            isPlayingSolution = false;
+            const stepsEl = document.getElementById('solution-steps');
+            stepsEl.textContent = '点击下方按钮查看答案';
+            
+            const navBtns = document.querySelectorAll('.solution-nav-btn');
+            navBtns[0].disabled = false;
+            navBtns[1].disabled = true;
+            navBtns[2].disabled = true;
+        }
+
+        function solveSokoban() {
+            if (confirm('确定要放弃奖励查看答案吗？')) {
+                const level = sokobanLevels[currentLevel];
+                const originalBoard = level.map.map(row => row.split(''));
+                
+                const solution = findSolution(originalBoard);
+                
+                if (solution) {
+                    solutionSteps = solution;
+                    currentStepIndex = 0;
+                    displaySolution();
+                    
+                    const navBtns = document.querySelectorAll('.solution-nav-btn');
+                    navBtns[0].disabled = false;
+                    navBtns[1].disabled = false;
+                    navBtns[2].disabled = false;
+                } else {
+                    alert('抱歉，无法自动解出此关卡');
+                }
+            }
+        }
+
+        function findSolution(originalBoard) {
+            let board = originalBoard.map(row => [...row]);
+            let playerStart = { x: 0, y: 0 };
+            let boxes = [];
+            let targets = [];
+            
+            for (let y = 0; y < board.length; y++) {
+                for (let x = 0; x < board[y].length; x++) {
+                    if (board[y][x] === '@') {
+                        playerStart = { x, y };
+                        board[y][x] = ' ';
+                    } else if (board[y][x] === '$') {
+                        boxes.push({ x, y });
+                    } else if (board[y][x] === '.') {
+                        targets.push({ x, y });
+                    } else if (board[y][x] === '*') {
+                        boxes.push({ x, y });
+                        targets.push({ x, y });
+                        board[y][x] = '.';
+                    }
+                }
+            }
+
+            const directions = [
+                { dx: 0, dy: -1, name: '上' },
+                { dx: 1, dy: 0, name: '右' },
+                { dx: 0, dy: 1, name: '下' },
+                { dx: -1, dy: 0, name: '左' }
+            ];
+
+            const queue = [{ player: playerStart, boxes: boxes, moves: [], steps: '' }];
+            const visited = new Set();
+            
+            function getKey(p, b) {
+                return p.x + ',' + p.y + '|' + b.map(box => box.x + ',' + box.y).sort().join('|');
+            }
+            
+            let maxIterations = 0;
+            const maxIterationsLimit = 50000;
+            
+            while (queue.length > 0 && maxIterations < maxIterationsLimit) {
+                maxIterations++;
+                
+                const current = queue.shift();
+                const { player, boxes: currentBoxes, moves, steps } = current;
+                
+                let allDone = true;
+                for (const box of currentBoxes) {
+                    let onTarget = false;
+                    for (const target of targets) {
+                        if (box.x === target.x && box.y === target.y) {
+                            onTarget = true;
+                            break;
+                        }
+                    }
+                    if (!onTarget) {
+                        allDone = false;
+                        break;
+                    }
+                }
+                
+                if (allDone) {
+                    return steps.split(' ').filter(s => s.length > 0);
+                }
+                
+                for (const dir of directions) {
+                    const newPlayer = {
+                        x: player.x + dir.dx,
+                        y: player.y + dir.dy
+                    };
+                    
+                    if (newPlayer.y < 0 || newPlayer.y >= board.length ||
+                        newPlayer.x < 0 || newPlayer.x >= board[newPlayer.y].length ||
+                        board[newPlayer.y][newPlayer.x] === '#') {
+                        continue;
+                    }
+                    
+                    let pushedBoxIndex = -1;
+                    for (let i = 0; i < currentBoxes.length; i++) {
+                        if (currentBoxes[i].x === newPlayer.x && currentBoxes[i].y === newPlayer.y) {
+                            pushedBoxIndex = i;
+                            break;
+                        }
+                    }
+                    
+                    let newBoxes;
+                    if (pushedBoxIndex >= 0) {
+                        const boxNewPos = {
+                            x: newPlayer.x + dir.dx,
+                            y: newPlayer.y + dir.dy
+                        };
+                        
+                        if (boxNewPos.y < 0 || boxNewPos.y >= board.length ||
+                            boxNewPos.x < 0 || boxNewPos.x >= board[boxNewPos.y].length ||
+                            board[boxNewPos.y][boxNewPos.x] === '#') {
+                            continue;
+                        }
+                        
+                        let hasBox = false;
+                        for (const box of currentBoxes) {
+                            if (box.x === boxNewPos.x && box.y === boxNewPos.y) {
+                                hasBox = true;
+                                break;
+                            }
+                        }
+                        if (hasBox) continue;
+                        
+                        newBoxes = currentBoxes.map((box, i) => 
+                            i === pushedBoxIndex ? { ...boxNewPos } : { ...box }
+                        );
+                    } else {
+                        newBoxes = currentBoxes.map(b => ({ ...b }));
+                    }
+                    
+                    const key = getKey(newPlayer, newBoxes);
+                    if (visited.has(key)) continue;
+                    visited.add(key);
+                    
+                    queue.push({
+                        player: newPlayer,
+                        boxes: newBoxes,
+                        moves: [...moves, { dx: dir.dx, dy: dir.dy }],
+                        steps: steps + dir.name + ' '
+                    });
+                }
+            }
+            
+            return null;
+        }
+
+        function displaySolution() {
+            const stepsEl = document.getElementById('solution-steps');
+            
+            if (solutionSteps.length > 0) {
+                let stepsHtml = `总共 ${solutionSteps.length} 步:<br><br>`;
+                for (let i = 0; i < solutionSteps.length; i++) {
+                    const stepNum = i + 1;
+                    const step = solutionSteps[i];
+                    const arrow = getArrowForStep(step);
+                    stepsHtml += `${stepNum}. ${arrow}`;
+                    if ((i + 1) % 6 === 0) stepsHtml += '<br>';
+                }
+                stepsEl.innerHTML = stepsHtml;
+            } else {
+                stepsEl.textContent = '无法找到解法';
+            }
+        }
+
+        function getArrowForStep(direction) {
+            switch (direction) {
+                case '上': return '⬆️';
+                case '下': return '⬇️';
+                case '左': return '⬅️';
+                case '右': return '➡️';
+                default: return direction;
+            }
+        }
+
+        function playNextStep() {
+            if (currentStepIndex < solutionSteps.length) {
+                const step = solutionSteps[currentStepIndex];
+                let dx = 0, dy = 0;
+                switch (step) {
+                    case '上': dy = -1; break;
+                    case '下': dy = 1; break;
+                    case '左': dx = -1; break;
+                    case '右': dx = 1; break;
+                }
+                movePlayer(dx, dy);
+                currentStepIndex++;
+                
+                if (currentStepIndex >= solutionSteps.length) {
+                    const stepsEl = document.getElementById('solution-steps');
+                    stepsEl.innerHTML += '<br><br>✅ 解法执行完成！';
+                }
+            }
+        }
+
+        function playAllSteps() {
+            isPlayingSolution = true;
+            playNextStep();
+            if (isPlayingSolution && currentStepIndex < solutionSteps.length) {
+                setTimeout(playAllSteps, 300);
+            }
+        }
+
+        // 键盘控制
+        document.addEventListener('keydown', (e) => {
+            if (currentGame !== 'sokoban') return;
+            
+            switch (e.key) {
+                case 'ArrowUp':
+                case 'w':
+                case 'W':
+                    e.preventDefault();
+                    movePlayer(0, -1);
+                    break;
+                case 'ArrowDown':
+                case 's':
+                case 'S':
+                    e.preventDefault();
+                    movePlayer(0, 1);
+                    break;
+                case 'ArrowLeft':
+                case 'a':
+                case 'A':
+                    e.preventDefault();
+                    movePlayer(-1, 0);
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                case 'D':
+                    e.preventDefault();
+                    movePlayer(1, 0);
+                    break;
+                case 'r':
+                case 'R':
+                    movePlayer(0, 0);
+                    break;
+            }
+        });
+
+        // ==================== 通用 ====================
+        function showVictory() {
+            document.getElementById('modal').classList.add('active');
+            
+            const rewards = {
+                stamina: 5,
+                energy: 3
+            };
+            
+            if (typeof window.ReactNativeWebView !== 'undefined' && 
+                typeof window.ReactNativeWebView.postMessage === 'function') {
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: 'gameComplete',
+                    ...rewards
+                }));
+            } else if (typeof window.onGameComplete === 'function') {
+                window.onGameComplete(rewards);
+            } else if (window.parent && typeof window.parent.onGameComplete === 'function') {
+                window.parent.onGameComplete(rewards);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+            if (typeof window.ReactNativeWebView !== 'undefined' && 
+                typeof window.ReactNativeWebView.postMessage === 'function') {
+                window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'close' }));
+            }
+        }
+
+        initSudoku();
+    </script>
+</body>
+</html>

@@ -1,47 +1,136 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import MonsterIcon from '../../src/components/MonsterIcon';
+import MiniGames from '../../src/components/MiniGames';
+import { storage, STORAGE_KEYS } from '../../src/utils/storage';
+import { MONSTER_CONFIG } from '../../src/utils/constants';
+import { formatTimer } from '../../src/utils/helpers';
 
-type ActiveTab = 'stats' | 'notes' | 'chat';
+type ActiveTab = 'tasks' | 'notes' | 'chat';
 
 const MonsterManageScreen = () => {
   const [monsterData, setMonsterData] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<ActiveTab>('stats');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('tasks');
   const [notes, setNotes] = useState('');
   const [savedNotes, setSavedNotes] = useState<any[]>([]);
+  const [showInfo, setShowInfo] = useState(false);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [newTaskText, setNewTaskText] = useState('');
+  const [selectedTime, setSelectedTime] = useState<typeof MONSTER_CONFIG.POMODORO.TIME_OPTIONS[number]>(MONSTER_CONFIG.POMODORO.TIME_OPTIONS[0]);
+  const [pomodoroActive, setPomodoroActive] = useState(false);
+  const [pomodoroTimeLeft, setPomodoroTimeLeft] = useState<number>(selectedTime * 60);
+  const [showGameModal, setShowGameModal] = useState(false);
+  const [dailyPlays, setDailyPlays] = useState(0);
+  const [lastPlayDate, setLastPlayDate] = useState<string>('');
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const monster = await AsyncStorage.getItem('monster');
-        if (monster) {
-          setMonsterData(JSON.parse(monster));
-        } else {
-          setMonsterData({
-            name: '小怪兽',
-            type: 'calm',
-            level: 1,
-            exp: 0,
-            energy: 100,
-            maxEnergy: 100,
-            knowledgePoints: 0,
-            createdAt: new Date().toISOString(),
-          });
-        }
-
-        const saved = await AsyncStorage.getItem('learningNotes');
-        if (saved) {
-          setSavedNotes(JSON.parse(saved));
-        }
-      } catch (error) {
-        console.error('加载数据失败:', error);
-      }
-    };
-
     loadData();
   }, []);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (pomodoroActive && pomodoroTimeLeft > 0) {
+      interval = setInterval(() => {
+        setPomodoroTimeLeft(prev => {
+          if (prev <= 1) {
+            setPomodoroActive(false);
+            Alert.alert('专注完成！', '恭喜你完成了一次专注学习！');
+            return selectedTime * 60;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [pomodoroActive, pomodoroTimeLeft, selectedTime]);
+
+  const loadData = async () => {
+    try {
+      const monster = await storage.getItem(STORAGE_KEYS.MONSTER);
+      if (monster) {
+        const resetData = await checkAndResetDaily(monster);
+        setMonsterData(resetData);
+      } else {
+        const newMonster = {
+          name: '小怪兽',
+          type: MONSTER_CONFIG.TYPES.CALM,
+          level: 1,
+          exp: 0,
+          stamina: MONSTER_CONFIG.STAMINA.BASE_MAX + MONSTER_CONFIG.STAMINA.CALM_BONUS,
+          maxStamina: MONSTER_CONFIG.STAMINA.BASE_MAX + MONSTER_CONFIG.STAMINA.CALM_BONUS,
+          paiEnergy: MONSTER_CONFIG.ENERGY.BASE_MAX,
+          maxPaiEnergy: MONSTER_CONFIG.ENERGY.BASE_MAX,
+          knowledgePoints: 0,
+          createdAt: new Date().toISOString(),
+        };
+        setMonsterData(newMonster);
+        await storage.setItem(STORAGE_KEYS.MONSTER, newMonster);
+      }
+
+      const saved = await storage.getItem<any[]>(STORAGE_KEYS.NOTES);
+      if (saved) {
+        setSavedNotes(saved);
+      }
+
+      const savedTasks = await storage.getItem<any[]>(STORAGE_KEYS.TASKS);
+      if (savedTasks) {
+        setTasks(savedTasks);
+      }
+
+      // 加载游戏游玩数据
+      const plays = await storage.getItem<number>('dailyGamePlays');
+      const lastDate = await storage.getItem<string>('lastPlayDate');
+      const today = new Date().toDateString();
+      
+      if (lastDate === today && plays !== null) {
+        setDailyPlays(plays);
+        setLastPlayDate(lastDate);
+      } else {
+        setDailyPlays(0);
+        setLastPlayDate(today);
+        await storage.setItem('dailyGamePlays', 0);
+        await storage.setItem('lastPlayDate', today);
+      }
+    } catch (error) {
+      console.error('加载数据失败:', error);
+    }
+  };
+
+  const checkAndResetDaily = async (data: any) => {
+    try {
+      const lastResetStr = await storage.getItem<string>(STORAGE_KEYS.LAST_RESET);
+      const lastReset = lastResetStr ? new Date(lastResetStr) : null;
+      const now = new Date();
+      const today5AM = new Date(now);
+      today5AM.setHours(MONSTER_CONFIG.DAILY_RESET.HOUR, MONSTER_CONFIG.DAILY_RESET.MINUTE, 0, 0);
+
+      const maxStamina = data.type === MONSTER_CONFIG.TYPES.CALM 
+        ? MONSTER_CONFIG.STAMINA.BASE_MAX + MONSTER_CONFIG.STAMINA.CALM_BONUS 
+        : MONSTER_CONFIG.STAMINA.BASE_MAX;
+
+      if (!lastReset || lastReset < today5AM) {
+        const resetData = {
+          ...data,
+          stamina: maxStamina,
+          maxStamina,
+          paiEnergy: MONSTER_CONFIG.ENERGY.BASE_MAX,
+          maxPaiEnergy: MONSTER_CONFIG.ENERGY.BASE_MAX,
+        };
+        await storage.setItem(STORAGE_KEYS.MONSTER, resetData);
+        await storage.setItem(STORAGE_KEYS.LAST_RESET, now.toISOString());
+        return resetData;
+      }
+
+      return { ...data, maxStamina };
+    } catch (error) {
+      console.error('重置检查失败:', error);
+      return data;
+    }
+  };
 
   const handleSaveNote = async () => {
     if (!notes.trim()) return;
@@ -54,8 +143,92 @@ const MonsterManageScreen = () => {
 
     const updated = [newNote, ...savedNotes];
     setSavedNotes(updated);
-    await AsyncStorage.setItem('learningNotes', JSON.stringify(updated));
+    await storage.setItem(STORAGE_KEYS.NOTES, updated);
     setNotes('');
+  };
+
+  const handlePlayGame = () => {
+    if (!monsterData) return;
+
+    // 检查今日剩余游玩次数（免费版4次）
+    const maxPlays = 4;
+    if (dailyPlays >= maxPlays) {
+      Alert.alert('提示', '今日体力补充已达上限，明天再来吧');
+      return;
+    }
+
+    setShowGameModal(true);
+  };
+
+  const handleGameComplete = async (rewards: { stamina: number; energy: number }) => {
+    if (!monsterData) return;
+
+    let staminaBonus = rewards.stamina;
+    let energyBonus = rewards.energy;
+
+    // 叛逆小怪双倍
+    if (monsterData.type === MONSTER_CONFIG.TYPES.REBEL) {
+      staminaBonus *= 2;
+      energyBonus *= 2;
+    }
+
+    const newStamina = Math.min(monsterData.stamina + staminaBonus, monsterData.maxStamina);
+    const newPai = Math.min(monsterData.paiEnergy + energyBonus, monsterData.maxPaiEnergy);
+
+    const updated = {
+      ...monsterData,
+      stamina: newStamina,
+      paiEnergy: newPai,
+    };
+
+    setMonsterData(updated);
+    await storage.setItem(STORAGE_KEYS.MONSTER, updated);
+
+    // 增加游玩次数
+    const newPlays = dailyPlays + 1;
+    setDailyPlays(newPlays);
+    await storage.setItem('dailyGamePlays', newPlays);
+
+    setShowGameModal(false);
+    Alert.alert('游戏完成！', `获得 ${staminaBonus} 体力值和 ${energyBonus} 能量Π`);
+  };
+
+  const addTask = async () => {
+    if (!newTaskText.trim()) return;
+    const newTask = {
+      id: Date.now(),
+      text: newTaskText.trim(),
+      completed: false,
+      createdAt: new Date().toISOString(),
+    };
+    const updatedTasks = [...tasks, newTask];
+    setTasks(updatedTasks);
+    await storage.setItem(STORAGE_KEYS.TASKS, updatedTasks);
+    setNewTaskText('');
+  };
+
+  const toggleTask = async (taskId: number) => {
+    const updatedTasks = tasks.map(task => {
+      if (task.id === taskId) {
+        return { ...task, completed: !task.completed };
+      }
+      return task;
+    });
+    setTasks(updatedTasks);
+    await storage.setItem(STORAGE_KEYS.TASKS, updatedTasks);
+  };
+
+  const deleteTask = async (taskId: number) => {
+    Alert.alert('确认删除', '确定要删除这个任务吗？', [
+      { text: '取消', style: 'cancel' },
+      {
+        text: '删除', onPress: async () => {
+          const updatedTasks = tasks.filter(task => task.id !== taskId);
+          setTasks(updatedTasks);
+          await storage.setItem(STORAGE_KEYS.TASKS, updatedTasks);
+        },
+      },
+    ]);
   };
 
   if (!monsterData) {
@@ -68,55 +241,136 @@ const MonsterManageScreen = () => {
     );
   }
 
-  const energyPercent = (monsterData.energy / monsterData.maxEnergy) * 100;
-  const expPercent = (monsterData.exp || 0) % 100;
+  const staminaPercent = (monsterData.stamina / monsterData.maxStamina) * 100;
+  const paiPercent = (monsterData.paiEnergy / monsterData.maxPaiEnergy) * 100;
 
-  const personalityTraits: Record<string, { name: string; traits: string[] }> = {
-    lively: { name: '活泼开朗', traits: ['学习速度 +15%', '能量消耗 +10%', '经验获取 +20%'] },
-    calm: { name: '沉稳思考', traits: ['专注力 +15%', '能量恢复 +10%', '深度学习 +20%'] },
-    rebel: { name: '独立创新', traits: ['创新力 +15%', '探索奖励 +10%', '突破速度 +20%'] },
-  };
+  const monsterType = monsterData.type as keyof typeof MONSTER_CONFIG.PERSONALITIES;
+  const personality = MONSTER_CONFIG.PERSONALITIES[monsterType] || MONSTER_CONFIG.PERSONALITIES.calm;
 
-  const personality = personalityTraits[monsterData.type] || personalityTraits.calm;
-
-  const renderStatsTab = () => (
+  const renderTasksTab = () => (
     <View style={styles.tabContent}>
-      <View style={styles.knowledgeCard}>
-        <View style={styles.knowledgeHeader}>
-          <View style={styles.knowledgeLeft}>
-            <View style={styles.knowledgeIcon}>
-              <Text style={styles.knowledgeAtSymbol}>@</Text>
-            </View>
-            <View>
-              <Text style={styles.knowledgeLabel}>知识能量</Text>
-              <Text style={styles.knowledgePoints}>{monsterData.knowledgePoints || 0}</Text>
-            </View>
-          </View>
-          <TouchableOpacity style={styles.useButton} activeOpacity={0.7}>
-            <Text style={styles.useButtonText}>使用</Text>
+      <View style={styles.taskCard}>
+        <View style={styles.taskHeader}>
+          <Ionicons name="checkmark-circle" size={20} color="#5D9BFA" />
+          <Text style={styles.taskTitle}>我的任务</Text>
+        </View>
+
+        <View style={styles.addTaskContainer}>
+          <TextInput
+            style={styles.addTaskInput}
+            placeholder="添加新任务..."
+            placeholderTextColor="#555577"
+            value={newTaskText}
+            onChangeText={setNewTaskText}
+            onSubmitEditing={addTask}
+          />
+          <TouchableOpacity
+            style={[styles.addTaskButton, { opacity: newTaskText.trim() ? 1 : 0.5 }]}
+            onPress={addTask}
+            disabled={!newTaskText.trim()}
+          >
+            <Ionicons name="add" size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
-        <Text style={styles.knowledgeDescription}>
-          完成学习任务可获得 @ 能量，用于升级和解锁新功能
-        </Text>
-      </View>
 
-      <View style={styles.personalityCard}>
-        <Text style={styles.personalityTitle}>性格特质 · {personality.name}</Text>
-        <View style={styles.traitsList}>
-          {personality.traits.map((trait, i) => (
-            <View key={i} style={styles.traitItem}>
-              <View style={styles.traitDot} />
-              <Text style={styles.traitText}>{trait}</Text>
+        <View style={styles.taskList}>
+          {tasks.length === 0 ? (
+            <View style={styles.emptyTasks}>
+              <Text style={styles.emptyTasksText}>还没有任务，快来添加一个吧！</Text>
             </View>
-          ))}
+          ) : (
+            tasks.map(task => (
+              <View key={task.id} style={styles.taskItem}>
+                <TouchableOpacity
+                  style={styles.taskCheckbox}
+                  onPress={() => toggleTask(task.id)}
+                >
+                  {task.completed ? (
+                    <Ionicons name="checkbox" size={24} color="#5D9BFA" />
+                  ) : (
+                    <Ionicons name="square-outline" size={24} color="#8888AA" />
+                  )}
+                </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.taskName,
+                    {
+                      textDecorationLine: task.completed ? 'line-through' : 'none',
+                      color: task.completed ? '#555577' : '#E8E8F0',
+                    },
+                  ]}
+                >
+                  {task.text}
+                </Text>
+                <TouchableOpacity
+                  style={styles.deleteTaskButton}
+                  onPress={() => deleteTask(task.id)}
+                >
+                  <Ionicons name="trash-outline" size={18} color="#FF6B6B" />
+                </TouchableOpacity>
+              </View>
+            ))
+          )}
         </View>
       </View>
 
-      <View style={styles.creationCard}>
-        <Text style={styles.creationText}>
-          孵化于 {new Date(monsterData.createdAt).toLocaleDateString('zh-CN')}
-        </Text>
+      <View style={styles.taskCard}>
+        <View style={styles.taskHeader}>
+          <Ionicons name="trophy" size={20} color="#FFD700" />
+          <Text style={styles.taskTitle}>番茄钟</Text>
+        </View>
+
+        <View style={styles.timeOptionsContainer}>
+          {MONSTER_CONFIG.POMODORO.TIME_OPTIONS.map(time => (
+            <TouchableOpacity
+              key={time}
+              style={[
+                styles.timeOption,
+                { backgroundColor: selectedTime === time ? '#5D9BFA' : 'rgba(93,155,250,0.15)' },
+              ]}
+              onPress={() => {
+                if (!pomodoroActive) {
+                  setSelectedTime(time);
+                  setPomodoroTimeLeft(time * 60);
+                }
+              }}
+              disabled={pomodoroActive}
+            >
+              <Text
+                style={[
+                  styles.timeOptionText,
+                  { color: selectedTime === time ? '#FFFFFF' : '#8888AA' },
+                ]}
+              >
+                {time}分钟
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.pomodoroContainer}>
+          <View style={styles.pomodoroTimer}>
+            <Text style={styles.pomodoroTime}>{formatTimer(pomodoroTimeLeft)}</Text>
+          </View>
+          <View style={styles.pomodoroButtons}>
+            <TouchableOpacity
+              style={[
+                styles.pomodoroButton,
+                { backgroundColor: pomodoroActive ? '#FF6B6B' : '#5D9BFA' },
+              ]}
+              onPress={() => setPomodoroActive(!pomodoroActive)}
+            >
+              <Ionicons
+                name={pomodoroActive ? 'pause' : 'play'}
+                size={20}
+                color="#FFFFFF"
+              />
+              <Text style={styles.pomodoroButtonText}>
+                {pomodoroActive ? '暂停' : '开始专注'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
     </View>
   );
@@ -192,19 +446,19 @@ const MonsterManageScreen = () => {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <View style={styles.pixelBackground} />
-          
+
           <View style={styles.headerContent}>
             <Text style={styles.title}>我的怪兽</Text>
 
             <View style={styles.monsterCard}>
               <View style={styles.monsterPixelPattern} />
-              
+
               <View style={styles.monsterCardContent}>
                 <View style={styles.monsterTop}>
                   <View style={styles.monsterIconContainer}>
                     <MonsterIcon type={monsterData.type} size={80} />
                   </View>
-                  
+
                   <View style={styles.monsterInfo}>
                     <View style={styles.monsterNameRow}>
                       <Text style={styles.monsterName}>{monsterData.name}</Text>
@@ -213,21 +467,69 @@ const MonsterManageScreen = () => {
                       </View>
                     </View>
                     <Text style={styles.monsterPersonality}>
-                      {monsterData.type === 'lively' ? '活泼型怪兽 ⚡' : 
-                       monsterData.type === 'calm' ? '沉稳型怪兽 🌟' : '叛逆型怪兽 💫'}
+                      {monsterData.type === MONSTER_CONFIG.TYPES.LIVELY ? '活力型怪兽 ⚡'
+                        : monsterData.type === MONSTER_CONFIG.TYPES.CALM ? '沉稳型怪兽 🌟'
+                          : '叛逆型怪兽 💫'}
                     </Text>
                   </View>
+
+                  <View style={styles.rightButtons}>
+                    <TouchableOpacity
+                      style={[styles.gameButton, dailyPlays >= 4 && styles.gameButtonDisabled]}
+                      onPress={handlePlayGame}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="game-controller-outline" size={20} color={dailyPlays >= 4 ? '#555577' : '#FF7D00'} />
+                      <View style={styles.gameButtonContent}>
+                        <Text style={[styles.gameButtonText, { color: dailyPlays >= 4 ? '#555577' : '#FF7D00' }]}>
+                          游戏
+                        </Text>
+                        <Text style={styles.gameButtonSubText}>
+                          剩余: {4 - dailyPlays}次
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.infoButton}
+                      onPress={() => setShowInfo(!showInfo)}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="information-circle-outline" size={20} color="#8888AA" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
+
+                {showInfo && (
+                  <View style={styles.infoCard}>
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoTitle}>💪 体力值</Text>
+                      <Text style={styles.infoText}>
+                        • 单次知识节点跳转消耗 10 体力{'\n'}
+                        • 每日凌晨 5:00 自动恢复至上限{'\n'}
+                        • 小游戏可额外补充体力
+                      </Text>
+                    </View>
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoTitle}>Π 能量</Text>
+                      <Text style={styles.infoText}>
+                        • AI对话消耗 = 对话Token数 × 0.05{'\n'}
+                        • 每日凌晨 5:00 自动恢复至上限{'\n'}
+                        • 小游戏可额外补充能量
+                      </Text>
+                    </View>
+                  </View>
+                )}
 
                 <View style={styles.statsRow}>
                   <View style={styles.statContainer}>
                     <View style={styles.statHeader}>
                       <View style={styles.statLabelRow}>
                         <Ionicons name="flash" size={14} color="#FF7D00" />
-                        <Text style={styles.statLabel}>体力</Text>
+                        <Text style={styles.statLabel}>体力值</Text>
                       </View>
                       <Text style={[styles.statValue, { color: '#FF7D00' }]}>
-                        {monsterData.energy}/{monsterData.maxEnergy}
+                        {monsterData.stamina}/{monsterData.maxStamina}
                       </Text>
                     </View>
                     <View style={styles.statBar}>
@@ -235,7 +537,7 @@ const MonsterManageScreen = () => {
                         style={[
                           styles.statBarFill,
                           {
-                            width: `${energyPercent}%`,
+                            width: `${staminaPercent}%`,
                             backgroundColor: '#FF7D00',
                           },
                         ]}
@@ -246,11 +548,11 @@ const MonsterManageScreen = () => {
                   <View style={styles.statContainer}>
                     <View style={styles.statHeader}>
                       <View style={styles.statLabelRow}>
-                        <Ionicons name="star" size={14} color="#5D9BFA" />
-                        <Text style={styles.statLabel}>经验值</Text>
+                        <Text style={[styles.statLabel, { color: '#7B5EA7' }]}>Π</Text>
+                        <Text style={styles.statLabel}>能量</Text>
                       </View>
-                      <Text style={[styles.statValue, { color: '#5D9BFA' }]}>
-                        {monsterData.exp || 0}/100
+                      <Text style={[styles.statValue, { color: '#7B5EA7' }]}>
+                        {monsterData.paiEnergy}/{monsterData.maxPaiEnergy}
                       </Text>
                     </View>
                     <View style={styles.statBar}>
@@ -258,8 +560,8 @@ const MonsterManageScreen = () => {
                         style={[
                           styles.statBarFill,
                           {
-                            width: `${expPercent}%`,
-                            backgroundColor: '#5D9BFA',
+                            width: `${paiPercent}%`,
+                            backgroundColor: '#7B5EA7',
                           },
                         ]}
                       />
@@ -274,7 +576,7 @@ const MonsterManageScreen = () => {
         <View style={styles.tabsContainer}>
           <View style={styles.tabs}>
             {[
-              { id: 'stats' as ActiveTab, label: '📊 属性' },
+              { id: 'tasks' as ActiveTab, label: '📋 任务' },
               { id: 'notes' as ActiveTab, label: '📝 笔记' },
               { id: 'chat' as ActiveTab, label: '💬 对话' },
             ].map((tab) => (
@@ -306,41 +608,25 @@ const MonsterManageScreen = () => {
           </View>
         </View>
 
-        {activeTab === 'stats' && renderStatsTab()}
+        {activeTab === 'tasks' && renderTasksTab()}
         {activeTab === 'notes' && renderNotesTab()}
         {activeTab === 'chat' && renderChatTab()}
 
         <View style={styles.bottomPadding} />
       </ScrollView>
+
+      {/* 游戏弹窗 */}
+      <Modal
+        visible={showGameModal}
+        animationType="slide"
+        onRequestClose={() => setShowGameModal(false)}
+      >
+        <MiniGames
+          onGameComplete={handleGameComplete}
+          onClose={() => setShowGameModal(false)}
+        />
+      </Modal>
     </SafeAreaView>
-  );
-};
-
-const MonsterIcon = ({ type, size }: { type: 'lively' | 'calm' | 'rebel'; size: number }) => {
-  const colors: Record<string, { primary: string; secondary: string }> = {
-    lively: { primary: '#FF7D00', secondary: '#E66900' },
-    calm: { primary: '#5D9BFA', secondary: '#4A7FD4' },
-    rebel: { primary: '#7B5EA7', secondary: '#5A4280' },
-  };
-
-  const color = colors[type] || colors.calm;
-  const scale = size / 100;
-
-  return (
-    <View style={[styles.monsterIcon, { width: size, height: size }]}>
-      <View style={[styles.monsterHeadIcon, { width: 44 * scale, height: 36 * scale, backgroundColor: color.primary, left: 14 * scale, top: 20 * scale }]}>
-        <View style={[styles.earIcon, { width: 8 * scale, height: 12 * scale, backgroundColor: color.secondary, left: -4 * scale, top: 4 * scale }]} />
-        <View style={[styles.earIcon, { width: 8 * scale, height: 12 * scale, backgroundColor: color.secondary, right: -4 * scale, top: 4 * scale }]} />
-        <View style={[styles.eyeIcon, { width: 12 * scale, height: 12 * scale, backgroundColor: '#FFFFFF', left: 4 * scale, top: 8 * scale }]}>
-          <View style={[styles.pupilIcon, { width: 4 * scale, height: 6 * scale, backgroundColor: '#1A1A2E', left: 4 * scale, top: 2 * scale }]} />
-        </View>
-        <View style={[styles.eyeIcon, { width: 12 * scale, height: 12 * scale, backgroundColor: '#FFFFFF', right: 4 * scale, top: 8 * scale }]}>
-          <View style={[styles.pupilIcon, { width: 4 * scale, height: 6 * scale, backgroundColor: '#1A1A2E', left: 4 * scale, top: 2 * scale }]} />
-        </View>
-        <View style={[styles.mouthIcon, { width: 20 * scale, height: 4 * scale, backgroundColor: '#1A1A2E', left: 12 * scale, top: 24 * scale }]} />
-      </View>
-      <View style={[styles.bodyIcon, { width: 36 * scale, height: 20 * scale, backgroundColor: color.primary, left: 18 * scale, top: 56 * scale }]} />
-    </View>
   );
 };
 
@@ -416,29 +702,75 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   monsterIconContainer: {},
-  monsterIcon: {
-    position: 'relative',
-  },
-  monsterHeadIcon: {
-    position: 'absolute',
-  },
-  earIcon: {
-    position: 'absolute',
-  },
-  eyeIcon: {
-    position: 'absolute',
-  },
-  pupilIcon: {
-    position: 'absolute',
-  },
-  mouthIcon: {
-    position: 'absolute',
-  },
-  bodyIcon: {
-    position: 'absolute',
-  },
   monsterInfo: {
     flex: 1,
+  },
+  rightButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  gameButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,125,0,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,125,0,0.3)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  gameButtonDisabled: {
+    backgroundColor: 'rgba(85,85,119,0.15)',
+    borderColor: 'rgba(85,85,119,0.3)',
+  },
+  gameButtonContent: {
+    flexDirection: 'column',
+    gap: 2,
+  },
+  gameButtonText: {
+    color: '#FF7D00',
+    fontSize: 12,
+    fontWeight: '600',
+    fontFamily: 'Courier',
+  },
+  gameButtonSubText: {
+    color: '#8888AA',
+    fontSize: 10,
+    fontFamily: 'Courier',
+  },
+  infoButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  infoCard: {
+    marginBottom: 16,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(93,155,250,0.2)',
+  },
+  infoItem: {
+    marginBottom: 12,
+  },
+  infoTitle: {
+    color: '#E8E8F0',
+    fontSize: 13,
+    fontWeight: '700',
+    fontFamily: 'Courier',
+    marginBottom: 6,
+  },
+  infoText: {
+    color: '#8888AA',
+    fontSize: 11,
+    fontFamily: 'Courier',
+    lineHeight: 16,
   },
   monsterNameRow: {
     flexDirection: 'row',
@@ -531,112 +863,135 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 16,
   },
-  knowledgeCard: {
-    borderRadius: 16,
-    padding: 20,
-    backgroundColor: '#16213E',
-    borderWidth: 1,
-    borderColor: 'rgba(255,215,0,0.2)',
-  },
-  knowledgeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  knowledgeLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  knowledgeIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFD60A',
-  },
-  knowledgeAtSymbol: {
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  knowledgeLabel: {
-    color: '#8888AA',
-    fontSize: 11,
-    fontFamily: 'Courier',
-  },
-  knowledgePoints: {
-    color: '#FFD60A',
-    fontSize: 20,
-    fontWeight: '800',
-    fontFamily: 'Courier',
-  },
-  useButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,215,0,0.15)',
-  },
-  useButtonText: {
-    color: '#FFD700',
-    fontSize: 12,
-    fontWeight: '600',
-    fontFamily: 'Courier',
-  },
-  knowledgeDescription: {
-    color: '#8888AA',
-    fontSize: 11,
-    fontFamily: 'Courier',
-  },
-  personalityCard: {
+  taskCard: {
     borderRadius: 16,
     padding: 20,
     backgroundColor: '#16213E',
     borderWidth: 1,
     borderColor: 'rgba(93,155,250,0.2)',
   },
-  personalityTitle: {
+  taskHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  taskTitle: {
     color: '#E8E8F0',
     fontSize: 14,
     fontWeight: '700',
     fontFamily: 'Courier',
-    marginBottom: 12,
   },
-  traitsList: {
+  addTaskContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  addTaskInput: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#0F1030',
+    borderWidth: 1,
+    borderColor: 'rgba(93,155,250,0.2)',
+    color: '#E8E8F0',
+    fontSize: 14,
+    fontFamily: 'Courier',
+  },
+  addTaskButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#5D9BFA',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  taskList: {
     gap: 8,
   },
-  traitItem: {
+  emptyTasks: {
+    paddingVertical: 24,
+    alignItems: 'center',
+  },
+  emptyTasksText: {
+    color: '#555577',
+    fontSize: 13,
+    fontFamily: 'Courier',
+  },
+  taskItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    gap: 12,
+    padding: 12,
     borderRadius: 12,
     backgroundColor: 'rgba(93,155,250,0.08)',
   },
-  traitDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#5D9BFA',
+  taskCheckbox: {
+    flexShrink: 0,
   },
-  traitText: {
+  taskName: {
+    flex: 1,
     color: '#E8E8F0',
     fontSize: 13,
     fontFamily: 'Courier',
   },
-  creationCard: {
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+  deleteTaskButton: {
+    flexShrink: 0,
+    padding: 4,
   },
-  creationText: {
-    color: '#8888AA',
-    fontSize: 11,
+  timeOptionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 20,
+  },
+  timeOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  timeOptionText: {
+    fontSize: 12,
+    fontWeight: '600',
+    fontFamily: 'Courier',
+  },
+  pomodoroContainer: {
+    alignItems: 'center',
+    gap: 16,
+  },
+  pomodoroTimer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 3,
+    borderColor: '#5D9BFA',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pomodoroTime: {
+    color: '#FFFFFF',
+    fontSize: 28,
+    fontWeight: '800',
+    fontFamily: 'Courier',
+  },
+  pomodoroButtons: {
+    width: '100%',
+  },
+  pomodoroButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    backgroundColor: '#5D9BFA',
+  },
+  pomodoroButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
     fontFamily: 'Courier',
   },
   noteCard: {

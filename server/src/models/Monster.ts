@@ -5,10 +5,13 @@ export interface Monster {
   userId: number;
   level: number;
   exp: number;
+  stamina: number;
+  maxStamina: number;
   energy: number;
   maxEnergy: number;
   personalityParams?: any;
   lastEnergyRecover: Date;
+  lastStaminaRecover: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -48,6 +51,14 @@ export const updateMonster = async (
     setClauses.push('exp = ?');
     values.push(updates.exp);
   }
+  if (updates.stamina !== undefined) {
+    setClauses.push('stamina = ?');
+    values.push(updates.stamina);
+  }
+  if (updates.maxStamina !== undefined) {
+    setClauses.push('max_stamina = ?');
+    values.push(updates.maxStamina);
+  }
   if (updates.energy !== undefined) {
     setClauses.push('energy = ?');
     values.push(updates.energy);
@@ -64,6 +75,10 @@ export const updateMonster = async (
     setClauses.push('last_energy_recover = ?');
     values.push(updates.lastEnergyRecover);
   }
+  if (updates.lastStaminaRecover !== undefined) {
+    setClauses.push('last_stamina_recover = ?');
+    values.push(updates.lastStaminaRecover);
+  }
 
   if (setClauses.length > 0) {
     setClauses.push('updated_at = CURRENT_TIMESTAMP');
@@ -76,10 +91,33 @@ export const updateMonster = async (
   }
 };
 
+export const consumeStamina = async (userId: number, amount: number = 10): Promise<boolean> => {
+  const [result] = await pool.execute(
+    'UPDATE monsters SET stamina = stamina - ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND stamina >= ?',
+    [amount, userId, amount]
+  );
+  return (result as any).affectedRows > 0;
+};
+
+export const recoverStamina = async (userId: number, amount: number = 20): Promise<void> => {
+  await pool.execute(
+    'UPDATE monsters SET stamina = LEAST(stamina + ?, max_stamina), last_stamina_recover = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?',
+    [amount, userId]
+  );
+};
+
 export const consumeEnergy = async (userId: number): Promise<boolean> => {
   const [result] = await pool.execute(
     'UPDATE monsters SET energy = energy - 1, updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND energy > 0',
     [userId]
+  );
+  return (result as any).affectedRows > 0;
+};
+
+export const consumeEnergyAmount = async (userId: number, amount: number): Promise<boolean> => {
+  const [result] = await pool.execute(
+    'UPDATE monsters SET energy = energy - ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND energy >= ?',
+    [amount, userId, amount]
   );
   return (result as any).affectedRows > 0;
 };

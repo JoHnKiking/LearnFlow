@@ -3,7 +3,6 @@ import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Loading } from '../src/components/ui';
-import { checkAuthStatus } from '../src/utils/auth';
 import { COLORS, SPACING } from '../src/utils/constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -11,14 +10,16 @@ const IndexScreen = () => {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        const isAuthenticated = await checkAuthStatus();
         const onboardingCompleted = await AsyncStorage.getItem('onboardingCompleted');
 
-        // 暂时关闭自动登录功能，每次启动都进入登录页面
-        router.replace('/login');
+        if (onboardingCompleted) {
+          router.replace('/(tabs)');
+        } else {
+          router.replace('/onboarding');
+        }
       } catch (error) {
         console.error('初始化应用失败:', error);
-        router.replace('/login');
+        router.replace('/onboarding');
       }
     };
 

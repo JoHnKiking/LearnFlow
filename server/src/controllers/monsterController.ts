@@ -67,6 +67,51 @@ export const getMonsterStatus = async (req: Request, res: Response) => {
   }
 };
 
+export const consumeStamina = async (req: Request, res: Response) => {
+  try {
+    const { userId, amount = 10 } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+
+    const success = await consumeStaminaService(parseInt(userId), amount);
+    
+    res.json({
+      success,
+      error: success ? undefined : 'Not enough stamina'
+    });
+  } catch (error) {
+    console.error('Error consuming stamina:', error);
+    res.status(500).json({ 
+      error: 'Failed to consume stamina',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+};
+
+export const recoverStamina = async (req: Request, res: Response) => {
+  try {
+    const { userId, amount = 20 } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+
+    await recoverStaminaService(parseInt(userId), amount);
+    
+    res.json({
+      success: true
+    });
+  } catch (error) {
+    console.error('Error recovering stamina:', error);
+    res.status(500).json({ 
+      error: 'Failed to recover stamina',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+};
+
 export const consumeEnergy = async (req: Request, res: Response) => {
   try {
     const { userId } = req.body;
@@ -76,6 +121,29 @@ export const consumeEnergy = async (req: Request, res: Response) => {
     }
 
     const success = await consumeEnergyService(parseInt(userId));
+    
+    res.json({
+      success,
+      error: success ? undefined : 'Not enough energy'
+    });
+  } catch (error) {
+    console.error('Error consuming energy:', error);
+    res.status(500).json({ 
+      error: 'Failed to consume energy',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+};
+
+export const consumeEnergyAmount = async (req: Request, res: Response) => {
+  try {
+    const { userId, amount } = req.body;
+
+    if (!userId || amount === undefined) {
+      return res.status(400).json({ error: 'User ID and amount are required' });
+    }
+
+    const success = await consumeEnergyAmountService(parseInt(userId), amount);
     
     res.json({
       success,
@@ -188,7 +256,10 @@ export const getMonsterMessages = async (req: Request, res: Response) => {
 export default {
   createMonster,
   getMonsterStatus,
+  consumeStamina,
+  recoverStamina,
   consumeEnergy,
+  consumeEnergyAmount,
   recoverEnergy,
   addExp,
   chatWithMonster,

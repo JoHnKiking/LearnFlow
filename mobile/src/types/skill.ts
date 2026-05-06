@@ -1,9 +1,35 @@
+export type PlatformType = 'bilibili' | 'xiaohongshu' | 'mooc';
+
+export type StageType = 'beginner' | 'intermediate' | 'advanced';
+
 export interface SkillNode {
   id: string;
   name: string;
   description: string;
+  stage: StageType;
+  platform: PlatformType;
+  url: string;
+  duration: number;
   children?: SkillNode[];
-  links?: SkillLink[];
+}
+
+export interface SkillTree {
+  id: string;
+  domain: string;
+  title: string;
+  description: string;
+  stages: SkillStage[];
+  totalDuration: number;
+  learningMethod: string;
+  learningGoal: string;
+  frameworkExplanation: string;
+}
+
+export interface SkillStage {
+  id: StageType;
+  name: string;
+  duration: number;
+  nodes: SkillNode[];
 }
 
 export interface SkillLink {

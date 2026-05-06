@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../src/utils/constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-type ModuleType = 'ai-learning' | 'english' | 'programming';
+type ModuleType = 'ai-product-manager' | 'personal-finance' | 'english-communication';
 
 interface Module {
   id: ModuleType;
@@ -19,33 +19,33 @@ interface Module {
 
 const predefinedModules: Module[] = [
   {
-    id: 'ai-learning',
-    name: 'AI 学习',
-    icon: 'brain',
+    id: 'ai-product-manager',
+    name: 'AI产品经理',
+    icon: 'cpu',
     color: '#5D9BFA',
-    description: '探索人工智能的奥秘',
+    description: '掌握AI产品设计与落地',
     difficulty: '中级',
   },
   {
-    id: 'english',
-    name: '英语学习',
-    icon: 'book',
+    id: 'personal-finance',
+    name: '个人理财',
+    icon: 'trending-up',
     color: '#3AE374',
-    description: '提升英语综合能力',
+    description: '建立科学理财观念',
     difficulty: '初级',
   },
   {
-    id: 'programming',
-    name: '编程基础',
-    icon: 'code-slash',
+    id: 'english-communication',
+    name: '英语沟通',
+    icon: 'languages',
     color: '#FF7D00',
-    description: '掌握编程核心技能',
-    difficulty: '中级',
+    description: '提升英语听说能力',
+    difficulty: '初级',
   },
 ];
 
 const ModuleSelectionScreen = () => {
-  const [selectedModules, setSelectedModules] = useState<ModuleType[]>(['ai-learning']);
+  const [selectedModules, setSelectedModules] = useState<ModuleType[]>(['ai-product-manager']);
   const [fadeAnim] = useState(new Animated.Value(1));
 
   const toggleModule = (id: ModuleType) => {

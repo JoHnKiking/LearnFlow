@@ -53,15 +53,33 @@ export const getMonsterStatus = async (userId: number) => {
     style: user?.monsterStyle || 'default',
     level: monster.level,
     exp: monster.exp,
+    stamina: monster.stamina,
+    maxStamina: monster.maxStamina,
     energy: monster.energy,
     maxEnergy: monster.maxEnergy,
     personality: personalityParams,
-    lastEnergyRecover: monster.lastEnergyRecover
+    lastEnergyRecover: monster.lastEnergyRecover,
+    lastStaminaRecover: monster.lastStaminaRecover
   };
+};
+
+export const consumeStamina = async (userId: number, amount: number = 10): Promise<boolean> => {
+  const success = await MonsterModel.consumeStamina(userId, amount);
+  return success;
+};
+
+export const recoverStamina = async (userId: number, amount: number = 20) => {
+  await MonsterModel.recoverStamina(userId, amount);
+  return { success: true };
 };
 
 export const consumeEnergy = async (userId: number): Promise<boolean> => {
   const success = await MonsterModel.consumeEnergy(userId);
+  return success;
+};
+
+export const consumeEnergyAmount = async (userId: number, amount: number): Promise<boolean> => {
+  const success = await MonsterModel.consumeEnergyAmount(userId, amount);
   return success;
 };
 

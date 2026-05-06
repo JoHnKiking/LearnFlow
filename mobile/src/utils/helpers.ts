@@ -157,6 +157,15 @@ export const generateId = (): string => {
 };
 
 /**
+ * 格式化秒数为 MM:SS 格式
+ */
+export const formatTimer = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+};
+
+/**
  * 防抖函数
  */
 export const debounce = <T extends (...args: any[]) => any>(

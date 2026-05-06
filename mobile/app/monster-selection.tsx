@@ -12,26 +12,26 @@ const monsters = [
   {
     id: 'lively' as MonsterType,
     name: '活力小怪',
-    personality: '活泼开朗',
+    personality: '元气满满',
     color: '#FF7D00',
-    description: '充满活力，喜欢快节奏学习',
-    trait: '学习速度 +15%',
+    description: '适合快节奏碎片化学习',
+    trait: '专属特权：单次学习任务时长直接减少 5 分钟',
   },
   {
     id: 'calm' as MonsterType,
     name: '沉稳小怪',
-    personality: '稳重思考',
+    personality: '冷静沉着',
     color: '#5D9BFA',
-    description: '冷静沉稳，擅长深度思考',
-    trait: '专注力 +15%',
+    description: '擅长深度思考',
+    trait: '专属特权：每日额外赠送 20 点体力，可多 2 次知识节点跳转（原有基础 10 次，叠加后 12 次）',
   },
   {
     id: 'rebel' as MonsterType,
     name: '叛逆小怪',
-    personality: '独立创新',
+    personality: '个性独立',
     color: '#7B5EA7',
-    description: '个性独立，勇于挑战',
-    trait: '创新力 +15%',
+    description: '有主见爱探索、敢于挑战',
+    trait: '专属特权：小游戏获得的体力、能量全部双倍',
   },
 ];
 
@@ -62,13 +62,16 @@ const MonsterSelectionScreen = () => {
         }).start();
       });
     } else {
+      const maxStamina = selectedType === 'calm' ? 120 : 100;
       const monsterData = {
         type: selectedType,
         name: monsterName || monsters.find(m => m.id === selectedType)?.name || '小怪兽',
         level: 1,
         exp: 0,
-        energy: 100,
-        maxEnergy: 100,
+        stamina: maxStamina,
+        maxStamina,
+        paiEnergy: 50,
+        maxPaiEnergy: 50,
         knowledgePoints: 0,
         createdAt: new Date().toISOString(),
       };
@@ -149,6 +152,10 @@ const MonsterSelectionScreen = () => {
                   </TouchableOpacity>
                 );
               })}
+              <View style={styles.tipContainer}>
+                <Text style={styles.tipIcon}>💡</Text>
+                <Text style={styles.tipText}>温馨提示：选定小怪兽后，暂不支持更换修改</Text>
+              </View>
             </Animated.View>
           ) : (
             <Animated.View style={[styles.nameInputContainer, { opacity: fadeAnim }]}>
@@ -352,6 +359,28 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     fontFamily: 'Courier',
+  },
+  tipContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,214,10,0.1)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,214,10,0.3)',
+  },
+  tipIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  tipText: {
+    color: '#FFD60A',
+    fontSize: 12,
+    fontFamily: 'Courier',
+    fontWeight: '600',
   },
   checkMark: {
     width: 32,

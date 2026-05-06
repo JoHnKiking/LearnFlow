@@ -1,96 +1,219 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../src/utils/constants';
 
-const storyFrames = [
+// 页面路由常量
+const ROUTES = {
+  MONSTER_SELECTION: '/monster-selection',
+};
+
+// 故事帧配置数据
+const STORY_FRAMES = [
   {
-    title: '你是一只上进的小怪兽',
-    text: '在知识星球，每只小怪兽都渴望成长...',
-    subtext: '但成长需要不断收集知识能量 @',
+    title: '欢迎来到元气星',
+    text: '在这里，每只小怪兽都渴望成长',
+    subtext: '但成长需要不断收集知识能量 Π',
   },
   {
     title: '探索知识地图',
-    text: '每个节点都是一次冒险',
-    subtext: '完成学习任务，收集珍贵的 @ 能量',
+    text: '解锁学习节点，跳转学习资源，完成冒险',
+    subtext: '完成指定时长的学习任务，就能收集珍贵的 Π 能量',
   },
   {
     title: '体力与成长',
-    text: '每次跳转学习都会消耗体力',
-    subtext: '通过趣味小游戏恢复体力，继续前进',
-  },
-  {
-    title: '你的冒险即将开始',
-    text: '选择你的怪兽伙伴',
-    subtext: '一起踏上知识探索之旅！',
+    text: '每次跳转学习会消耗体力，请珍惜',
+    subtext: '通过趣味游戏可以恢复体力，继续前进',
   },
 ];
 
-const StoryScreen = () => {
+/**
+ * 故事页面切换动画 Hook
+ * @param totalFrames 总帧数
+ * @returns 当前帧索引、动画值、切换帧方法
+ */
+const useStoryAnimation = (totalFrames: number) => {
   const [currentFrame, setCurrentFrame] = useState(0);
-  const [slideAnim] = useState(new Animated.Value(0));
+  const slideAnimation = useState(new Animated.Value(0))[0];
 
-  const handleNext = () => {
-    if (currentFrame < storyFrames.length - 1) {
-      Animated.sequence([
-        Animated.timing(slideAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 0,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        setCurrentFrame(currentFrame + 1);
-      });
+  const switchFrame = useCallback((nextFrame: number) => {
+    Animated.sequence([
+      Animated.timing(slideAnimation, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnimation, {
+        toValue: 0,
+        duration: 0,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setCurrentFrame(nextFrame);
+    });
+  }, [slideAnimation]);
+
+  const goToNextFrame = useCallback(() => {
+    if (currentFrame < totalFrames - 1) {
+      switchFrame(currentFrame + 1);
     } else {
-      router.replace('/monster-selection');
+      router.replace(ROUTES.MONSTER_SELECTION);
     }
-  };
+  }, [currentFrame, totalFrames, switchFrame]);
 
-  const handleSkip = () => {
-    router.replace('/monster-selection');
-  };
+  const skipToSelection = useCallback(() => {
+    router.replace(ROUTES.MONSTER_SELECTION);
+  }, []);
 
-  const currentStory = storyFrames[currentFrame];
+  return {
+    currentFrame,
+    slideAnimation,
+    goToNextFrame,
+    skipToSelection,
+  };
+};
+
+/**
+ * 帧插图渲染组件
+ * 根据当前帧索引渲染对应插图
+ */
+const StoryIllustration = ({ frameIndex }: { frameIndex: number }) => {
+  const illustrations = [
+    <WelcomeFrame key={0} />,
+    <MindMapFrame key={1} />,
+    <StaminaFrame key={2} />,
+  ];
+
+  return illustrations[frameIndex];
+};
+
+/**
+ * 欢迎页面插图 - Frame0
+ */
+const WelcomeFrame = () => (
+  <View style={styles.illustration}>
+    <View style={styles.planet}>
+      <View style={styles.planetSurface} />
+      <View style={styles.planetRing} />
+    </View>
+    <View style={styles.monsterOverlay}>
+      <View style={styles.smallMonster}>
+        <View style={styles.smallMonsterHead}>
+          <View style={styles.smallMonsterEyes}>
+            <View style={styles.smallPupil} />
+            <View style={styles.smallPupil} />
+          </View>
+          <View style={styles.smallSmile} />
+        </View>
+      </View>
+    </View>
+    <View style={styles.piSymbol}>
+      <Text style={styles.piText}>Π</Text>
+    </View>
+  </View>
+);
+
+/**
+ * 知识地图页面插图 - Frame1
+ */
+const MindMapFrame = () => (
+  <View style={styles.mindMapContainer}>
+    <View style={styles.mindMapCenter}>
+      <Text style={styles.mindMapCenterText}>知识节点</Text>
+    </View>
+
+    <View style={styles.mindMapConnections}>
+      <View style={styles.connectionLineTop} />
+      <View style={styles.connectionLineBottom} />
+      <View style={styles.connectionLineLeft} />
+      <View style={styles.connectionLineRight} />
+    </View>
+
+    <View style={styles.mindMapNodeTop}>
+      <Text style={styles.mindMapNodeEmoji}>📚</Text>
+      <Text style={styles.mindMapNodeLabel}>学习资源</Text>
+    </View>
+    <View style={styles.mindMapNodeBottom}>
+      <Text style={styles.mindMapNodeEmoji}>🎯</Text>
+      <Text style={styles.mindMapNodeLabel}>学习目标</Text>
+    </View>
+    <View style={styles.mindMapNodeLeft}>
+      <Text style={styles.mindMapNodeEmoji}>🧠</Text>
+      <Text style={styles.mindMapNodeLabel}>技能树</Text>
+    </View>
+    <View style={styles.mindMapNodeRight}>
+      <Text style={styles.mindMapNodeEmoji}>⭐</Text>
+      <Text style={styles.mindMapNodeLabel}>成就奖励</Text>
+    </View>
+  </View>
+);
+
+/**
+ * 体力页面插图 - Frame2
+ */
+const StaminaFrame = () => (
+  <View style={styles.illustration}>
+    <View style={styles.staminaContainer}>
+      <Text style={styles.staminaLabel}>体力值</Text>
+      <View style={styles.staminaBarBg}>
+        <View style={styles.staminaBarFill}>
+          <Text style={styles.staminaValue}>100 / 100</Text>
+        </View>
+      </View>
+    </View>
+    <View style={styles.gameButtonNew}>
+      <Text style={styles.gameButtonIcon}>🎮</Text>
+      <Text style={styles.gameButtonText}>玩小游戏恢复体力</Text>
+    </View>
+  </View>
+);
+
+/**
+ * 故事引导页面主组件
+ * 展示欢迎引导动画，帮助用户了解应用功能
+ */
+const StoryScreen = () => {
+  const { currentFrame, slideAnimation, goToNextFrame, skipToSelection } = useStoryAnimation(STORY_FRAMES.length);
+
+  const currentStory = STORY_FRAMES[currentFrame];
+  const isLastFrame = currentFrame === STORY_FRAMES.length - 1;
+
+  // 计算动画样式
+  const animatedStyle = {
+    transform: [
+      {
+        translateX: slideAnimation.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, -50],
+        }),
+      },
+    ],
+    opacity: slideAnimation.interpolate({
+      inputRange: [0, 1],
+      outputRange: [1, 0],
+    }),
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.content}>
         <View style={styles.pixelBackground} />
 
-        <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+        {/* 跳过按钮 */}
+        <TouchableOpacity style={styles.skipButton} onPress={skipToSelection}>
           <Text style={styles.skipText}>跳过</Text>
           <Ionicons name="chevron-forward" size={16} color="#8888AA" />
         </TouchableOpacity>
 
+        {/* 故事内容区域 */}
         <View style={styles.storyContainer}>
           <Animated.View
-            style={[
-              styles.storyContent,
-              {
-                transform: [
-                  {
-                    translateX: slideAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, -50],
-                    }),
-                  },
-                ],
-                opacity: slideAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [1, 0],
-                }),
-              },
-            ]}
+            style={[styles.storyContent, animatedStyle]}
           >
             <View style={styles.illustrationContainer}>
-              <StoryIllustration frame={currentFrame} />
+              <StoryIllustration frameIndex={currentFrame} />
             </View>
 
             <Text style={styles.title}>{currentStory.title}</Text>
@@ -99,24 +222,26 @@ const StoryScreen = () => {
           </Animated.View>
         </View>
 
+        {/* 进度指示器 */}
         <View style={styles.progressContainer}>
-          {storyFrames.map((_, i) => (
+          {STORY_FRAMES.map((_, index) => (
             <View
-              key={i}
+              key={index}
               style={[
                 styles.progressDot,
                 {
-                  backgroundColor: i === currentFrame ? '#5D9BFA' : 'rgba(255,255,255,0.2)',
-                  transform: [{ scale: i === currentFrame ? 1.5 : 1 }],
+                  backgroundColor: index === currentFrame ? '#5D9BFA' : 'rgba(255,255,255,0.2)',
+                  transform: [{ scale: index === currentFrame ? 1.5 : 1 }],
                 },
               ]}
             />
           ))}
         </View>
 
-        <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
+        {/* 下一步按钮 */}
+        <TouchableOpacity style={styles.nextButton} onPress={goToNextFrame}>
           <Text style={styles.nextButtonText}>
-            {currentFrame < storyFrames.length - 1 ? '继续' : '选择怪兽'}
+            {isLastFrame ? '开始冒险' : '继续'}
           </Text>
           <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
         </TouchableOpacity>
@@ -125,88 +250,8 @@ const StoryScreen = () => {
   );
 };
 
-const StoryIllustration = ({ frame }: { frame: number }) => {
-  const illustrations = [
-    <Frame0 key={0} />,
-    <Frame1 key={1} />,
-    <Frame2 key={2} />,
-    <Frame3 key={3} />,
-  ];
-
-  return illustrations[frame];
-};
-
-const Frame0 = () => (
-  <View style={styles.illustration}>
-    <View style={styles.monster}>
-      <View style={styles.monsterHead}>
-        <View style={styles.monsterEyes}>
-          <View style={styles.eye}>
-            <View style={styles.pupil} />
-          </View>
-          <View style={styles.eye}>
-            <View style={styles.pupil} />
-          </View>
-        </View>
-        <View style={styles.mouth} />
-      </View>
-    </View>
-    <View style={styles.atSymbol}>
-      <View style={styles.atDot} />
-    </View>
-  </View>
-);
-
-const Frame1 = () => (
-  <View style={styles.illustration}>
-    <View style={styles.mapContainer}>
-      <View style={[styles.mapNode, { top: 10, left: 10, backgroundColor: '#5D9BFA' }]} />
-      <View style={[styles.mapNode, { top: 10, right: 10, backgroundColor: '#3AE374' }]} />
-      <View style={[styles.mapNode, { top: 60, left: '50%', marginLeft: -10, backgroundColor: '#FF7D00' }]} />
-      <View style={[styles.mapNode, { bottom: 10, left: 10, backgroundColor: '#7B5EA7' }]} />
-      <View style={[styles.mapNode, { bottom: 10, right: 10, backgroundColor: '#FFD60A' }]} />
-    </View>
-  </View>
-);
-
-const Frame2 = () => (
-  <View style={styles.illustration}>
-    <View style={styles.tiredMonster}>
-      <View style={styles.tiredEyes}>
-        <View style={styles.tiredEye} />
-        <View style={styles.tiredEye} />
-      </View>
-    </View>
-    <View style={styles.gameController}>
-      <View style={styles.controllerBody}>
-        <View style={styles.controllerButtons}>
-          <View style={styles.controllerButton} />
-          <View style={styles.controllerButton} />
-        </View>
-      </View>
-    </View>
-  </View>
-);
-
-const Frame3 = () => (
-  <View style={styles.illustration}>
-    <View style={styles.happyMonster}>
-      <View style={styles.monsterHead}>
-        <View style={styles.monsterEyes}>
-          <View style={styles.eye}>
-            <View style={styles.pupil} />
-          </View>
-          <View style={styles.eye}>
-            <View style={styles.pupil} />
-          </View>
-        </View>
-        <View style={styles.bigSmile} />
-      </View>
-    </View>
-  </View>
-);
-
 const styles = StyleSheet.create({
+  // 容器样式
   container: {
     flex: 1,
     backgroundColor: '#1A1A2E',
@@ -227,6 +272,8 @@ const styles = StyleSheet.create({
     opacity: 0.1,
     backgroundColor: 'transparent',
   },
+
+  // 跳过按钮
   skipButton: {
     position: 'absolute',
     top: 48,
@@ -247,6 +294,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Courier',
   },
+
+  // 故事内容区域
   storyContainer: {
     flex: 1,
     alignItems: 'center',
@@ -255,6 +304,7 @@ const styles = StyleSheet.create({
   },
   storyContent: {
     alignItems: 'center',
+    width: '100%',
   },
   illustrationContainer: {
     marginBottom: 48,
@@ -264,126 +314,8 @@ const styles = StyleSheet.create({
     height: 180,
     position: 'relative',
   },
-  monster: {
-    width: 72,
-    height: 64,
-    position: 'absolute',
-    top: 50,
-    left: 54,
-  },
-  monsterHead: {
-    width: 72,
-    height: 64,
-    position: 'relative',
-  },
-  monsterEyes: {
-    flexDirection: 'row',
-    gap: 12,
-    position: 'absolute',
-    top: 20,
-    left: 14,
-  },
-  eye: {
-    width: 16,
-    height: 16,
-    backgroundColor: '#FFFFFF',
-    position: 'relative',
-  },
-  pupil: {
-    width: 8,
-    height: 10,
-    backgroundColor: '#1A1A2E',
-    position: 'absolute',
-    top: 4,
-    left: 4,
-  },
-  mouth: {
-    width: 28,
-    height: 6,
-    backgroundColor: '#1A1A2E',
-    position: 'absolute',
-    top: 44,
-    left: 22,
-  },
-  bigSmile: {
-    width: 32,
-    height: 12,
-    backgroundColor: '#1A1A2E',
-    position: 'absolute',
-    top: 40,
-    left: 20,
-    borderBottomLeftRadius: 4,
-    borderBottomRightRadius: 4,
-  },
-  atSymbol: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-  },
-  atDot: {
-    width: 8,
-    height: 8,
-    backgroundColor: '#FFD60A',
-  },
-  mapContainer: {
-    width: 180,
-    height: 180,
-    position: 'relative',
-  },
-  mapNode: {
-    width: 20,
-    height: 20,
-    position: 'absolute',
-  },
-  tiredMonster: {
-    width: 72,
-    height: 64,
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    opacity: 0.6,
-  },
-  tiredEyes: {
-    flexDirection: 'row',
-    gap: 12,
-    position: 'absolute',
-    top: 28,
-    left: 14,
-  },
-  tiredEye: {
-    width: 12,
-    height: 4,
-    backgroundColor: '#1A1A2E',
-  },
-  gameController: {
-    position: 'absolute',
-    top: 60,
-    right: 20,
-  },
-  controllerBody: {
-    width: 40,
-    height: 24,
-    backgroundColor: '#FF7D00',
-  },
-  controllerButtons: {
-    flexDirection: 'row',
-    gap: 10,
-    position: 'absolute',
-    top: 8,
-    left: 6,
-  },
-  controllerButton: {
-    width: 4,
-    height: 4,
-    backgroundColor: '#1A1A2E',
-  },
-  happyMonster: {
-    width: 72,
-    height: 64,
-    position: 'absolute',
-    top: 50,
-    left: 54,
-  },
+
+  // 文字样式
   title: {
     color: '#FFFFFF',
     fontSize: 22,
@@ -408,6 +340,8 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: 'center',
   },
+
+  // 进度指示器
   progressContainer: {
     position: 'absolute',
     bottom: 128,
@@ -421,6 +355,8 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
   },
+
+  // 下一步按钮
   nextButton: {
     position: 'absolute',
     bottom: 32,
@@ -445,6 +381,238 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     fontFamily: 'Courier',
+  },
+
+  // Frame0 - 欢迎页面样式
+  planet: {
+    width: 120,
+    height: 120,
+    position: 'absolute',
+    top: 20,
+    left: 30,
+  },
+  planetSurface: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#5D9BFA',
+  },
+  planetRing: {
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    width: 120,
+    height: 20,
+    borderWidth: 4,
+    borderColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 60,
+  },
+  monsterOverlay: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+  },
+  smallMonster: {
+    width: 48,
+    height: 48,
+  },
+  smallMonsterHead: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#7B5EA7',
+    position: 'relative',
+  },
+  smallMonsterEyes: {
+    flexDirection: 'row',
+    gap: 8,
+    position: 'absolute',
+    top: 12,
+    left: 10,
+  },
+  smallPupil: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
+  },
+  smallSmile: {
+    position: 'absolute',
+    bottom: 12,
+    left: 16,
+    width: 16,
+    height: 6,
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
+  },
+  piSymbol: {
+    position: 'absolute',
+    top: 10,
+    right: 20,
+  },
+  piText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFD60A',
+  },
+
+  // Frame1 - 思维导图页面样式
+  mindMapContainer: {
+    width: 200,
+    height: 200,
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mindMapCenter: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#5D9BFA',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+    shadowColor: '#5D9BFA',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+  },
+  mindMapCenterText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    lineHeight: 14,
+  },
+  mindMapConnections: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  connectionLineTop: {
+    position: 'absolute',
+    top: 20,
+    left: '50%',
+    width: 3,
+    height: 40,
+    backgroundColor: 'rgba(93,155,250,0.4)',
+    transform: [{ translateX: -1.5 }],
+  },
+  connectionLineBottom: {
+    position: 'absolute',
+    bottom: 20,
+    left: '50%',
+    width: 3,
+    height: 40,
+    backgroundColor: 'rgba(93,155,250,0.4)',
+    transform: [{ translateX: -1.5 }],
+  },
+  connectionLineLeft: {
+    position: 'absolute',
+    left: 20,
+    top: '50%',
+    width: 40,
+    height: 3,
+    backgroundColor: 'rgba(93,155,250,0.4)',
+    transform: [{ translateY: -1.5 }],
+  },
+  connectionLineRight: {
+    position: 'absolute',
+    right: 20,
+    top: '50%',
+    width: 40,
+    height: 3,
+    backgroundColor: 'rgba(93,155,250,0.4)',
+    transform: [{ translateY: -1.5 }],
+  },
+  mindMapNodeTop: {
+    position: 'absolute',
+    top: 0,
+    left: '50%',
+    transform: [{ translateX: -28 }],
+    alignItems: 'center',
+  },
+  mindMapNodeBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: '50%',
+    transform: [{ translateX: -28 }],
+    alignItems: 'center',
+  },
+  mindMapNodeLeft: {
+    position: 'absolute',
+    left: 0,
+    top: '50%',
+    transform: [{ translateY: -28 }],
+    alignItems: 'center',
+  },
+  mindMapNodeRight: {
+    position: 'absolute',
+    right: 0,
+    top: '50%',
+    transform: [{ translateY: -28 }],
+    alignItems: 'center',
+  },
+  mindMapNodeEmoji: {
+    fontSize: 28,
+    marginBottom: 4,
+  },
+  mindMapNodeLabel: {
+    fontSize: 10,
+    color: '#8888AA',
+    fontWeight: '500',
+  },
+
+  // Frame2 - 体力页面样式
+  staminaContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  staminaLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#E8E8F0',
+    marginBottom: 8,
+  },
+  staminaBarBg: {
+    width: '80%',
+    height: 24,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  staminaBarFill: {
+    height: '100%',
+    backgroundColor: '#3AE374',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  staminaValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  gameButtonNew: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#7B5EA7',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 20,
+  },
+  gameButtonIcon: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  gameButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
 
