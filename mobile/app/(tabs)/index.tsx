@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../../src/utils/constants';
 import { getCurrentUser } from '../../src/utils/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -50,6 +51,40 @@ const moduleConfigs: Record<ModuleType, Omit<Module, 'isLocked'>> = {
   },
 };
 
+const { width, height } = Dimensions.get('window');
+const BLOCK_SIZE = 60;
+const COLS = Math.ceil(width / BLOCK_SIZE) + 1;
+const ROWS = Math.ceil(height / BLOCK_SIZE) + 1;
+
+const AnimatedBackground = () => {
+  return (
+    <View style={styles.bgContainer}>
+      <LinearGradient
+        colors={['#1A1A2E', '#16213E', '#0F1030']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradient}
+      />
+      <View style={styles.blockContainer}>
+        {Array.from({ length: ROWS }).map((_, row) =>
+          Array.from({ length: COLS }).map((_, col) => {
+            const isEven = (row + col) % 2 === 0;
+            return (
+              <View
+                key={`${row}-${col}`}
+                style={[
+                  styles.block,
+                  isEven ? styles.blockEven : styles.blockOdd,
+                ]}
+              />
+            );
+          })
+        )}
+      </View>
+    </View>
+  );
+};
+
 const MapScreen = () => {
   const [user, setUser] = useState<any>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -91,61 +126,64 @@ const MapScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>学习地图</Text>
-            <Text style={styles.subtitle}>选择一个模块开始学习</Text>
+    <View style={styles.container}>
+      <AnimatedBackground />
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.greeting}>学习地图</Text>
+              <Text style={styles.subtitle}>选择一个模块开始学习</Text>
+            </View>
           </View>
-        </View>
 
-        <View style={styles.modulesGrid}>
-          {modules.map((module) => (
-            <TouchableOpacity
-              key={module.id}
-              style={[styles.moduleCard, { borderColor: module.color }]}
-              onPress={() => handleModulePress(module.id)}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.moduleIcon, { backgroundColor: module.color }]}>
-                <Ionicons name={module.icon as any} size={28} color="#FFFFFF" />
-              </View>
-              <View style={styles.moduleInfo}>
-                <Text style={styles.moduleName}>{module.name}</Text>
-                <View style={styles.moduleProgressBar}>
-                  <View style={[styles.moduleProgressFill, { width: `${module.progress}%`, backgroundColor: module.color }]} />
+          <View style={styles.modulesGrid}>
+            {modules.map((module) => (
+              <TouchableOpacity
+                key={module.id}
+                style={[styles.moduleCard, { borderColor: module.color }]}
+                onPress={() => handleModulePress(module.id)}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.moduleIcon, { backgroundColor: module.color }]}>
+                  <Ionicons name={module.icon as any} size={28} color="#FFFFFF" />
                 </View>
-                <Text style={styles.moduleProgressText}>
-                  {module.completedNodes}/{module.totalNodes} 节点
-                </Text>
-              </View>
-              <Ionicons name="chevron-right" size={20} color="#8888AA" />
-            </TouchableOpacity>
-          ))}
-        </View>
+                <View style={styles.moduleInfo}>
+                  <Text style={styles.moduleName}>{module.name}</Text>
+                  <View style={styles.moduleProgressBar}>
+                    <View style={[styles.moduleProgressFill, { width: `${module.progress}%`, backgroundColor: module.color }]} />
+                  </View>
+                  <Text style={styles.moduleProgressText}>
+                    {module.completedNodes}/{module.totalNodes} 节点
+                  </Text>
+                </View>
+                <Ionicons name="chevron-right" size={20} color="#8888AA" />
+              </TouchableOpacity>
+            ))}
+          </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>学习提示</Text>
-          <View style={styles.tipsContainer}>
-            <View style={styles.tipCard}>
-              <Text style={styles.tipIcon}>🎯</Text>
-              <Text style={styles.tipText}>完成每个节点的学习任务</Text>
-            </View>
-            <View style={styles.tipCard}>
-              <Text style={styles.tipIcon}>⚡</Text>
-              <Text style={styles.tipText}>消耗体力获取知识能量</Text>
-            </View>
-            <View style={styles.tipCard}>
-              <Text style={styles.tipIcon}>🎮</Text>
-              <Text style={styles.tipText}>玩游戏恢复体力</Text>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>学习提示</Text>
+            <View style={styles.tipsContainer}>
+              <View style={styles.tipCard}>
+                <Text style={styles.tipIcon}>🎯</Text>
+                <Text style={styles.tipText}>完成每个节点的学习任务</Text>
+              </View>
+              <View style={styles.tipCard}>
+                <Text style={styles.tipIcon}>⚡</Text>
+                <Text style={styles.tipText}>消耗体力获取知识能量</Text>
+              </View>
+              <View style={styles.tipCard}>
+                <Text style={styles.tipIcon}>🎮</Text>
+                <Text style={styles.tipText}>玩游戏恢复体力</Text>
+              </View>
             </View>
           </View>
-        </View>
 
-        <View style={styles.bottomPadding} />
-      </ScrollView>
-    </SafeAreaView>
+          <View style={styles.bottomPadding} />
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 };
 
@@ -153,6 +191,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#1A1A2E',
+  },
+  bgContainer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  gradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  blockContainer: {
+    ...StyleSheet.absoluteFillObject,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  block: {
+    width: BLOCK_SIZE,
+    height: BLOCK_SIZE,
+  },
+  blockEven: {
+    backgroundColor: 'rgba(93, 155, 250, 0.03)',
+  },
+  blockOdd: {
+    backgroundColor: 'rgba(15, 16, 48, 0.05)',
+  },
+  safeArea: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
@@ -182,7 +244,7 @@ const styles = StyleSheet.create({
   moduleCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F1030',
+    backgroundColor: 'rgba(15, 16, 48, 0.85)',
     borderRadius: 16,
     borderWidth: 2,
     padding: 16,
@@ -240,7 +302,7 @@ const styles = StyleSheet.create({
   tipCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F1030',
+    backgroundColor: 'rgba(15, 16, 48, 0.85)',
     borderRadius: 12,
     padding: 14,
     gap: 12,

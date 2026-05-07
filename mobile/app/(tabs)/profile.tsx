@@ -5,12 +5,14 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, BORDER_RADIUS } from '../../src/utils/constants';
 import { getCurrentUser } from '../../src/utils/auth';
+import HelpModal from '../../src/components/HelpModal';
 
 const ProfileScreen = () => {
   const [user, setUser] = useState<any>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [darkMode, setDarkMode] = useState(true);
   const [notifications, setNotifications] = useState(true);
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -91,16 +93,22 @@ const ProfileScreen = () => {
 
       <View style={styles.settingsGroup}>
         {[
-          { label: '关于 LearnFlow', icon: 'star' as const },
-          { label: '使用帮助', icon: 'settings' as const },
+          { label: '关于 LearnFlow', icon: 'star' as const, onPress: null },
+          { label: '使用帮助', icon: 'settings' as const, onPress: () => setShowHelpModal(true) },
         ].map((item, i) => (
-          <View key={item.label} style={[styles.settingItem, i === 0 && styles.settingItemBorder]}>
+          <TouchableOpacity 
+            key={item.label} 
+            style={[styles.settingItem, i === 0 && styles.settingItemBorder]}
+            onPress={item.onPress}
+            disabled={!item.onPress}
+            activeOpacity={item.onPress ? 0.7 : 1}
+          >
             <View style={[styles.settingIconContainer, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
               <Ionicons name={item.icon} size={16} color={COLORS.TEXT_SECONDARY} />
             </View>
             <Text style={styles.settingLabel}>{item.label}</Text>
             <Ionicons name="chevron-forward" size={16} color={COLORS.TEXT_TERTIARY} />
-          </View>
+          </TouchableOpacity>
         ))}
       </View>
 
@@ -211,6 +219,11 @@ const ProfileScreen = () => {
 
         <View style={styles.bottomPadding} />
       </ScrollView>
+
+      <HelpModal
+        visible={showHelpModal}
+        onClose={() => setShowHelpModal(false)}
+      />
     </SafeAreaView>
   );
 };

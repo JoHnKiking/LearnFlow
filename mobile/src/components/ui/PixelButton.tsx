@@ -2,15 +2,28 @@ import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
 import { PIXEL_COLORS, SPACING, PIXEL_BORDERS } from '../../utils/constants';
 
+/**
+ * 像素风格按钮组件属性
+ */
 interface PixelButtonProps {
+  /** 按钮文字 */
   title: string;
+  /** 点击事件回调 */
   onPress: () => void;
+  /** 是否禁用 */
   disabled?: boolean;
+  /** 按钮样式变体 */
   variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'danger';
+  /** 按钮大小 */
   size?: 'small' | 'medium' | 'large';
+  /** 是否占满宽度 */
   fullWidth?: boolean;
 }
 
+/**
+ * 像素风格按钮组件
+ * 提供多种颜色变体和尺寸选项，带有复古像素阴影效果
+ */
 const PixelButton: React.FC<PixelButtonProps> = ({
   title,
   onPress,
@@ -19,6 +32,9 @@ const PixelButton: React.FC<PixelButtonProps> = ({
   size = 'medium',
   fullWidth = false,
 }) => {
+  /**
+   * 根据变体获取按钮颜色配置
+   */
   const getButtonColors = () => {
     switch (variant) {
       case 'primary':
@@ -60,6 +76,9 @@ const PixelButton: React.FC<PixelButtonProps> = ({
     }
   };
 
+  /**
+   * 根据尺寸获取按钮大小配置
+   */
   const getButtonSize = () => {
     switch (size) {
       case 'small':
@@ -73,6 +92,9 @@ const PixelButton: React.FC<PixelButtonProps> = ({
     }
   };
 
+  /**
+   * 根据尺寸获取文字大小
+   */
   const getTextSize = () => {
     switch (size) {
       case 'small':
@@ -104,6 +126,7 @@ const PixelButton: React.FC<PixelButtonProps> = ({
       disabled={disabled}
       activeOpacity={0.9}
     >
+      {/* 像素阴影层 */}
       <View
         style={[
           styles.shadowLayer,
@@ -112,6 +135,7 @@ const PixelButton: React.FC<PixelButtonProps> = ({
           },
         ]}
       />
+      {/* 按钮文字 */}
       <Text
         style={[
           styles.text,
@@ -128,6 +152,7 @@ const PixelButton: React.FC<PixelButtonProps> = ({
 };
 
 const styles = StyleSheet.create({
+  /** 按钮容器样式 */
   button: {
     position: 'relative',
     justifyContent: 'center',
@@ -135,6 +160,7 @@ const styles = StyleSheet.create({
     borderWidth: PIXEL_BORDERS.MEDIUM,
     overflow: 'hidden',
   },
+  /** 像素阴影层样式 */
   shadowLayer: {
     position: 'absolute',
     top: -PIXEL_BORDERS.MEDIUM,
@@ -143,6 +169,7 @@ const styles = StyleSheet.create({
     bottom: -PIXEL_BORDERS.MEDIUM,
     zIndex: 0,
   },
+  /** 按钮文字样式 */
   text: {
     fontWeight: '800',
     letterSpacing: 1,

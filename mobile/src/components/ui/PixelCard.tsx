@@ -2,17 +2,30 @@ import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
 import { PIXEL_COLORS, PIXEL_BORDERS, SPACING } from '../../utils/constants';
 
+/**
+ * 像素风格卡片组件属性
+ */
 interface PixelCardProps {
+  /** 卡片内容 */
   children: React.ReactNode;
+  /** 自定义样式 */
   style?: ViewStyle;
+  /** 卡片样式变体 */
   variant?: 'default' | 'highlight' | 'dark';
 }
 
+/**
+ * 像素风格卡片组件
+ * 提供多种颜色变体，带有复古像素阴影效果
+ */
 const PixelCard: React.FC<PixelCardProps> = ({
   children,
   style,
   variant = 'default',
 }) => {
+  /**
+   * 根据变体获取卡片颜色配置
+   */
   const getCardColors = () => {
     switch (variant) {
       case 'highlight':
@@ -40,6 +53,7 @@ const PixelCard: React.FC<PixelCardProps> = ({
 
   return (
     <View style={[styles.container, style]}>
+      {/* 像素阴影层 */}
       <View
         style={[
           styles.shadowLayer,
@@ -48,6 +62,7 @@ const PixelCard: React.FC<PixelCardProps> = ({
           },
         ]}
       />
+      {/* 卡片主体 */}
       <View
         style={[
           styles.card,
@@ -64,9 +79,11 @@ const PixelCard: React.FC<PixelCardProps> = ({
 };
 
 const styles = StyleSheet.create({
+  /** 容器样式 */
   container: {
     position: 'relative',
   },
+  /** 像素阴影层样式 */
   shadowLayer: {
     position: 'absolute',
     bottom: -PIXEL_BORDERS.MEDIUM,
@@ -75,6 +92,7 @@ const styles = StyleSheet.create({
     height: '100%',
     zIndex: 0,
   },
+  /** 卡片主体样式 */
   card: {
     position: 'relative',
     borderWidth: PIXEL_BORDERS.MEDIUM,

@@ -103,7 +103,7 @@ const DurationModal: React.FC<{
   }, []);
 
   const durations = [15, 25, 30, 45, 60];
-  const staminaCost = Math.ceil(selectedDuration / 5);
+  const staminaCost = 10;
 
   const handleConfirm = async () => {
     if (monsterStamina < staminaCost) {
