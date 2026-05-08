@@ -3,7 +3,9 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import MonsterIcon from '../../src/components/MonsterIcon';
-import MiniGames from '../../src/components/MiniGames';
+import GameModal from '../../src/components/GameModal';
+import GameHelpModal from '../../src/components/GameHelpModal';
+import AnimatedCheckbox from '../../src/components/AnimatedCheckbox';
 import { storage, STORAGE_KEYS } from '../../src/utils/storage';
 import { MONSTER_CONFIG } from '../../src/utils/constants';
 import { formatTimer } from '../../src/utils/helpers';
@@ -15,7 +17,7 @@ const MonsterManageScreen = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('tasks');
   const [notes, setNotes] = useState('');
   const [savedNotes, setSavedNotes] = useState<any[]>([]);
-  const [showInfo, setShowInfo] = useState(false);
+  const [showGameHelpModal, setShowGameHelpModal] = useState(false);
   const [tasks, setTasks] = useState<any[]>([]);
   const [newTaskText, setNewTaskText] = useState('');
   const [selectedTime, setSelectedTime] = useState<typeof MONSTER_CONFIG.POMODORO.TIME_OPTIONS[number]>(MONSTER_CONFIG.POMODORO.TIME_OPTIONS[0]);
@@ -492,7 +494,7 @@ const MonsterManageScreen = () => {
 
                     <TouchableOpacity
                       style={styles.infoButton}
-                      onPress={() => setShowInfo(!showInfo)}
+                      onPress={() => setShowGameHelpModal(true)}
                       activeOpacity={0.7}
                     >
                       <Ionicons name="information-circle-outline" size={20} color="#8888AA" />
@@ -500,26 +502,7 @@ const MonsterManageScreen = () => {
                   </View>
                 </View>
 
-                {showInfo && (
-                  <View style={styles.infoCard}>
-                    <View style={styles.infoItem}>
-                      <Text style={styles.infoTitle}>💪 体力值</Text>
-                      <Text style={styles.infoText}>
-                        • 单次知识节点跳转消耗 10 体力{'\n'}
-                        • 每日凌晨 5:00 自动恢复至上限{'\n'}
-                        • 小游戏可额外补充体力
-                      </Text>
-                    </View>
-                    <View style={styles.infoItem}>
-                      <Text style={styles.infoTitle}>Π 能量</Text>
-                      <Text style={styles.infoText}>
-                        • AI对话消耗 = 对话Token数 × 0.05{'\n'}
-                        • 每日凌晨 5:00 自动恢复至上限{'\n'}
-                        • 小游戏可额外补充能量
-                      </Text>
-                    </View>
-                  </View>
-                )}
+
 
                 <View style={styles.statsRow}>
                   <View style={styles.statContainer}>
@@ -615,17 +598,17 @@ const MonsterManageScreen = () => {
         <View style={styles.bottomPadding} />
       </ScrollView>
 
-      {/* 游戏弹窗 */}
-      <Modal
+      <GameModal
         visible={showGameModal}
-        animationType="slide"
-        onRequestClose={() => setShowGameModal(false)}
-      >
-        <MiniGames
-          onGameComplete={handleGameComplete}
-          onClose={() => setShowGameModal(false)}
-        />
-      </Modal>
+        onClose={() => setShowGameModal(false)}
+        onGameComplete={handleGameComplete}
+        monsterType={monsterData?.type}
+      />
+
+      <GameHelpModal
+        visible={showGameHelpModal}
+        onClose={() => setShowGameHelpModal(false)}
+      />
     </SafeAreaView>
   );
 };

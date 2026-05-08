@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Linking, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Linking, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -48,19 +48,23 @@ const SkillNodeItem: React.FC<{
   url: string;
   index: number;
   stageColor: ReturnType<typeof getStageColor>;
-  onSelect: (name: string, url: string, suggestedDuration: number) => void;
-}> = ({ name, platform, duration, url, index, stageColor, onSelect }) => {
+  onSelect?: (name: string, url: string, suggestedDuration: number) => void;
+  disabled?: boolean;
+}> = ({ name, platform, duration, url, index, stageColor, onSelect, disabled }) => {
   const platformInfo = getPlatformIcon(platform);
 
   const handlePress = () => {
-    onSelect(name, url, duration);
+    if (onSelect && !disabled) {
+      onSelect(name, url, duration);
+    }
   };
 
   return (
     <TouchableOpacity
-      style={[styles.skillNode, { borderColor: stageColor.border }]}
+      style={[styles.skillNode, { borderColor: stageColor.border }, disabled && styles.skillNodeDisabled]}
       onPress={handlePress}
-      activeOpacity={0.7}
+      activeOpacity={disabled ? 1 : 0.7}
+      disabled={disabled}
     >
       <View style={styles.skillNodeHeader}>
         <View style={styles.nodeBadge}>
@@ -204,15 +208,83 @@ const SkillTreeScreen = () => {
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedNode, setSelectedNode] = useState({ name: '', url: '', suggestedDuration: 0 });
+  const [isEditing, setIsEditing] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingNode, setEditingNode] = useState<{ stageId: string; nodeIndex: number; name: string; url: string; duration: number; stage: string } | null>(null);
+  const [customNodes, setCustomNodes] = useState<{ name: string; url: string; duration: number; stage: string }[]>([]);
 
   useEffect(() => {
     loadSkillTree();
   }, [domain]);
 
-  const loadSkillTree = () => {
+  const loadSkillTree = async () => {
     setLoading(true);
-    if (domain) {
-      const tree = getSkillTreeByDomain(domain as string);
+    if (!domain) {
+      setLoading(false);
+      return;
+    }
+
+    const domainStr = domain as string;
+    
+    if (domainStr.startsWith('custom-')) {
+      const customData = await AsyncStorage.getItem(`customModule-${domainStr}`);
+      const moduleData = await AsyncStorage.getItem('savedModules');
+      
+      let moduleName = '自定义模块';
+      if (moduleData) {
+        const modules = JSON.parse(moduleData);
+        const customModule = modules.find((m: any) => m.id === domainStr);
+        if (customModule) {
+          moduleName = customModule.name;
+        }
+      }
+
+      const savedCustomNodes: { name: string; url: string; duration: number; stage: string }[] = [];
+      if (customData) {
+        savedCustomNodes.push(...JSON.parse(customData));
+      }
+      setCustomNodes(savedCustomNodes);
+
+      const totalDuration = savedCustomNodes.reduce((sum, node) => sum + (node.duration || 1), 0) || 60;
+
+      const stages = [
+        { id: 'beginner', name: '入门阶段' },
+        { id: 'intermediate', name: '进阶阶段' },
+        { id: 'advanced', name: '精通阶段' },
+      ].map((stage) => {
+        const stageNodes = savedCustomNodes.filter(node => node.stage === stage.id);
+        const stageDuration = stageNodes.reduce((sum, node) => sum + (node.duration || 1), 0) || Math.ceil(totalDuration / 3);
+        
+        return {
+          ...stage,
+          duration: stageDuration,
+          nodes: stageNodes.map((node, index) => ({
+            id: `custom-node-${stage.id}-${index}`,
+            name: node.name || `${stage.name} 节点 ${index + 1}`,
+            description: '',
+            stage: stage.id,
+            platform: 'bilibili',
+            url: node.url || 'https://example.com',
+            duration: node.duration || 1,
+          })),
+        };
+      });
+
+      const customTree: SkillTree = {
+        id: domainStr,
+        domain: domainStr,
+        title: moduleName,
+        description: '自定义学习模块',
+        totalDuration,
+        learningMethod: '按照自己的节奏学习，完成每个节点的课程',
+        learningGoal: '掌握自定义学习领域的知识和技能',
+        frameworkExplanation: '采用"入门-进阶-精通"三层结构，循序渐进提升技能',
+        stages,
+      };
+
+      setSkillTree(customTree);
+    } else {
+      const tree = getSkillTreeByDomain(domainStr);
       setSkillTree(tree || null);
     }
     setLoading(false);
@@ -229,6 +301,80 @@ const SkillTreeScreen = () => {
 
   const handleGoBack = () => {
     router.back();
+  };
+
+  const toggleEditMode = () => {
+    setIsEditing(!isEditing);
+    setEditModalVisible(false);
+  };
+
+  const handleEditNode = (stageId: string, nodeIndex: number, node: any) => {
+    setEditingNode({
+      stageId,
+      nodeIndex,
+      name: node.name,
+      url: node.url,
+      duration: node.duration,
+      stage: node.stage || stageId,
+    });
+    setEditModalVisible(true);
+  };
+
+  const handleDeleteNode = async (stageId: string, nodeIndex: number) => {
+    Alert.alert('确认删除', '确定要删除这个学习节点吗？', [
+      { text: '取消', style: 'cancel' },
+      {
+        text: '删除',
+        style: 'destructive',
+        onPress: async () => {
+          const updatedNodes = customNodes.filter((_, index) => {
+            const stageOrder = ['beginner', 'intermediate', 'advanced'];
+            const stageIndex = stageOrder.indexOf(stageId);
+            let cumulativeIndex = 0;
+            for (let i = 0; i < stageIndex; i++) {
+              cumulativeIndex += customNodes.filter(n => n.stage === stageOrder[i]).length;
+            }
+            return index !== cumulativeIndex + nodeIndex;
+          });
+          setCustomNodes(updatedNodes);
+          await AsyncStorage.setItem(`customModule-${domain}`, JSON.stringify(updatedNodes));
+          loadSkillTree();
+        },
+      },
+    ]);
+  };
+
+  const saveEditNode = async () => {
+    if (!editingNode) return;
+
+    const stageOrder = ['beginner', 'intermediate', 'advanced'];
+    const stageIndex = stageOrder.indexOf(editingNode.stageId);
+    let cumulativeIndex = 0;
+    for (let i = 0; i < stageIndex; i++) {
+      cumulativeIndex += customNodes.filter(n => n.stage === stageOrder[i]).length;
+    }
+    const actualIndex = cumulativeIndex + editingNode.nodeIndex;
+
+    const updatedNodes = [...customNodes];
+    updatedNodes[actualIndex] = {
+      ...updatedNodes[actualIndex],
+      name: editingNode.name,
+      url: editingNode.url,
+      duration: editingNode.duration,
+      stage: editingNode.stage,
+    };
+    setCustomNodes(updatedNodes);
+    await AsyncStorage.setItem(`customModule-${domain}`, JSON.stringify(updatedNodes));
+    setEditModalVisible(false);
+    loadSkillTree();
+  };
+
+  const addNewNode = async (stage: string) => {
+    const newNode = { name: '', url: '', duration: 1, stage };
+    const updatedNodes = [...customNodes, newNode];
+    setCustomNodes(updatedNodes);
+    await AsyncStorage.setItem(`customModule-${domain}`, JSON.stringify(updatedNodes));
+    loadSkillTree();
   };
 
   if (loading) {
@@ -272,6 +418,15 @@ const SkillTreeScreen = () => {
             <Text style={styles.backArrow}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{skillTree.title}</Text>
+          {domain && (domain as string).startsWith('custom-') && (
+            <TouchableOpacity 
+              style={[styles.editButton, isEditing && styles.editButtonActive]}
+              onPress={toggleEditMode}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.editButtonText}>{isEditing ? '完成' : '编辑'}</Text>
+            </TouchableOpacity>
+          )}
           <View style={styles.headerPlaceholder} />
         </View>
 
@@ -300,18 +455,48 @@ const SkillTreeScreen = () => {
 
                 <View style={styles.skillNodesList}>
                   {stage.nodes.map((node, nodeIndex) => (
-                    <SkillNodeItem
-                      key={node.id}
-                      name={node.name}
-                      platform={node.platform}
-                      duration={node.duration}
-                      url={node.url}
-                      index={nodeIndex}
-                      stageColor={stageColor}
-                      onSelect={handleNodeSelect}
-                    />
+                    <View key={node.id} style={styles.nodeWrapper}>
+                      <SkillNodeItem
+                        name={node.name}
+                        platform={node.platform}
+                        duration={node.duration}
+                        url={node.url}
+                        index={nodeIndex}
+                        stageColor={stageColor}
+                        onSelect={isEditing ? undefined : handleNodeSelect}
+                        disabled={isEditing}
+                      />
+                      {isEditing && (
+                        <View style={styles.editActions}>
+                          <TouchableOpacity
+                            style={styles.actionButton}
+                            onPress={() => handleEditNode(stage.id, nodeIndex, node)}
+                          >
+                            <Ionicons name="pencil" size={16} color="#5D9BFA" />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.actionButton}
+                            onPress={() => handleDeleteNode(stage.id, nodeIndex)}
+                          >
+                            <Ionicons name="trash" size={16} color="#FF6B6B" />
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
                   ))}
                 </View>
+
+                {isEditing && (domain as string).startsWith('custom-') && (
+                  <TouchableOpacity
+                    style={[styles.addStageNodeButton, { borderColor: stageColor.border }]}
+                    onPress={() => addNewNode(stage.id)}
+                  >
+                    <Ionicons name="plus" size={16} color={stageColor.text} />
+                    <Text style={[styles.addStageNodeButtonText, { color: stageColor.text }]}>
+                      添加{stage.name}节点
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             );
           })}
@@ -327,6 +512,67 @@ const SkillTreeScreen = () => {
         url={selectedNode.url}
         suggestedDuration={selectedNode.suggestedDuration}
       />
+
+      <Modal visible={editModalVisible} transparent onRequestClose={() => setEditModalVisible(false)} animationType="slide">
+        <View style={styles.modalOverlay} onPress={() => setEditModalVisible(false)}>
+          <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>编辑学习节点</Text>
+              <TouchableOpacity style={styles.modalClose} onPress={() => setEditModalVisible(false)}>
+                <Ionicons name="close" size={20} color="#888" />
+              </TouchableOpacity>
+            </View>
+
+            {editingNode && (
+              <>
+                <TextInput
+                  style={styles.formInput}
+                  placeholder="课程名称"
+                  placeholderTextColor="#555577"
+                  value={editingNode.name}
+                  onChangeText={(text) => setEditingNode({ ...editingNode, name: text })}
+                />
+                <TextInput
+                  style={styles.formInput}
+                  placeholder="课程链接"
+                  placeholderTextColor="#555577"
+                  value={editingNode.url}
+                  onChangeText={(text) => setEditingNode({ ...editingNode, url: text })}
+                />
+                <TextInput
+                  style={styles.formInput}
+                  placeholder="时长(h)"
+                  placeholderTextColor="#555577"
+                  keyboardType="numeric"
+                  value={String(editingNode.duration)}
+                  onChangeText={(text) => setEditingNode({ ...editingNode, duration: parseFloat(text) || 1 })}
+                />
+                <Text style={styles.modalSubtitle}>选择阶段</Text>
+                <View style={styles.stageOptions}>
+                  {[{ id: 'beginner', name: '入门阶段' }, { id: 'intermediate', name: '进阶阶段' }, { id: 'advanced', name: '精通阶段' }].map((stage) => (
+                    <TouchableOpacity
+                      key={stage.id}
+                      style={[
+                        styles.stageButton,
+                        editingNode.stage === stage.id && styles.stageButtonActive,
+                      ]}
+                      onPress={() => setEditingNode({ ...editingNode, stage: stage.id })}
+                    >
+                      <Text style={[styles.stageButtonText, editingNode.stage === stage.id && styles.stageButtonTextActive]}>
+                        {stage.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <TouchableOpacity style={styles.modalConfirmButton} onPress={saveEditNode}>
+                  <Text style={styles.modalConfirmText}>保存修改</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -612,6 +858,84 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
+  },
+  editButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  editButtonActive: {
+    backgroundColor: '#5D9BFA',
+  },
+  editButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  nodeWrapper: {
+    position: 'relative',
+  },
+  skillNodeDisabled: {
+    opacity: 0.7,
+  },
+  editActions: {
+    position: 'absolute',
+    right: 8,
+    top: 8,
+    flexDirection: 'row',
+    gap: 6,
+  },
+  actionButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addNodeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: 16,
+    backgroundColor: 'rgba(93, 155, 250, 0.1)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(93, 155, 250, 0.3)',
+    marginHorizontal: 16,
+    marginTop: 16,
+  },
+  addNodeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#5D9BFA',
+  },
+  addStageNodeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    padding: 12,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 10,
+    borderWidth: 1,
+    marginTop: 8,
+  },
+  addStageNodeButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  formInput: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 10,
+    padding: 12,
+    color: '#FFFFFF',
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    marginBottom: 12,
   },
 });
 
