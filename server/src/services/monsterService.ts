@@ -22,7 +22,7 @@ export const createMonster = async (userId: number, personality: 'cheerful' | 'c
 
 export const getMonsterStatus = async (userId: number) => {
   const monster = await MonsterModel.getMonsterByUserId(userId);
-  const user = await UserModel.getUserById(userId);
+  const user: { monsterName?: string; monsterStyle?: string } | null = null;
 
   if (!monster) {
     return null;
@@ -49,8 +49,8 @@ export const getMonsterStatus = async (userId: number) => {
 
   return {
     id: monster.id,
-    name: user?.monsterName || '小怪兽',
-    style: user?.monsterStyle || 'default',
+    name: '小怪兽',
+    style: 'default',
     level: monster.level,
     exp: monster.exp,
     stamina: monster.stamina,

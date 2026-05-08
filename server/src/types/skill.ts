@@ -1,3 +1,9 @@
+export interface MonsterPersonality {
+  cheerful: number;
+  calm: number;
+  rebellious: number;
+}
+
 export interface SkillNode {
   id: string;
   name: string;
