@@ -46,13 +46,13 @@ export interface SkillTreeRequest {
 // 认证相关类型
 export interface CreateUserRequest {
   username: string;
-  phone: string;
+  email: string;
   password: string;
 }
 
 export interface LoginRequest {
-  type: 'phone' | 'wechat';
-  phone?: string;
+  type: 'email' | 'wechat';
+  email?: string;
   password?: string;
   wechatCode?: string;
   deviceId: string;
@@ -77,4 +77,27 @@ export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
   expiresAt: Date;
+}
+
+export interface MonsterSetupRequest {
+  userId: number;
+  name: string;
+  style?: string;
+  personality: 'lively' | 'calm' | 'rebel';
+}
+
+export interface MonsterResponse {
+  id: number;
+  name: string;
+  style: string;
+  level: number;
+  exp: number;
+  stamina: number;
+  maxStamina: number;
+  energy: number;
+  maxEnergy: number;
+  personality: 'lively' | 'calm' | 'rebel';
+  personalityParams?: Record<string, number>;
+  lastEnergyRecover?: Date;
+  lastStaminaRecover?: Date;
 }

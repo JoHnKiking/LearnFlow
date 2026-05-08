@@ -3,19 +3,19 @@
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
-    phone VARCHAR(20) UNIQUE NOT NULL,
-    email VARCHAR(100) UNIQUE,
+    email VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     wechat_openid VARCHAR(100) UNIQUE,
     wechat_unionid VARCHAR(100) UNIQUE,
     nickname VARCHAR(50),
     avatar_url VARCHAR(255),
     status ENUM('active', 'inactive', 'banned') DEFAULT 'active',
+    onboarding_completed BOOLEAN DEFAULT FALSE COMMENT '是否完成新手引导',
     last_login_at TIMESTAMP NULL,
     login_count INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_phone (phone),
+    INDEX idx_email (email),
     INDEX idx_username (username),
     INDEX idx_wechat_openid (wechat_openid)
 );
@@ -83,4 +83,40 @@ CREATE TABLE IF NOT EXISTS popular_domains (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_domain (domain)
+);
+
+-- 怪兽表
+CREATE TABLE IF NOT EXISTS monsters (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL DEFAULT '小怪兽' COMMENT '怪兽名称',
+    style VARCHAR(50) NOT NULL DEFAULT 'default' COMMENT '怪兽外观风格',
+    personality ENUM('lively', 'calm', 'rebel') NOT NULL DEFAULT 'calm' COMMENT '怪兽性格类型',
+    personality_params JSON COMMENT '性格参数权重',
+    level INT NOT NULL DEFAULT 1 COMMENT '等级',
+    exp INT NOT NULL DEFAULT 0 COMMENT '经验值',
+    stamina INT NOT NULL DEFAULT 100 COMMENT '当前体力值',
+    max_stamina INT NOT NULL DEFAULT 100 COMMENT '体力上限',
+    energy INT NOT NULL DEFAULT 50 COMMENT '当前Π能量',
+    max_energy INT NOT NULL DEFAULT 50 COMMENT 'Π能量上限',
+    last_energy_recover TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '上次能量恢复时间',
+    last_stamina_recover TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '上次体力恢复时间',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_monster_user (user_id),
+    INDEX idx_monster_user_id (user_id),
+    INDEX idx_monster_personality (personality)
+);
+
+-- 怪兽消息表
+CREATE TABLE IF NOT EXISTS monster_messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    message TEXT NOT NULL COMMENT '消息内容',
+    is_user BOOLEAN NOT NULL COMMENT '是否为用户发送',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_monster_message_user_id (user_id),
+    INDEX idx_monster_message_created_at (created_at)
 );

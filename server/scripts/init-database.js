@@ -35,6 +35,13 @@ async function initializeDatabase() {
     console.log('   - skill_trees (技能树表)');
     console.log('   - learning_records (学习记录表)');
     console.log('   - popular_domains (热门领域表)');
+    console.log('   - monsters (怪兽表)');
+    console.log('   - monster_messages (怪兽消息表)');
+    console.log('   - domains (学习领域表)');
+    console.log('   - node_progress (节点进度表)');
+    console.log('   - study_records (学习记录表)');
+    console.log('   - notes (笔记表)');
+    console.log('   - rewards (奖励表)');
     
     // 关闭连接
     await connection.end();

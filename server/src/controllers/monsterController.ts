@@ -1,39 +1,46 @@
 import { Request, Response } from 'express';
-import { 
+import {
   createMonster as createMonsterService,
   getMonsterStatus as getMonsterStatusService,
+  consumeStamina as consumeStaminaService,
+  recoverStamina as recoverStaminaService,
   consumeEnergy as consumeEnergyService,
+  consumeEnergyAmount as consumeEnergyAmountService,
   recoverEnergy as recoverEnergyService,
   addExp as addExpService,
   chatWithMonster as chatWithMonsterService,
-  getMonsterMessages as getMonsterMessagesService
+  getMonsterMessages as getMonsterMessagesService,
 } from '../services';
-import * as UserModel from '../models/User';
 
 export const createMonster = async (req: Request, res: Response) => {
   try {
     const { userId, name, style, personality } = req.body;
 
     if (!userId || !name || !personality) {
-      return res.status(400).json({ 
-        error: 'User ID, name, and personality are required' 
+      return res.status(400).json({
+        error: 'User ID, name, and personality are required'
       });
     }
 
-    await UserModel.updateUser(userId, {
-      monsterName: name,
-      monsterStyle: style || 'default'
+    if (!['lively', 'calm', 'rebel'].includes(personality)) {
+      return res.status(400).json({
+        error: 'Personality must be one of lively, calm, or rebel'
+      });
+    }
+
+    const result = await createMonsterService(parseInt(userId, 10), {
+      name,
+      style,
+      personality,
     });
 
-    const result = await createMonsterService(userId, personality);
-    
     res.json({
       success: true,
       data: result
     });
   } catch (error) {
     console.error('Error creating monster:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to create monster',
       message: error instanceof Error ? error.message : 'Unknown error'
     });

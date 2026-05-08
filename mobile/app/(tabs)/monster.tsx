@@ -454,50 +454,43 @@ const MonsterManageScreen = () => {
               <View style={styles.monsterPixelPattern} />
 
               <View style={styles.monsterCardContent}>
-                <View style={styles.monsterTop}>
+                <View style={styles.monsterTopRow}>
                   <View style={styles.monsterIconContainer}>
                     <MonsterIcon type={monsterData.type} size={80} />
                   </View>
 
                   <View style={styles.monsterInfo}>
-                    <View style={styles.monsterNameRow}>
-                      <Text style={styles.monsterName}>{monsterData.name}</Text>
-                      <View style={styles.levelBadge}>
-                        <Text style={styles.levelText}>Lv.{monsterData.level}</Text>
-                      </View>
-                    </View>
+                    <Text style={styles.monsterName} numberOfLines={1}>{monsterData.name}</Text>
                     <Text style={styles.monsterPersonality}>
                       {monsterData.type === MONSTER_CONFIG.TYPES.LIVELY ? '活力型怪兽 ⚡'
                         : monsterData.type === MONSTER_CONFIG.TYPES.CALM ? '沉稳型怪兽 🌟'
                           : '叛逆型怪兽 💫'}
                     </Text>
                   </View>
+                </View>
 
-                  <View style={styles.rightButtons}>
-                    <TouchableOpacity
-                      style={[styles.gameButton, dailyPlays >= 4 && styles.gameButtonDisabled]}
-                      onPress={handlePlayGame}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons name="game-controller-outline" size={20} color={dailyPlays >= 4 ? '#555577' : '#FF7D00'} />
-                      <View style={styles.gameButtonContent}>
-                        <Text style={[styles.gameButtonText, { color: dailyPlays >= 4 ? '#555577' : '#FF7D00' }]}>
-                          游戏
-                        </Text>
-                        <Text style={styles.gameButtonSubText}>
-                          剩余: {4 - dailyPlays}次
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
+                <View style={styles.monsterActionRow}>
+                  <TouchableOpacity
+                    style={[styles.gameButton, dailyPlays >= 4 && styles.gameButtonDisabled]}
+                    onPress={handlePlayGame}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="game-controller-outline" size={20} color={dailyPlays >= 4 ? '#555577' : '#FF7D00'} />
+                    <View style={styles.gameButtonContent}>
+                      <Text style={[styles.gameButtonText, { color: dailyPlays >= 4 ? '#555577' : '#FF7D00' }]}>游戏</Text>
+                      <Text style={styles.gameButtonSubText}>
+                        剩余: {4 - dailyPlays}次
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
 
-                    <TouchableOpacity
-                      style={styles.infoButton}
-                      onPress={() => setShowInfo(!showInfo)}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons name="information-circle-outline" size={20} color="#8888AA" />
-                    </TouchableOpacity>
-                  </View>
+                  <TouchableOpacity
+                    style={styles.infoButton}
+                    onPress={() => setShowInfo(!showInfo)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="information" size={18} color="#8888AA" />
+                  </TouchableOpacity>
                 </View>
 
                 {showInfo && (
@@ -695,31 +688,52 @@ const styles = StyleSheet.create({
     position: 'relative',
     zIndex: 1,
   },
-  monsterTop: {
+  monsterTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
-    marginBottom: 24,
+    marginBottom: 16,
   },
-  monsterIconContainer: {},
+  monsterActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 16,
+  },
+  monsterIconContainer: {
+    width: 108,
+    height: 108,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(93,155,250,0.2)',
+    flexShrink: 0,
+  },
   monsterInfo: {
     flex: 1,
+    justifyContent: 'center',
+    gap: 8,
   },
   rightButtons: {
-    flexDirection: 'row',
+    width: 92,
     gap: 8,
-    alignItems: 'center',
+    alignItems: 'stretch',
   },
   gameButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
     backgroundColor: 'rgba(255,125,0,0.15)',
     borderWidth: 1,
     borderColor: 'rgba(255,125,0,0.3)',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    minHeight: 52,
   },
   gameButtonDisabled: {
     backgroundColor: 'rgba(85,85,119,0.15)',
@@ -728,6 +742,8 @@ const styles = StyleSheet.create({
   gameButtonContent: {
     flexDirection: 'column',
     gap: 2,
+    alignItems: 'flex-start',
+    flex: 1,
   },
   gameButtonText: {
     color: '#FF7D00',
@@ -741,12 +757,15 @@ const styles = StyleSheet.create({
     fontFamily: 'Courier',
   },
   infoButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    flexShrink: 0,
   },
   infoCard: {
     marginBottom: 16,
@@ -777,29 +796,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     marginBottom: 4,
+    flexWrap: 'wrap',
   },
   monsterName: {
     color: '#FFFFFF',
     fontSize: 24,
     fontWeight: '800',
     fontFamily: 'Courier',
-  },
-  levelBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,215,0,0.2)',
-  },
-  levelText: {
-    color: '#FFD700',
-    fontSize: 11,
-    fontWeight: '700',
-    fontFamily: 'Courier',
+    flexShrink: 1,
   },
   monsterPersonality: {
     color: '#8888AA',
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: 'Courier',
+    lineHeight: 20,
   },
   statsRow: {
     gap: 12,

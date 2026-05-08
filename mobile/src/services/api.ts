@@ -1,11 +1,12 @@
 import axios from 'axios';
-import { 
-  SkillNode, 
+import {
+  SkillNode,
   SkillTreeRequest,
-  CreateUserRequest, 
-  LoginRequest, 
-  UserResponse,
-  AuthResponse 
+  CreateUserRequest,
+  LoginRequest,
+  AuthResponse,
+  MonsterSetupRequest,
+  MonsterResponse
 } from '../types/skill';
 import { API_BASE_URL } from '../utils/constants';
 
@@ -117,6 +118,18 @@ export const authService = {
   // 用户登出
   logout: async (): Promise<void> => {
     await api.post('/auth/logout');
+  },
+};
+
+export const monsterService = {
+  createMonster: async (request: MonsterSetupRequest) => {
+    const response = await api.post('/monster/create', request);
+    return response.data.data;
+  },
+
+  getMonsterStatus: async (userId: number): Promise<MonsterResponse> => {
+    const response = await api.get(`/monster/status/${userId}`);
+    return response.data.data;
   },
 };
 

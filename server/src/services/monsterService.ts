@@ -1,20 +1,45 @@
 import * as MonsterModel from '../models/Monster';
 import * as MonsterMessageModel from '../models/MonsterMessage';
-import * as UserModel from '../models/User';
-import { MonsterPersonality } from '../types/skill';
 
 const ENERGY_RECOVERY_HOURS = 6;
 
-export const createMonster = async (userId: number, personality: 'cheerful' | 'calm' | 'rebellious') => {
-  const personalityParams: MonsterPersonality = {
-    cheerful: personality === 'cheerful' ? 70 : 30,
-    calm: personality === 'calm' ? 70 : 30,
-    rebellious: personality === 'rebellious' ? 70 : 30
-  };
+type MonsterPersonalityType = 'lively' | 'calm' | 'rebel';
+
+const DEFAULT_MONSTER_STYLE = 'default';
+const DEFAULT_MONSTER_ENERGY = 50;
+
+const buildPersonalityParams = (
+  personality: MonsterPersonalityType
+): Record<'cheerful' | 'calm' | 'rebellious', number> => ({
+  cheerful: personality === 'lively' ? 70 : 30,
+  calm: personality === 'calm' ? 70 : 30,
+  rebellious: personality === 'rebel' ? 70 : 30,
+});
+
+const getMaxStamina = (personality: MonsterPersonalityType): number =>
+  personality === 'calm' ? 120 : 100;
+
+export const createMonster = async (
+  userId: number,
+  payload: {
+    name: string;
+    style?: string;
+    personality: MonsterPersonalityType;
+  }
+) => {
+  const personalityParams = buildPersonalityParams(payload.personality);
+  const maxStamina = getMaxStamina(payload.personality);
 
   const monsterId = await MonsterModel.createMonster({
     userId,
-    personalityParams
+    name: payload.name,
+    style: payload.style || DEFAULT_MONSTER_STYLE,
+    personality: payload.personality,
+    stamina: maxStamina,
+    maxStamina,
+    energy: DEFAULT_MONSTER_ENERGY,
+    maxEnergy: DEFAULT_MONSTER_ENERGY,
+    personalityParams,
   });
 
   return { success: true, monsterId };
@@ -22,7 +47,6 @@ export const createMonster = async (userId: number, personality: 'cheerful' | 'c
 
 export const getMonsterStatus = async (userId: number) => {
   const monster = await MonsterModel.getMonsterByUserId(userId);
-  const user: { monsterName?: string; monsterStyle?: string } | null = null;
 
   if (!monster) {
     return null;
@@ -49,15 +73,16 @@ export const getMonsterStatus = async (userId: number) => {
 
   return {
     id: monster.id,
-    name: '小怪兽',
-    style: 'default',
+    name: monster.name,
+    style: monster.style,
     level: monster.level,
     exp: monster.exp,
     stamina: monster.stamina,
     maxStamina: monster.maxStamina,
     energy: monster.energy,
     maxEnergy: monster.maxEnergy,
-    personality: personalityParams,
+    personality: monster.personality,
+    personalityParams,
     lastEnergyRecover: monster.lastEnergyRecover,
     lastStaminaRecover: monster.lastStaminaRecover
   };
@@ -119,7 +144,7 @@ export const chatWithMonster = async (userId: number, message: string) => {
   });
 
   const monsterStatus = await getMonsterStatus(userId);
-  const personality = monsterStatus?.personality;
+  const personality = monsterStatus?.personalityParams;
   let response = '';
 
   const cheerfulResponses = [

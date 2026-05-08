@@ -427,7 +427,9 @@ const MiniGames = ({ onGameComplete, onClose }: MiniGamesProps) => {
               style={styles.gameCard} 
               onPress={() => showTutorial('sudoku')}
             >
-              <View style={styles.gameCardIcon}>🧩</View>
+              <View style={styles.gameCardIcon}>
+                <Text style={styles.gameCardIconText}>🧩</Text>
+              </View>
               <View style={styles.gameCardInfo}>
                 <Text style={styles.gameCardTitle}>数独</Text>
                 <Text style={styles.gameCardDesc}>
@@ -445,7 +447,9 @@ const MiniGames = ({ onGameComplete, onClose }: MiniGamesProps) => {
               style={styles.gameCard} 
               onPress={() => showTutorial('sokoban')}
             >
-              <View style={styles.gameCardIcon}>📦</View>
+              <View style={styles.gameCardIcon}>
+                <Text style={styles.gameCardIconText}>📦</Text>
+              </View>
               <View style={styles.gameCardInfo}>
                 <Text style={styles.gameCardTitle}>推箱子</Text>
                 <Text style={styles.gameCardDesc}>
@@ -1033,13 +1037,15 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(93,155,250,0.15)',
   },
   gameCardIcon: {
-    fontSize: 40,
     width: 50,
     height: 50,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(93,155,250,0.1)',
     borderRadius: 12,
+  },
+  gameCardIconText: {
+    fontSize: 28,
   },
   gameCardInfo: {
     flex: 1,

@@ -5,21 +5,39 @@ import { router } from 'expo-router';
 import { Loading } from '../src/components/ui';
 import { COLORS, SPACING } from '../src/utils/constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { STORAGE_KEYS } from '../src/utils/storage';
+import { getCurrentUser } from '../src/utils/auth';
 
 const IndexScreen = () => {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        const onboardingCompleted = await AsyncStorage.getItem('onboardingCompleted');
+        const currentUser = await getCurrentUser();
 
-        if (onboardingCompleted) {
-          router.replace('/(tabs)');
-        } else {
-          router.replace('/onboarding');
+        if (!currentUser?.id) {
+          router.replace('/login');
+          return;
         }
+
+        const [monster, selectedModules] = await Promise.all([
+          AsyncStorage.getItem(STORAGE_KEYS.MONSTER),
+          AsyncStorage.getItem('selectedModules'),
+        ]);
+
+        if (monster && selectedModules) {
+          router.replace('/(tabs)');
+          return;
+        }
+
+        if (monster) {
+          router.replace('/module-selection');
+          return;
+        }
+
+        router.replace('/monster-selection');
       } catch (error) {
         console.error('初始化应用失败:', error);
-        router.replace('/onboarding');
+        router.replace('/login');
       }
     };
 

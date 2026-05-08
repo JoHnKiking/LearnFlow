@@ -3,13 +3,16 @@ import { pool } from '../config/database';
 export interface Monster {
   id: number;
   userId: number;
+  name: string;
+  style: string;
+  personality: 'lively' | 'calm' | 'rebel';
   level: number;
   exp: number;
   stamina: number;
   maxStamina: number;
   energy: number;
   maxEnergy: number;
-  personalityParams?: any;
+  personalityParams?: string | Record<string, number>;
   lastEnergyRecover: Date;
   lastStaminaRecover: Date;
   createdAt: Date;
@@ -18,11 +21,40 @@ export interface Monster {
 
 export const createMonster = async (monsterData: {
   userId: number;
-  personalityParams?: any;
+  name: string;
+  style: string;
+  personality: 'lively' | 'calm' | 'rebel';
+  stamina: number;
+  maxStamina: number;
+  energy: number;
+  maxEnergy: number;
+  personalityParams?: Record<string, number>;
 }): Promise<number> => {
   const [result] = await pool.execute(
-    'INSERT INTO monsters (user_id, personality_params) VALUES (?, ?)',
-    [monsterData.userId, JSON.stringify(monsterData.personalityParams || {})]
+    `INSERT INTO monsters (
+      user_id, name, style, personality, stamina, max_stamina, energy, max_energy, personality_params
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      name = VALUES(name),
+      style = VALUES(style),
+      personality = VALUES(personality),
+      stamina = VALUES(stamina),
+      max_stamina = VALUES(max_stamina),
+      energy = VALUES(energy),
+      max_energy = VALUES(max_energy),
+      personality_params = VALUES(personality_params),
+      updated_at = CURRENT_TIMESTAMP`,
+    [
+      monsterData.userId,
+      monsterData.name,
+      monsterData.style,
+      monsterData.personality,
+      monsterData.stamina,
+      monsterData.maxStamina,
+      monsterData.energy,
+      monsterData.maxEnergy,
+      JSON.stringify(monsterData.personalityParams || {}),
+    ]
   );
   return (result as any).insertId;
 };

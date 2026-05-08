@@ -6,17 +6,17 @@ export class AuthController {
   // 用户注册
   static async register(req: Request, res: Response) {
     const startTime = Date.now();
-    const { username, phone } = req.body;
+    const { username, email } = req.body;
     
     try {
-      console.log(`[AuthController] 开始处理用户注册 - 用户名: ${username}, 手机号: ${phone}`);
+      console.log(`[AuthController] 开始处理用户注册 - 用户名: ${username}, 邮箱: ${email}`);
       
       const registerRequest: CreateUserRequest = req.body;
       
       // 验证必填字段
-      if (!registerRequest.username || !registerRequest.phone || !registerRequest.password) {
+      if (!registerRequest.username || !registerRequest.email || !registerRequest.password) {
         console.log(`[AuthController] 注册验证失败 - 缺少必填字段`);
-        return res.status(400).json({ error: '用户名、手机号和密码不能为空' });
+        return res.status(400).json({ error: '用户名、邮箱和密码不能为空' });
       }
       
       if (registerRequest.password.length < 6) {
@@ -56,8 +56,8 @@ export class AuthController {
 
       let authResponse;
       
-      if (loginRequest.type === 'phone') {
-        authResponse = await AuthService.phoneLogin(loginRequest);
+      if (loginRequest.type === 'email') {
+        authResponse = await AuthService.emailLogin(loginRequest);
       } else if (loginRequest.type === 'wechat') {
         authResponse = await AuthService.wechatLogin(loginRequest);
       } else {

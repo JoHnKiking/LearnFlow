@@ -212,11 +212,11 @@ export class DatabaseService {
 
   // ===== 用户认证相关操作 =====
 
-  static async getUserByPhone(phone: string): Promise<User | null> {
+  static async getUserByEmail(email: string): Promise<User | null> {
     const connection = await DatabaseConnection.getConnection();
     const [rows] = await connection.execute(
-      'SELECT * FROM users WHERE phone = ? AND status = "active"',
-      [phone]
+      'SELECT * FROM users WHERE email = ? AND status = "active"',
+      [email]
     );
     const user = (rows as mysql.RowDataPacket[])[0];
     return user ? this.mapUserFromDB(user) : null;

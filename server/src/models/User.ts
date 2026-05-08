@@ -18,7 +18,6 @@ export interface User {
 export interface CreateUserRequest {
   username?: string;
   email?: string;
-  phone?: string;
   wechatOpenId?: string;
   wechatUnionId?: string;
   password?: string;
@@ -27,8 +26,8 @@ export interface CreateUserRequest {
 }
 
 export interface LoginRequest {
-  type: 'phone' | 'wechat';
-  phone?: string;
+  type: 'email' | 'wechat';
+  email?: string;
   password?: string;
   wechatCode?: string;
   deviceId: string;

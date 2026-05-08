@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../src/utils/constants';
+import { monsterService } from '../src/services/api';
+import { getCurrentUser } from '../src/utils/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type MonsterType = 'lively' | 'calm' | 'rebel';
@@ -62,10 +64,18 @@ const MonsterSelectionScreen = () => {
         }).start();
       });
     } else {
+      const currentUser = await getCurrentUser();
+      if (!currentUser?.id) {
+        return;
+      }
+
       const maxStamina = selectedType === 'calm' ? 120 : 100;
+      const resolvedMonsterName =
+        monsterName || monsters.find((m) => m.id === selectedType)?.name || '小怪兽';
       const monsterData = {
         type: selectedType,
-        name: monsterName || monsters.find(m => m.id === selectedType)?.name || '小怪兽',
+        name: resolvedMonsterName,
+        style: 'default',
         level: 1,
         exp: 0,
         stamina: maxStamina,
@@ -75,6 +85,13 @@ const MonsterSelectionScreen = () => {
         knowledgePoints: 0,
         createdAt: new Date().toISOString(),
       };
+
+      await monsterService.createMonster({
+        userId: currentUser.id,
+        name: resolvedMonsterName,
+        style: 'default',
+        personality: selectedType,
+      });
       await AsyncStorage.setItem('monster', JSON.stringify(monsterData));
       router.replace('/module-selection');
     }

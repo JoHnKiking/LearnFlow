@@ -7,12 +7,13 @@ import { COLORS } from '../src/utils/constants';
 import { authService } from '../src/services/api';
 import { saveAuthData } from '../src/utils/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { STORAGE_KEYS } from '../src/utils/storage';
 import { showErrorAlert, toErrorMessage, createKeyboardPositioningListener, measureInputPosition, measureInputPositionByRef, getInputPositioningStyle } from '../src/utils';
 
 const LoginScreen = () => {
   const [loginType, setLoginType] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -23,7 +24,7 @@ const LoginScreen = () => {
   
   const passwordInputRef = useRef<TextInput>(null);
   const scrollViewRef = useRef<ScrollView>(null);
-  const phoneInputRef = useRef<TextInput>(null);
+  const emailInputRef = useRef<TextInput>(null);
   const nameInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
@@ -55,15 +56,13 @@ const LoginScreen = () => {
     });
   };
 
-  // 处理手机号输入框焦点事件
-  const handlePhoneInputFocus = () => {
-    // 延迟执行，确保键盘已经弹出
+  // 处理邮箱输入框焦点事件
+  const handleEmailInputFocus = () => {
     setTimeout(() => {
-      measureInputPositionByRef(phoneInputRef, (yPosition) => {
+      measureInputPositionByRef(emailInputRef, (yPosition) => {
         setActiveInputY(yPosition);
-        // 当键盘弹出时，滚动到输入框上方1cm位置
         if (scrollViewRef.current) {
-          const scrollOffset = Math.max(0, yPosition - 40); // 进一步减少偏移量，上移约0.5cm
+          const scrollOffset = Math.max(0, yPosition - 40);
           scrollViewRef.current.scrollTo({ y: scrollOffset, animated: true });
         }
       });
@@ -101,18 +100,18 @@ const LoginScreen = () => {
   };
 
   const handleLogin = async () => {
-    if (!phone || !password) {
-      Alert.alert('错误', '请输入手机号和密码');
+    if (!email || !password) {
+      Alert.alert('错误', '请输入邮箱和密码');
       return;
     }
 
     setLoading(true);
     try {
-      const authResponse = await authService.login({ 
-        phone, 
+      const authResponse = await authService.login({
+        email,
         password,
         deviceId: 'mobile-device',
-        type: 'phone',
+        type: 'email',
         deviceType: 'android',
         deviceName: '移动设备'
       });
@@ -122,13 +121,19 @@ const LoginScreen = () => {
       setLoading(false);
       Alert.alert('登录成功', '欢迎回来！');
       
-      // 检查是否已完成新手教程
-      const onboardingCompleted = await AsyncStorage.getItem('onboardingCompleted');
-      if (onboardingCompleted === 'true' || onboardingCompleted === null) {
-        // 已完成或未设置（旧用户），直接进入主界面
+      const [onboardingCompleted, monster, selectedModules] = await Promise.all([
+        AsyncStorage.getItem('onboardingCompleted'),
+        AsyncStorage.getItem(STORAGE_KEYS.MONSTER),
+        AsyncStorage.getItem('selectedModules'),
+      ]);
+
+      if (monster && selectedModules) {
+        router.replace('/(tabs)');
+      } else if (monster) {
+        router.replace('/module-selection');
+      } else if (onboardingCompleted === 'true' || onboardingCompleted === null) {
         router.replace('/(tabs)');
       } else {
-        // 未完成，进入新手教程
         router.replace('/splash');
       }
     } catch (error) {
@@ -138,12 +143,12 @@ const LoginScreen = () => {
   };
 
   const handleSubmit = async () => {
-    if (loginType === 'register' && (!name || !phone || !password)) {
+    if (loginType === 'register' && (!name || !email || !password)) {
       Alert.alert('错误', '请填写完整信息');
       return;
     }
-    if (loginType === 'login' && (!phone || !password)) {
-      Alert.alert('错误', '请输入手机号和密码');
+    if (loginType === 'login' && (!email || !password)) {
+      Alert.alert('错误', '请输入邮箱和密码');
       return;
     }
 
@@ -153,18 +158,18 @@ const LoginScreen = () => {
       
       if (loginType === 'register') {
         // 注册新用户
-        authResponse = await authService.register({ 
+        authResponse = await authService.register({
           username: name,
-          phone: phone,
+          email,
           password
         });
       } else {
         // 登录
-        authResponse = await authService.login({ 
-          phone: phone, 
+        authResponse = await authService.login({
+          email,
           password,
           deviceId: 'mobile-device',
-          type: 'phone',
+          type: 'email',
           deviceType: 'android',
           deviceName: '移动设备'
         });
@@ -176,19 +181,26 @@ const LoginScreen = () => {
       
       if (loginType === 'register') {
         Alert.alert('注册成功', '欢迎加入 LearnFlow！');
-        // 新用户注册后进入新手教程
         await AsyncStorage.setItem('onboardingCompleted', 'false');
-        router.replace('/splash');
+        await AsyncStorage.removeItem(STORAGE_KEYS.MONSTER);
+        await AsyncStorage.removeItem('selectedModules');
+        router.replace('/monster-selection');
       } else {
           Alert.alert('登录成功', '欢迎回来！');
-          // 检查是否已完成新手教程
-          const onboardingCompleted = await AsyncStorage.getItem('onboardingCompleted');
-          if (onboardingCompleted === 'true' || onboardingCompleted === null) {
-            // 已完成或未设置（旧用户），直接进入主界面
+          const [onboardingCompleted, monster, selectedModules] = await Promise.all([
+            AsyncStorage.getItem('onboardingCompleted'),
+            AsyncStorage.getItem(STORAGE_KEYS.MONSTER),
+            AsyncStorage.getItem('selectedModules'),
+          ]);
+
+          if (monster && selectedModules) {
+            router.replace('/(tabs)');
+          } else if (monster) {
+            router.replace('/module-selection');
+          } else if (onboardingCompleted === 'true' || onboardingCompleted === null) {
             router.replace('/(tabs)');
           } else {
-            // 未完成，进入新手教程
-            router.replace('/splash');
+            router.replace('/monster-selection');
           }
         }
     } catch (error) {
@@ -277,18 +289,18 @@ const LoginScreen = () => {
             )}
             
             <View style={styles.inputContainer} onLayout={handleInputLayout}>
-              <Ionicons name="call" size={20} color={COLORS.PRIMARY} style={styles.inputIcon} />
+              <Ionicons name="mail" size={20} color={COLORS.PRIMARY} style={styles.inputIcon} />
               <TextInput
-                ref={phoneInputRef}
+                ref={emailInputRef}
                 style={styles.textInput}
-                placeholder="手机号"
+                placeholder="邮箱"
                 placeholderTextColor={COLORS.TEXT_SECONDARY}
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                onFocus={handlePhoneInputFocus}
+                onFocus={handleEmailInputFocus}
               />
             </View>
             

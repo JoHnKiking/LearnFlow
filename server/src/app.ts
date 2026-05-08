@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { skillRoutes, authRoutes } from './routes';
+import { skillRoutes, authRoutes, monsterRoutes } from './routes';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -94,6 +94,7 @@ app.use(express.json());
 // API路由
 app.use('/api/skills', skillRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/monster', monsterRoutes);
 
 // 健康检查端点
 app.get('/', (req, res) => {
