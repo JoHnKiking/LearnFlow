@@ -4,44 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Loading } from '../src/components/ui';
 import { COLORS, SPACING } from '../src/utils/constants';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { STORAGE_KEYS } from '../src/utils/storage';
-import { getCurrentUser } from '../src/utils/auth';
 
 const IndexScreen = () => {
   useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        const currentUser = await getCurrentUser();
-
-        if (!currentUser?.id) {
-          router.replace('/login');
-          return;
-        }
-
-        const [monster, selectedModules] = await Promise.all([
-          AsyncStorage.getItem(STORAGE_KEYS.MONSTER),
-          AsyncStorage.getItem('selectedModules'),
-        ]);
-
-        if (monster && selectedModules) {
-          router.replace('/(tabs)');
-          return;
-        }
-
-        if (monster) {
-          router.replace('/module-selection');
-          return;
-        }
-
-        router.replace('/monster-selection');
-      } catch (error) {
-        console.error('初始化应用失败:', error);
-        router.replace('/login');
-      }
-    };
-
-    initializeApp();
+    console.log('🚀 IndexScreen 加载了，准备跳转到 /login');
+    // 扫描进入后，直接跳转到登录页
+    router.replace('/login');
   }, []);
 
   return (

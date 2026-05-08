@@ -10,7 +10,7 @@ import { showErrorAlert, toErrorMessage, createKeyboardPositioningListener, meas
 
 const RegisterScreen = () => {
   const [username, setUsername] = useState('');
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -23,7 +23,7 @@ const RegisterScreen = () => {
   
   const scrollViewRef = useRef<ScrollView>(null);
   const usernameInputRef = useRef<TextInput>(null);
-  const phoneInputRef = useRef<TextInput>(null);
+  const emailInputRef = useRef<TextInput>(null);
   const passwordInputRef = useRef<TextInput>(null);
   const confirmPasswordInputRef = useRef<TextInput>(null);
 
@@ -71,11 +71,11 @@ const RegisterScreen = () => {
     }, 100);
   };
 
-  // 处理手机号输入框焦点事件
-  const handlePhoneInputFocus = () => {
+  // 处理邮箱输入框焦点事件
+  const handleEmailInputFocus = () => {
     // 延迟执行，确保键盘已经弹出
     setTimeout(() => {
-      measureInputPositionByRef(phoneInputRef, (yPosition) => {
+      measureInputPositionByRef(emailInputRef, (yPosition) => {
         setActiveInputY(yPosition);
         // 当键盘弹出时，滚动到输入框上方2cm位置
         if (scrollViewRef.current) {
@@ -117,7 +117,7 @@ const RegisterScreen = () => {
   };
 
   const handleRegister = async () => {
-    if (!username || !phone || !password || !confirmPassword) {
+    if (!username || !email || !password || !confirmPassword) {
       Alert.alert('错误', '请填写所有必填字段');
       return;
     }
@@ -134,22 +134,22 @@ const RegisterScreen = () => {
 
     setLoading(true);
     try {
-      const authResponse = await authService.register({ username, phone, password });
+      const authResponse = await authService.register({ username, email, password });
       
       await saveAuthData(authResponse);
       
       setLoading(false);
       Alert.alert('注册成功', '账号创建成功！');
       
-      router.replace('/onboarding');
+      router.replace('/(tabs)');
     } catch (error) {
       setLoading(false);
       
       // 根据后端错误信息显示具体的提示
       if (error && typeof error === 'object' && 'message' in error) {
         const errorMessage = (error as any).message;
-        if (errorMessage.includes('手机号')) {
-          Alert.alert('注册失败', '该手机号已被注册');
+        if (errorMessage.includes('邮箱')) {
+          Alert.alert('注册失败', '该邮箱已被注册');
         } else if (errorMessage.includes('用户名')) {
           Alert.alert('注册失败', '该用户名已被使用');
         } else {
@@ -218,18 +218,18 @@ const RegisterScreen = () => {
             style={styles.inputContainer}
             onLayout={handleInputLayout}
           >
-            <Ionicons name="call" size={20} color={COLORS.PRIMARY} style={styles.inputIcon} />
+            <Ionicons name="mail" size={20} color={COLORS.PRIMARY} style={styles.inputIcon} />
             <TextInput
-              ref={phoneInputRef}
+              ref={emailInputRef}
               style={styles.textInput}
-              placeholder="手机号"
+              placeholder="邮箱"
               placeholderTextColor={COLORS.TEXT_SECONDARY}
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
-              onFocus={handlePhoneInputFocus}
+              onFocus={handleEmailInputFocus}
             />
           </View>
           

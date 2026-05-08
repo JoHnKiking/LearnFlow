@@ -121,21 +121,7 @@ const LoginScreen = () => {
       setLoading(false);
       Alert.alert('登录成功', '欢迎回来！');
       
-      const [onboardingCompleted, monster, selectedModules] = await Promise.all([
-        AsyncStorage.getItem('onboardingCompleted'),
-        AsyncStorage.getItem(STORAGE_KEYS.MONSTER),
-        AsyncStorage.getItem('selectedModules'),
-      ]);
-
-      if (monster && selectedModules) {
-        router.replace('/(tabs)');
-      } else if (monster) {
-        router.replace('/module-selection');
-      } else if (onboardingCompleted === 'true' || onboardingCompleted === null) {
-        router.replace('/(tabs)');
-      } else {
-        router.replace('/splash');
-      }
+      router.replace('/(tabs)');
     } catch (error) {
       setLoading(false);
       showErrorAlert('登录失败', toErrorMessage(error));
@@ -181,27 +167,10 @@ const LoginScreen = () => {
       
       if (loginType === 'register') {
         Alert.alert('注册成功', '欢迎加入 LearnFlow！');
-        await AsyncStorage.setItem('onboardingCompleted', 'false');
-        await AsyncStorage.removeItem(STORAGE_KEYS.MONSTER);
-        await AsyncStorage.removeItem('selectedModules');
-        router.replace('/monster-selection');
+        router.replace('/(tabs)');
       } else {
           Alert.alert('登录成功', '欢迎回来！');
-          const [onboardingCompleted, monster, selectedModules] = await Promise.all([
-            AsyncStorage.getItem('onboardingCompleted'),
-            AsyncStorage.getItem(STORAGE_KEYS.MONSTER),
-            AsyncStorage.getItem('selectedModules'),
-          ]);
-
-          if (monster && selectedModules) {
-            router.replace('/(tabs)');
-          } else if (monster) {
-            router.replace('/module-selection');
-          } else if (onboardingCompleted === 'true' || onboardingCompleted === null) {
-            router.replace('/(tabs)');
-          } else {
-            router.replace('/monster-selection');
-          }
+          router.replace('/(tabs)');
         }
     } catch (error) {
       setLoading(false);
