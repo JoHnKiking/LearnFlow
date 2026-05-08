@@ -4,22 +4,22 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Loading } from '../src/components/ui';
 import { COLORS, SPACING } from '../src/utils/constants';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { checkAuthStatus } from '../src/utils/auth';
 
 const IndexScreen = () => {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        const onboardingCompleted = await AsyncStorage.getItem('onboardingCompleted');
+        const isLoggedIn = await checkAuthStatus();
 
-        if (onboardingCompleted) {
+        if (isLoggedIn) {
           router.replace('/(tabs)');
         } else {
-          router.replace('/onboarding');
+          router.replace('/login');
         }
       } catch (error) {
         console.error('初始化应用失败:', error);
-        router.replace('/onboarding');
+        router.replace('/login');
       }
     };
 

@@ -1,27 +1,26 @@
 import { AuthResponse } from '../types/skill';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// 使用内存存储作为临时解决方案，避免Expo Go环境下的权限问题
-let memoryStorage: { [key: string]: string } = {};
 const AUTH_STORAGE_KEY = 'auth_data';
 
 /**
- * 保存用户认证信息到内存存储（临时解决方案）
+ * 保存用户认证信息
  */
 export const saveAuthData = async (authData: AuthResponse): Promise<void> => {
   try {
-    memoryStorage[AUTH_STORAGE_KEY] = JSON.stringify(authData);
-    console.log('[Auth] 认证信息保存到内存成功');
+    await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
+    console.log('[Auth] 认证信息保存成功');
   } catch (error) {
     console.error('保存认证信息失败:', error);
   }
 };
 
 /**
- * 从内存存储获取用户认证信息
+ * 获取用户认证信息
  */
 export const getAuthData = async (): Promise<AuthResponse | null> => {
   try {
-    const authDataString = memoryStorage[AUTH_STORAGE_KEY];
+    const authDataString = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
     if (authDataString) {
       const authData = JSON.parse(authDataString);
       // 转换日期字符串为Date对象
@@ -34,7 +33,7 @@ export const getAuthData = async (): Promise<AuthResponse | null> => {
       if (authData.expiresAt) {
         authData.expiresAt = new Date(authData.expiresAt);
       }
-      console.log('[Auth] 从内存获取认证信息成功');
+      console.log('[Auth] 获取认证信息成功');
       return authData;
     }
     console.log('[Auth] 未找到认证信息');
@@ -50,8 +49,8 @@ export const getAuthData = async (): Promise<AuthResponse | null> => {
  */
 export const clearAuthData = async (): Promise<void> => {
   try {
-    delete memoryStorage[AUTH_STORAGE_KEY];
-    console.log('[Auth] 认证信息从内存清除成功');
+    await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
+    console.log('[Auth] 认证信息清除成功');
   } catch (error) {
     console.error('清除认证信息失败:', error);
   }
