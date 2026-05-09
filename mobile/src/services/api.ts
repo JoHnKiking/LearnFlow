@@ -1,12 +1,11 @@
 import axios from 'axios';
-import {
-  SkillNode,
+import { 
+  SkillNode, 
   SkillTreeRequest,
-  CreateUserRequest,
-  LoginRequest,
-  AuthResponse,
-  MonsterSetupRequest,
-  MonsterResponse
+  CreateUserRequest, 
+  LoginRequest, 
+  UserResponse,
+  AuthResponse 
 } from '../types/skill';
 import { API_BASE_URL } from '../utils/constants';
 
@@ -36,13 +35,6 @@ api.interceptors.response.use(
   (error) => {
     // Axios 无法建连时常无 response，仅 message 为 Network Error
     if (!error.response && error.message === 'Network Error') {
-      console.error('API Network Error:', {
-        code: error.code,
-        message: error.message,
-        baseURL: API_BASE_URL,
-        url: error.config?.url,
-        method: error.config?.method,
-      });
       return Promise.reject(
         new Error('无法连接服务器，请检查手机网络、服务器是否在线，以及 API 地址是否正确')
       );
@@ -118,18 +110,6 @@ export const authService = {
   // 用户登出
   logout: async (): Promise<void> => {
     await api.post('/auth/logout');
-  },
-};
-
-export const monsterService = {
-  createMonster: async (request: MonsterSetupRequest) => {
-    const response = await api.post('/monster/create', request);
-    return response.data.data;
-  },
-
-  getMonsterStatus: async (userId: number): Promise<MonsterResponse> => {
-    const response = await api.get(`/monster/status/${userId}`);
-    return response.data.data;
   },
 };
 

@@ -1,0 +1,372 @@
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+/**
+ * 帮助与反馈弹窗组件属性
+ */
+interface HelpModalProps {
+  /** 是否显示弹窗 */
+  visible: boolean;
+  /** 关闭弹窗回调 */
+  onClose: () => void;
+}
+
+/**
+ * 反馈问题示例数据
+ */
+const feedbackExamples = [
+  { id: 1, title: '体力异常扣除', description: '进入游戏时体力未正确扣除，或游戏结束后奖励未正确添加' },
+  { id: 2, title: '学习资源不存在', description: '跳转后的学习资源页面无法打开或内容为空' },
+  { id: 3, title: '游戏无法正常进行', description: '推箱子/数独游戏无法正常开始、关卡无法切换或无法提交' },
+  { id: 4, title: '怪兽数据异常', description: '怪兽等级、经验、体力值等数据显示异常或无法保存' },
+  { id: 5, title: '任务系统问题', description: '任务无法添加、完成或删除，进度无法保存' },
+  { id: 6, title: '专注计时问题', description: '专注计时器无法启动、暂停或计时不准确' },
+];
+
+/**
+ * 帮助与反馈弹窗组件
+ * 包含使用说明、问题反馈示例和联系信息
+ */
+const HelpModal = ({ visible, onClose }: HelpModalProps) => {
+  /** 当前选中的问题示例 */
+  const [selectedExample, setSelectedExample] = useState<number | null>(null);
+  /** 输入的反馈内容 */
+  const [feedbackText, setFeedbackText] = useState('');
+
+  /**
+   * 提交反馈处理
+   */
+  const handleSubmitFeedback = () => {
+    // 验证反馈内容不为空
+    if (!feedbackText.trim()) {
+      Alert.alert('提示', '请输入问题描述');
+      return;
+    }
+
+    // 显示提交成功提示（模拟）
+    Alert.alert(
+      '✅ 提交成功',
+      '感谢您的反馈，我们会尽快处理！',
+      [{ text: '确定', onPress: () => {
+        setFeedbackText('');
+        setSelectedExample(null);
+      }}]
+    );
+  };
+
+  return (
+    <View style={[styles.modalContainer, visible ? styles.modalVisible : styles.modalHidden]}>
+      <View style={styles.modalContent}>
+        {/* 头部 */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+            <Ionicons name="close" size={28} color="#8888AA" />
+          </TouchableOpacity>
+          <Text style={styles.title}>帮助与反馈</Text>
+          <View style={styles.placeholder} />
+        </View>
+
+        {/* 滚动内容区域 */}
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {/* 使用帮助 */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>📋 使用帮助</Text>
+            <View style={styles.helpItem}>
+              <Text style={styles.helpTitle}>💪 体力系统</Text>
+              <Text style={styles.helpText}>
+                专注学习会消耗体力，完成小游戏可恢复体力。体力满值时无法进行游戏。游戏说明请在怪兽页面查看。
+              </Text>
+            </View>
+            <View style={styles.helpItem}>
+              <Text style={styles.helpTitle}>📚 学习资源</Text>
+              <Text style={styles.helpText}>
+                在技能树页面跳转学习资源时会消耗10点体力，请确保体力充足。
+              </Text>
+            </View>
+            <View style={styles.helpItem}>
+              <Text style={styles.helpTitle}>⏰ 每日重置</Text>
+              <Text style={styles.helpText}>
+                每天凌晨5点重置游戏次数和每日数据。
+              </Text>
+            </View>
+          </View>
+
+          {/* 问题反馈 */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>📝 问题反馈</Text>
+            <Text style={styles.sectionDesc}>请选择您遇到的问题类型，或直接描述问题：</Text>
+            
+            {/* 问题示例列表 */}
+            <View style={styles.examplesList}>
+              {feedbackExamples.map((example) => (
+                <TouchableOpacity
+                  key={example.id}
+                  style={[
+                    styles.exampleItem,
+                    selectedExample === example.id && styles.exampleItemSelected
+                  ]}
+                  onPress={() => {
+                    setSelectedExample(selectedExample === example.id ? null : example.id);
+                    if (selectedExample !== example.id) {
+                      setFeedbackText(example.description);
+                    }
+                  }}
+                >
+                  <View style={styles.exampleRadio}>
+                    {selectedExample === example.id && (
+                      <View style={styles.exampleRadioInner} />
+                    )}
+                  </View>
+                  <View style={styles.exampleContent}>
+                    <Text style={styles.exampleTitle}>{example.title}</Text>
+                    <Text style={styles.exampleDesc}>{example.description}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* 反馈输入框 */}
+            <View style={styles.feedbackInputContainer}>
+              <Text style={styles.feedbackLabel}>问题描述</Text>
+              <TextInput
+                style={styles.feedbackInput}
+                placeholder="请详细描述您遇到的问题..."
+                placeholderTextColor="#555577"
+                value={feedbackText}
+                onChangeText={setFeedbackText}
+                multiline
+                numberOfLines={4}
+              />
+            </View>
+
+            {/* 提交按钮 */}
+            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmitFeedback}>
+              <Text style={styles.submitBtnText}>提交反馈</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* 联系我们 */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>📞 联系我们</Text>
+            <Text style={styles.contactText}>
+              如果您在使用过程中有任何问题或建议，欢迎随时联系我们：
+            </Text>
+            <View style={styles.contactInfo}>
+              <Text style={styles.contactItem}>📧 邮箱：support@learnflow.com</Text>
+              <Text style={styles.contactItem}>💬 客服：工作日 9:00-18:00</Text>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  /** 弹窗容器 */
+  modalContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 1000,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  /** 弹窗显示样式 */
+  modalVisible: {
+    opacity: 1,
+  },
+  /** 弹窗隐藏样式 */
+  modalHidden: {
+    opacity: 0,
+    pointerEvents: 'none',
+  },
+  /** 弹窗内容容器 */
+  modalContent: {
+    width: '90%',
+    maxHeight: '85%',
+    backgroundColor: '#1A1A2E',
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  /** 头部栏 */
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    paddingTop: 32,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(93,155,250,0.2)',
+  },
+  /** 关闭按钮 */
+  closeBtn: {
+    padding: 8,
+  },
+  /** 标题样式 */
+  title: {
+    color: '#E8E8F0',
+    fontSize: 20,
+    fontWeight: '700',
+    fontFamily: 'Courier',
+  },
+  /** 占位元素，用于保持头部居中 */
+  placeholder: {
+    width: 44,
+  },
+  /** 内容容器 */
+  content: {
+    padding: 16,
+    paddingBottom: 32,
+  },
+  /** 区域容器 */
+  section: {
+    marginBottom: 24,
+  },
+  /** 区域标题 */
+  sectionTitle: {
+    color: '#5D9BFA',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 12,
+    fontFamily: 'Courier',
+  },
+  /** 区域描述 */
+  sectionDesc: {
+    color: '#8888AA',
+    fontSize: 13,
+    marginBottom: 12,
+  },
+  /** 帮助项容器 */
+  helpItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+  },
+  /** 帮助项标题 */
+  helpTitle: {
+    color: '#E8E8F0',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  /** 帮助项文本 */
+  helpText: {
+    color: '#8888AA',
+    fontSize: 13,
+    lineHeight: 1.6,
+  },
+  /** 示例列表容器 */
+  examplesList: {
+    marginBottom: 16,
+  },
+  /** 示例项容器 */
+  exampleItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  /** 选中的示例项样式 */
+  exampleItemSelected: {
+    backgroundColor: 'rgba(93, 155, 250, 0.1)',
+    borderColor: 'rgba(93, 155, 250, 0.3)',
+  },
+  /** 示例单选按钮 */
+  exampleRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#555577',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+    flexShrink: 0,
+  },
+  /** 选中的单选按钮内部 */
+  exampleRadioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#5D9BFA',
+  },
+  /** 示例内容区域 */
+  exampleContent: {
+    flex: 1,
+  },
+  /** 示例标题 */
+  exampleTitle: {
+    color: '#E8E8F0',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  /** 示例描述 */
+  exampleDesc: {
+    color: '#8888AA',
+    fontSize: 12,
+    lineHeight: 1.5,
+  },
+  /** 反馈输入容器 */
+  feedbackInputContainer: {
+    marginBottom: 16,
+  },
+  /** 反馈标签 */
+  feedbackLabel: {
+    color: '#8888AA',
+    fontSize: 13,
+    marginBottom: 8,
+  },
+  /** 反馈输入框 */
+  feedbackInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 12,
+    color: '#E8E8F0',
+    fontSize: 14,
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  /** 提交按钮 */
+  submitBtn: {
+    backgroundColor: '#5D9BFA',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  /** 提交按钮文字 */
+  submitBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  /** 联系文本 */
+  contactText: {
+    color: '#8888AA',
+    fontSize: 13,
+    lineHeight: 1.6,
+    marginBottom: 12,
+  },
+  /** 联系方式列表 */
+  contactInfo: {
+    gap: 8,
+  },
+  /** 联系方式项 */
+  contactItem: {
+    color: '#E8E8F0',
+    fontSize: 13,
+  },
+});
+
+export default HelpModal;
