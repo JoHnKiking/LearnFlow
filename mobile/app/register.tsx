@@ -7,6 +7,8 @@ import { COLORS } from '../src/utils/constants';
 import { authService } from '../src/services/api';
 import { saveAuthData } from '../src/utils/auth';
 import { showErrorAlert, toErrorMessage, createKeyboardPositioningListener, measureInputPosition, measureInputPositionByRef, getInputPositioningStyle } from '../src/utils';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { STORAGE_KEYS } from '../src/utils/storage';
 
 const RegisterScreen = () => {
   const [username, setUsername] = useState('');
@@ -137,11 +139,13 @@ const RegisterScreen = () => {
       const authResponse = await authService.register({ username, email, password });
       
       await saveAuthData(authResponse);
+      await AsyncStorage.setItem(STORAGE_KEYS.IS_NEW_USER, 'true');
       
       setLoading(false);
       Alert.alert('注册成功', '账号创建成功！');
       
-      router.replace('/(tabs)');
+      // 新用户进入新手教程
+      router.replace('/onboarding');
     } catch (error) {
       setLoading(false);
       

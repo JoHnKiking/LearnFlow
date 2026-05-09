@@ -5,6 +5,7 @@ export const STORAGE_KEYS = {
   NOTES: 'learningNotes',
   TASKS: 'learningTasks',
   LAST_RESET: 'lastDailyReset',
+  IS_NEW_USER: 'isNewUser',
 } as const;
 
 export const storage = {

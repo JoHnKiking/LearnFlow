@@ -166,12 +166,13 @@ const LoginScreen = () => {
       setLoading(false);
       
       if (loginType === 'register') {
+        await AsyncStorage.setItem(STORAGE_KEYS.IS_NEW_USER, 'true');
         Alert.alert('注册成功', '欢迎加入 LearnFlow！');
-        router.replace('/(tabs)');
+        router.replace('/onboarding');
       } else {
           Alert.alert('登录成功', '欢迎回来！');
-          router.replace('/(tabs)');
-        }
+          router.replace('/ (tabs)');
+      }
     } catch (error) {
       setLoading(false);
       showErrorAlert(
