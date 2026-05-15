@@ -1,329 +1,300 @@
-# LearnFlow - 技能学习路径管理系统
+# LearnFlow - 沉浸式技能学习伴侣
 
-## 🏗️ 项目架构概览
+## 项目简介
 
-LearnFlow采用现代化的前后端分离架构，移动端基于React Native + Expo，服务端基于Node.js + Express + MySQL，为技能学习提供智能化的路径规划和管理。
+LearnFlow 是一款基于 React Native + Expo 的技能学习应用，通过像素风格界面与游戏化机制让学习更有趣。用户可选择 AI 生成的技能树学习路径，在数字宠物的陪伴下完成学习节点，通过迷你游戏恢复体力，配合番茄钟专注学习。
 
-### **整体架构**
+## 核心功能
+
+### 用户系统
+- **手机号/邮箱注册登录**：JWT 令牌认证，支持设备会话管理
+- **新手引导流程**：启动页 → 故事介绍 → 怪物选择 → 模块选择 → 进入学习
+- **个人中心**：查看学习统计、笔记管理、设置
+
+### 技能树学习
+- **AI 生成技能树**：输入领域名称，由 LLM 自动生成树形学习路径
+- **三阶段递进**：初级 → 中级 → 高级，覆盖认知-能力-实战
+- **学习资源链接**：每个节点包含 B站/小红书/MOOC 等平台链接
+- **进度跟踪**：实时记录节点完成状态，支持知识导图跳转
+
+### 数字宠物陪伴
+- **三种性格类型**：
+
+  | 类型 | 特殊能力 | 适用场景 |
+  |------|---------|---------|
+  | 活力型 (lively) | AI 对话能量消耗减半 | 经常使用 AI 对话 |
+  | 沉稳型 (calm) | 体力上限 +20 | 长时间连续学习 |
+  | 叛逆型 (rebel) | 游戏奖励翻倍 | 喜欢玩小游戏 |
+
+- **体力系统**：学习消耗体力，游戏恢复体力，每日凌晨 5 点自动恢复
+- **能量系统**：AI 对话消耗能量，游戏恢复能量
+- **等级成长**：通过学习获得经验值升级
+- **AI 对话**：支持与怪物实时聊天
+
+### 迷你游戏
+- **数独游戏**：经典 9×9 数独挑战
+- **推箱子游戏**：完成 3 关获得奖励
+- **每日限制**：每天可玩 3 次
+
+### 学习工具
+- **番茄钟**：25/45/60/90/120/180 分钟专注计时，支持任务管理
+- **学习笔记**：随时记录学习心得
+- **帮助与反馈**：使用指南、常见问题、联系支持
+
+## 技术栈
+
+### 移动端
+| 类别 | 技术 |
+|------|------|
+| 框架 | React Native 0.81 + Expo 54 |
+| 路由 | Expo Router 6.0（文件系统路由） |
+| 语言 | TypeScript 5.9 |
+| 状态管理 | React Hooks + Context API |
+| 本地存储 | AsyncStorage 2.2 |
+| UI | 像素风格自定义组件库 |
+| 网络请求 | Axios 1.6 |
+| WebView | react-native-webview 13.15 |
+
+### 服务端
+| 类别 | 技术 |
+|------|------|
+| 框架 | Node.js + Express 4 |
+| 语言 | TypeScript 5 |
+| 数据库 | MySQL 8.0 |
+| 认证 | JWT + bcryptjs |
+| AI 集成 | OpenAI SDK（LLM 生成技能树） |
+| CORS | 支持 ngrok 隧道 + 自定义域名 |
+
+## 项目结构
+
 ```
 LearnFlow/
-├── 📱 mobile/                    # React Native移动端应用
-│   ├── 🗂️ app/                   # Expo Router页面架构
-│   │   ├── _layout.tsx           # 根路由配置
-│   │   ├── index.tsx             # 应用入口（认证检查）
-│   │   ├── login.tsx             # 用户登录页面
-│   │   ├── register.tsx          # 用户注册页面
-│   │   ├── onboarding.tsx        # 首次用户引导页面
-│   │   ├── skill-tree.tsx        # 技能树详情页面
-│   │   └── (tabs)/               # 底部标签页导航
-│   │       ├── _layout.tsx       # 标签页布局
-│   │       ├── index.tsx         # 首页 - 应用概览
-│   │       ├── generate.tsx      # 技能树生成
-│   │       ├── search.tsx        # 技能树搜索
-│   │       ├── monster.tsx       # 怪物陪伴页面
-│   │       ├── notes.tsx         # 学习笔记页面
-│   │       └── profile.tsx       # 个人中心
-│   ├── 🔧 src/                   # 源代码架构
-│   │   ├── 🧩 components/        # 组件层
-│   │   │   ├── ui/               # 基础UI组件库
-│   │   │   │   ├── Button.tsx    # 按钮组件
-│   │   │   │   ├── CuteButton.tsx # 风格按钮组件
-│   │   │   │   ├── CuteCard.tsx   # 风格卡片组件
-│   │   │   │   ├── CuteInput.tsx  # 风格输入框组件
-│   │   │   │   ├── Input.tsx     # 输入框组件
-│   │   │   │   ├── Loading.tsx   # 加载状态组件
-│   │   │   │   └── index.ts      # 组件统一导出
-│   │   │   ├── skill-tree/       # 技能树专用组件
-│   │   │   │   ├── SkillTreeNode.tsx # 技能树节点
-│   │   │   │   └── index.ts      # 组件导出
-│   │   │   └── index.ts          # 组件入口
-│   │   ├── ⚡ hooks/             # 业务逻辑Hook
-│   │   │   ├── useSkillTree.ts   # 技能树逻辑
-│   │   │   ├── useSearch.ts      # 搜索逻辑
-│   │   │   ├── useStatistics.ts  # 统计逻辑
-│   │   │   └── index.ts          # 统一导出
-│   │   ├── 🌐 services/          # API服务层
-│   │   │   └── api.ts            # 网络请求封装
-│   │   ├── 📋 types/             # 类型定义
-│   │   │   └── skill.ts          # 技能树相关类型
-│   │   └── 🛠️ utils/             # 工具函数
-│   │       ├── api.ts            # API工具函数
-│   │       ├── constants.ts      # 应用常量
-│   │       ├── helpers.ts        # 通用工具
-│   │       ├── auth.ts           # 认证工具
-│   │       └── index.ts          # 工具导出
-│   ├── 📦 package.json           # 依赖配置
-│   ├── 📦 package-lock.json      # 依赖锁定文件
-│   ├── ⚙️ app.json               # Expo配置
-│   ├── 🏗️ eas.json               # EAS构建配置
-│   └── 📄 tsconfig.json          # TypeScript配置
+├── mobile/                        # React Native 移动端
+│   ├── app/                       # Expo Router 页面
+│   │   ├── _layout.tsx            # 根路由配置
+│   │   ├── index.tsx              # 入口（登录状态检查 + 路由分发）
+│   │   ├── splash.tsx             # 启动页
+│   │   ├── login.tsx              # 登录
+│   │   ├── register.tsx           # 注册
+│   │   ├── story.tsx              # 故事介绍
+│   │   ├── onboarding.tsx         # 新手引导
+│   │   ├── monster-selection.tsx  # 怪物选择
+│   │   ├── module-selection.tsx   # 模块选择
+│   │   ├── skill-tree.tsx         # 技能树详情
+│   │   └── (tabs)/                # 底部标签页
+│   │       ├── _layout.tsx        # 标签页布局
+│   │       ├── index.tsx          # 首页（地图）
+│   │       ├── monster.tsx        # 怪物陪伴
+│   │       └── profile.tsx        # 个人中心
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── ui/                # PixelButton, PixelCard, PixelInput, CuteButton 等
+│   │   │   ├── skill-tree/        # SkillTreeNode, SkillTreeView
+│   │   │   ├── GameModal.tsx      # 游戏弹窗（数独 + 推箱子）
+│   │   │   ├── MiniGames.tsx      # 迷你游戏组件
+│   │   │   ├── MonsterIcon.tsx    # 怪物像素图标
+│   │   │   ├── HelpModal.tsx      # 帮助弹窗
+│   │   │   ├── GameHelpModal.tsx  # 游戏帮助弹窗
+│   │   │   └── AnimatedCheckbox.tsx
+│   │   ├── data/
+│   │   │   ├── mockData.ts        # 模拟数据
+│   │   │   └── skillTrees.ts      # 预置技能树数据
+│   │   ├── services/
+│   │   │   ├── api.ts             # API 服务层
+│   │   │   └── gameService.ts     # 游戏服务
+│   │   ├── hooks/
+│   │   │   ├── useSkillTree.ts
+│   │   │   ├── useSearch.ts
+│   │   │   ├── useStatistics.ts
+│   │   │   └── useKeyboardPositioning.ts
+│   │   ├── utils/
+│   │   │   ├── auth.ts            # 认证工具
+│   │   │   ├── storage.ts         # 本地存储
+│   │   │   ├── constants.ts       # 常量配置
+│   │   │   ├── helpers.ts         # 辅助函数
+│   │   │   └── api.ts             # API 工具函数
+│   │   └── types/                 # TypeScript 类型定义
+│   ├── assets/                    # 图片、字体等静态资源
+│   ├── app.json
+│   └── package.json
 │
-├── 🖥️ server/                    # Node.js后端服务
-│   ├── 🔧 src/                   # 服务端架构
-│   │   ├── ⚙️ config/            # 配置管理
-│   │   │   └── database.ts       # 数据库配置
-│   │   ├── 🎮 controllers/       # 控制器层
-│   │   │   ├── authController.ts # 认证控制器
-│   │   │   ├── skillController.ts # 技能树控制器
-│   │   │   ├── domainController.ts # 领域控制器
-│   │   │   ├── monsterController.ts # 怪物控制器
-│   │   │   ├── noteController.ts # 笔记控制器
-│   │   │   ├── rewardController.ts # 奖励控制器
-│   │   │   └── index.ts          # 控制器导出
-│   │   ├── 📊 models/            # 数据模板
-│   │   │   ├── User.ts           # 用户模板
-│   │   │   ├── SkillTree.ts      # 技能树模板
-│   │   │   ├── LearningRecord.ts # 学习记录
-│   │   │   ├── PopularDomain.ts  # 热门领域
-│   │   │   ├── DeviceSession.ts  # 设备会话
-│   │   │   ├── Domain.ts         # 领域模板
-│   │   │   ├── Monster.ts        # 怪物模板
-│   │   │   ├── MonsterMessage.ts # 怪物消息模板
-│   │   │   ├── NodeProgress.ts   # 节点进度模板
-│   │   │   ├── Note.ts           # 笔记模板
-│   │   │   ├── Reward.ts         # 奖励模板
-│   │   │   ├── StudyRecord.ts    # 学习记录模板
-│   │   │   └── index.ts          # 模板导出
-│   │   ├── 🛣️ routes/            # 路由层
-│   │   │   ├── authRoutes.ts     # 认证路由
-│   │   │   ├── skillRoutes.ts    # 技能树路由
-│   │   │   ├── domainRoutes.ts   # 领域路由
-│   │   │   ├── monsterRoutes.ts  # 怪物路由
-│   │   │   ├── noteRoutes.ts     # 笔记路由
-│   │   │   ├── rewardRoutes.ts   # 奖励路由
-│   │   │   └── index.ts          # 路由入口
-│   │   ├── 🔌 services/          # 服务层
-│   │   │   ├── authService.ts    # 认证服务
-│   │   │   ├── skillService.ts   # 技能树服务
-│   │   │   ├── domainService.ts  # 领域服务
-│   │   │   ├── monsterService.ts # 怪物服务
-│   │   │   ├── noteService.ts    # 笔记服务
-│   │   │   ├── rewardService.ts  # 奖励服务
-│   │   │   ├── databaseService.ts # 数据库服务
-│   │   │   ├── llmService.ts     # 大语言模型服务
-│   │   │   └── index.ts          # 服务导出
-│   │   ├── 📋 types/             # 类型定义
-│   │   │   ├── skill.ts          # 技能树类型
-│   │   │   └── index.ts          # 类型导出
-│   │   └── app.ts                # 应用入口
-│   ├── 📊 sql/                   # 数据库脚本
-│   │   └── init_database.sql     # 初始化脚本
-│   ├── 🔧 scripts/               # 工具脚本
-│   │   └── init-database.js      # 数据库初始化
-│   ├── 📦 package.json           # 依赖配置
-│   ├── 📦 package-lock.json      # 依赖锁定文件
-│   ├── 📄 .env                   # 环境变量配置
-│   ├── 📄 schema.sql             # 数据库架构定义
-│   └── 📄 tsconfig.json          # TypeScript配置
+├── server/                        # Node.js 后端
+│   ├── src/
+│   │   ├── app.ts                 # Express 应用入口
+│   │   ├── config/                # 数据库等配置
+│   │   ├── controllers/           # 控制器层
+│   │   │   ├── authController.ts
+│   │   │   ├── skillController.ts
+│   │   │   ├── monsterController.ts
+│   │   │   ├── noteController.ts
+│   │   │   ├── rewardController.ts
+│   │   │   └── domainController.ts
+│   │   ├── models/                # 数据模型（12 个模型）
+│   │   ├── routes/                # 路由层
+│   │   │   ├── authRoutes.ts
+│   │   │   ├── skillRoutes.ts
+│   │   │   ├── monsterRoutes.ts
+│   │   │   ├── noteRoutes.ts
+│   │   │   ├── rewardRoutes.ts
+│   │   │   └── domainRoutes.ts
+│   │   └── services/              # 业务逻辑层
+│   │       ├── authService.ts
+│   │       ├── databaseService.ts
+│   │       ├── skillService.ts
+│   │       ├── llmService.ts      # LLM 集成服务
+│   │       ├── monsterService.ts
+│   │       ├── noteService.ts
+│   │       ├── rewardService.ts
+│   │       └── domainService.ts
+│   ├── sql/                       # 数据库初始化脚本
+│   ├── schema.sql                 # 数据库表结构
+│   ├── scripts/                   # 辅助脚本
+│   └── package.json
 │
-├── 🛠️ .trae/                     # Trae IDE配置
-│   └── skills/                   # 技能配置
-│       └── app-store-publishing/ # 应用商店发布技能
-│           └── SKILL.md          # 技能文档
-├── package-lock.json            # 根目录依赖锁定文件
-├── .gitignore                   # Git忽略配置
-├── test.py                      # 测试脚本
-├── 📖 PROJECT_SETUP.md           # 项目设置文档
-└── 📖 README.md                  # 项目说明文档
+├── LearnFlow-Game/                # 游戏独立部署
+│   ├── game-recovery.html         # 游戏恢复页面
+│   └── timer-app/                 # 番茄钟 Web 版
+│
+├── PROJECT_SETUP.md               # 项目设置指南
+└── WINDOWS_SETUP_GUIDE.md         # Windows 环境搭建指南
 ```
 
-## 🚀 技术架构特点
+## 数据库设计
 
-### **移动端架构优势**
-- **现代化路由**: Expo Router基于文件系统的路由管理，零配置路由
-- **组件化设计**: 可复用的UI组件库，支持主题定制和样式统一
-- **状态管理**: React Hooks + Context API的轻量级状态管理方案
-- **类型安全**: 完整的TypeScript类型定义，前后端类型一致性
-- **离线支持**: AsyncStorage本地数据持久化，支持离线使用
+核心表结构（详见 [schema.sql](server/schema.sql)）：
 
-### **服务端架构特点**
-- **RESTful API**: 标准的REST API设计规范，前后端分离
-- **分层架构**: 清晰的Controller-Service-Model分层，职责分离
-- **数据库集成**: MySQL关系型数据库，支持事务处理和复杂查询
-- **认证安全**: JWT令牌认证 + bcrypt密码加密存储
-- **错误处理**: 统一的错误处理中间件，友好的错误信息返回
+| 表名 | 说明 |
+|------|------|
+| `users` | 用户表（手机号/邮箱注册，微信登录支持） |
+| `device_sessions` | 设备会话表（多设备登录管理） |
+| `skill_trees` | 技能树表（JSON 存储树结构） |
+| `learning_records` | 学习记录表（节点完成状态、学习时长） |
+| `popular_domains` | 热门领域表（搜索统计） |
+| `monsters` | 怪物表（性格类型、体力/能量、等级经验） |
+| `monster_messages` | 怪物消息表（AI 对话记录） |
 
-### **数据流架构**
-```
-移动端 → API请求 → 服务端控制器 → 业务服务 → 数据模型 → MySQL数据库
-    ↓
-响应数据 ← 控制器返回 ← 业务处理 ← 数据库查询 ← 数据操作
-```
+## API 端点
 
-## 🎯 核心功能模块
+### 认证 (`/api/auth`)
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/register` | 用户注册 |
+| POST | `/login` | 用户登录 |
+| POST | `/refresh-token` | 刷新令牌 |
+| POST | `/verify-token` | 验证令牌 |
+| POST | `/logout` | 用户登出 |
 
-### **用户认证模块** ✅ 已实现
-- **手机号注册/登录**: 完整的用户注册和登录流程
-- **JWT令牌管理**: 自动令牌刷新和会话保持
-- **设备会话**: 多设备登录支持
-- **安全验证**: 密码加密存储和输入验证
+### 技能树 (`/api/skills`)
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/generate` | AI 生成技能树 |
+| GET | `/list` | 获取技能树列表 |
+| GET | `/:id` | 获取单个技能树 |
+| POST | `/save` | 保存用户技能树 |
+| GET | `/progress/:userId` | 获取用户进度 |
+| PUT | `/progress/:userId` | 更新用户进度 |
+| GET | `/search/domains` | 搜索热门领域 |
+| GET | `/recommendations/path` | 获取推荐学习路径 |
+| GET | `/stats/overview` | 获取统计概览 |
+| GET | `/report/:userId` | 获取学习报告 |
 
-### **技能树模块** ✅ 已实现
-- **智能生成**: 根据领域自动生成技能学习路径
-- **可视化展示**: 树形结构展示技能节点关系
-- **进度跟踪**: 学习进度实时更新和保存
-- **资源链接**: 每个技能节点关联学习资源
+### 怪物 (`/api/monster`)
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/create` | 创建怪物 |
+| GET | `/status/:userId` | 获取怪物状态 |
+| POST | `/stamina/consume` | 消耗体力 |
+| POST | `/stamina/recover` | 恢复体力 |
+| POST | `/energy/consume` | 消耗能量 |
+| POST | `/energy/consume-amount` | 消耗指定能量 |
+| POST | `/energy/recover` | 恢复能量 |
+| POST | `/exp/add` | 增加经验值 |
+| POST | `/chat` | AI 对话 |
+| GET | `/messages/:userId` | 获取对话记录 |
 
-### **搜索发现模块** ✅ 已实现
-- **热门领域**: 展示热门技能学习领域
-- **关键词搜索**: 快速查找相关技能树
-- **个性化推荐**: 基于用户兴趣的智能推荐
+## 快速开始
 
-### **数据统计模块** ✅ 已实现
-- **学习统计**: 用户学习时长和进度统计
-- **热门分析**: 领域热度分析和趋势
-- **进度报告**: 个性化学习报告生成
-
-### **怪物陪伴模块** ✅ 已实现
-- **随机生成**: 多样化的怪物形象随机生成
-- **互动交流**: 与学习伙伴进行对话互动
-- **激励机制**: 通过学习进度获得奖励和成长
-
-### **学习笔记模块** ✅ 已实现
-- **笔记记录**: 在学习过程中记录重要知识点
-- **笔记管理**: 查看、编辑和删除笔记
-- **关联节点**: 笔记与技能树节点关联
-
-### **数据库表说明**
-
-#### `users`
-存储用户基础账号信息：用户名、手机号、邮箱、密码哈希、微信登录标识、头像、状态、登录次数、是否完成新手引导等。
-
-#### `device_sessions`
-存储用户设备登录会话：设备 ID、设备类型、设备名称、最后活跃时间、过期时间，用于多端登录状态管理。
-
-#### `skill_trees`
-存储用户生成的技能树：所属用户、学习领域、标题、描述、节点 JSON、公开状态、整体进度。
-
-#### `learning_records`
-存储技能树维度的学习记录：用户在某棵技能树下某个节点的学习时长、完成状态、完成时间、笔记。
-
-#### `popular_domains`
-存储热门学习领域统计：领域名称、搜索次数、生成次数，用于搜索发现和热门推荐。
-
-#### `monsters`
-存储每个用户的怪兽主数据：怪兽名称、风格、性格、性格参数、等级、经验、体力、能量、恢复时间等。
-
-#### `monster_messages`
-存储用户与怪兽的对话消息：消息内容、是否为用户发送、创建时间，用于聊天记录保留。
-
-#### `domains`
-存储用户选择或创建的学习领域：领域名称、类型（预设/自定义）、思维导图数据、学习进度、是否活跃。
-
-#### `node_progress`
-存储领域下每个节点的学习进度：节点状态、学习时长、节点笔记，并限制同一用户同一领域同一节点唯一。
-
-#### `study_records`
-存储更细粒度的学习过程记录：学习开始/结束时间、学习时长、学习前后进度、奖励结果。
-
-#### `notes`
-存储用户学习笔记：按日期记录内容，并可附带怪兽评论。
-
-#### `rewards`
-存储奖励发放记录：奖励类型、数量、来源、是否领取，用于经验、能量、道具、徽章等激励体系。
-
-## 🔧 开发环境要求
-
-### **系统要求**
+### 环境要求
 - Node.js 16.0+
 - MySQL 8.0+
-- npm 或 yarn
-- Expo CLI (移动端开发)
+- Expo CLI（移动端）
 
-### **快速开始**
+### 1. 启动后端
 
-#### **1. 数据库初始化**
 ```bash
 cd server
-node scripts/init-database.js
-```
-
-#### **2. 启动服务端**
-```bash
-cd server
+cp .env.example .env   # 编辑 .env 配置数据库和 API Key
 npm install
-npm run dev
+npm run dev             # 启动在 http://localhost:3001
 ```
 
-#### **3. 启动移动端**
+### 2. 配置环境变量
+
+编辑 `server/.env`：
+```env
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=learnflow
+JWT_SECRET=your_jwt_secret
+OPENAI_API_KEY=your_openai_api_key
+```
+
+### 3. 初始化数据库
+
 ```bash
-cd mobile  
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS learnflow;"
+mysql -u root -p learnflow < server/schema.sql
+```
+
+### 4. 启动移动端
+
+```bash
+cd mobile
 npm install
-npm start
+npm start               # 使用 Expo Go 扫码运行
 ```
 
-#### **4. 测试应用**
-- **Expo Go**: 手机安装Expo Go应用，扫描二维码
-- **APK构建**: 使用EAS构建Android APK进行真实测试
+详细设置请参考 [PROJECT_SETUP.md](PROJECT_SETUP.md) 和 [WINDOWS_SETUP_GUIDE.md](WINDOWS_SETUP_GUIDE.md)。
 
-## 📱 用户体验流程
+## 用户引导流程
 
-### **新用户流程**
 ```
-应用启动 → 认证检查 → 首次引导 → 登录页面 → 选择注册 → 填写信息 → 注册成功
-    ↓
-进入首页 → 查看统计 → 生成技能树 → 开始学习 → 进度跟踪 → 获得怪物伙伴
+应用启动 → 启动页动画 → 登录/注册 → 故事介绍 → 选择怪物伙伴 → 选择学习模块 → 进入主页
 ```
 
-### **老用户流程**
-```
-应用启动 → 自动登录 → 进入首页 → 继续学习 → 查看进度 → 与怪物互动
-```
+登录后，应用会检查用户是否已完成新手教程，未完成则自动进入引导流程。
 
-## 🎨 设计理念
+## 核心机制
 
-### **技术选型原则**
-- **开发效率**: 选择成熟稳定的技术栈，降低开发成本
-- **性能优化**: 前后端分离，API接口优化，图片懒加载
-- **用户体验**: 响应式设计，流畅的交互动画，直观的界面
-- **可维护性**: 清晰的代码结构，完善的文档，自动化测试
+### 体力系统
+- **上限**：100（沉稳型 +20）
+- **恢复**：每日凌晨 5 点自动回满
+- **消耗**：每次学习消耗 10 点
+- **获取**：完成迷你游戏获得体力奖励
 
-### **架构设计原则**
-- **单一职责**: 每个模块只负责一个特定功能
-- **开闭原则**: 对扩展开放，对修改关闭
-- **依赖倒置**: 高层模块不依赖低层模块的具体实现
-- **接口隔离**: 使用多个专门的接口而不是单一的总接口
+### 能量系统
+- **上限**：50
+- **消耗**：AI 对话按 token 消耗（活力型减半）
+- **获取**：完成迷你游戏获得能量奖励
 
-## 🔮 未来发展规划
+### 游戏系统
+- **每日限制**：3 次/天
+- **数独**：完成一局获得奖励
+- **推箱子**：完成 3 关获得奖励
+- **奖励**：体力值 + 能量值（叛逆型翻倍）
 
-### **短期目标 (1-3个月)**
-- [ ] **AI集成**: OpenAI API集成，智能生成技能树
-- [ ] **离线优化**: 完善的离线缓存和同步机制
-- [ ] **性能提升**: 图片压缩，代码分割，懒加载优化
-- [ ] **UI/UX升级**: 更精美的界面设计和交互动画
+## 设计风格
 
-### **中期目标 (3-6个月)**
-- [ ] **社交功能**: 用户间技能树分享和评论系统
-- [ ] **学习社区**: 建立技能学习交流社区
-- [ ] **多端支持**: Web端和桌面端应用开发
-- [ ] **企业版**: 团队协作和学习管理功能
+像素复古风格，蓝紫渐变背景，主色调蓝色 (#5D9BFA)，强调色橙色 (#FF7D00)，辅助色金色 (#FFD700)，深色背景 (#1A1A2E) 营造沉浸感。
 
-### **长期愿景 (6-12个月)**
-- [ ] **国际化**: 多语言支持和全球化部署
-- [ ] **AI助教**: 个性化学习路径优化和智能提醒
-- [ ] **AR/VR体验**: 沉浸式学习体验探索
-- [ ] **开放平台**: API开放，第三方应用集成
+## 贡献指南
 
-## 🤝 贡献指南
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feature/amazing-feature`)
+3. 提交更改 (`git commit -m 'feat: add amazing feature'`)
+4. 发起 Pull Request
 
-欢迎开发者参与项目贡献！请遵循以下流程：
+## 许可证
 
-1. **Fork项目**并创建特性分支
-2. **遵循代码规范**进行开发
-3. **添加测试用例**确保功能正确性
-4. **提交Pull Request**并描述变更内容
-
-### **开发规范**
-- **代码风格**: 使用Prettier和ESLint统一代码格式
-- **提交规范**: Conventional Commits提交信息规范
-- **分支管理**: Git Flow分支管理策略
-- **测试覆盖**: 单元测试和集成测试
-
-## 📞 技术支持
-
-- **项目主页**: [GitHub Repository]
-- **问题反馈**: [Issues页面]
-- **技术讨论**: [Discussions页面]
-- **文档中心**: [Wiki页面]
-
----
+MIT License
