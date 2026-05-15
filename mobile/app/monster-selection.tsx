@@ -5,6 +5,8 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../src/utils/constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { monsterService } from '../src/services/api';
+import { getCurrentUser } from '../src/utils/auth';
 
 type MonsterType = 'lively' | 'calm' | 'rebel';
 
@@ -79,7 +81,23 @@ const MonsterSelectionScreen = () => {
       };
       console.log('[MonsterSelection] 创建怪物数据:', monsterData.name, '类型:', selectedType);
       await AsyncStorage.setItem('monster', JSON.stringify(monsterData));
-      console.log('[MonsterSelection] 怪物数据已保存，跳转至模块选择');
+      console.log('[MonsterSelection] 怪物数据已保存到本地');
+
+      try {
+        const user = await getCurrentUser();
+        if (user?.id) {
+          console.log('[MonsterSelection] 同步怪物到服务端 - 用户ID:', user.id);
+          await monsterService.createMonster({
+            userId: user.id,
+            name: monsterData.name,
+            personality: selectedType,
+          });
+          console.log('[MonsterSelection] 怪物已同步到服务端');
+        }
+      } catch (error) {
+        console.error('[MonsterSelection] 同步怪物到服务端失败:', error);
+      }
+
       router.replace('/module-selection');
     }
   };

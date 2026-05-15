@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Linking, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Linking, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +7,8 @@ import { getSkillTreeByDomain, PLATFORM_NAME_MAP } from '../src/data/skillTrees'
 import { SkillTree, PlatformType, StageType } from '../src/types/skill';
 import { COLORS } from '../src/utils/constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { monsterService } from '../src/services/api';
+import { getCurrentUser } from '../src/utils/auth';
 
 const getPlatformIcon = (platform: PlatformType) => {
   switch (platform) {
@@ -15,7 +17,7 @@ const getPlatformIcon = (platform: PlatformType) => {
     case 'xiaohongshu':
       return { icon: 'book', color: '#FF2442' };
     case 'mooc':
-      return { icon: 'graduation-cap', color: '#5D9BFA' };
+      return { icon: 'school', color: '#5D9BFA' };
     default:
       return { icon: 'link', color: '#888' };
   }
@@ -66,7 +68,7 @@ const SkillNodeItem: React.FC<{
         <View style={styles.nodeBadge}>
           <Text style={styles.nodeBadgeText}>{index + 1}</Text>
         </View>
-        <Ionicons name={platformInfo.icon} size={14} color={platformInfo.color} />
+        <Ionicons name={platformInfo.icon as any} size={14} color={platformInfo.color} />
       </View>
       <Text style={styles.skillNodeName}>{name}</Text>
       <View style={styles.skillNodeFooter}>
@@ -76,7 +78,7 @@ const SkillNodeItem: React.FC<{
         <Text style={styles.durationText}>{duration}h</Text>
       </View>
       <View style={styles.arrowIcon}>
-        <Ionicons name="chevron-right" size={14} color="#5D9BFA" />
+        <Ionicons name="chevron-forward" size={14} color="#5D9BFA" />
       </View>
     </TouchableOpacity>
   );
@@ -91,16 +93,23 @@ const DurationModal: React.FC<{
 }> = ({ visible, onClose, nodeName, url, suggestedDuration }) => {
   const [selectedDuration, setSelectedDuration] = useState(25);
   const [monsterStamina, setMonsterStamina] = useState(100);
+  const [maxStamina, setMaxStamina] = useState(100);
 
   useEffect(() => {
+    if (!visible) return;
+    setSelectedDuration(25);
     const loadStamina = async () => {
       const monster = await AsyncStorage.getItem('monster');
       if (monster) {
-        setMonsterStamina(JSON.parse(monster).stamina || 100);
+        const data = JSON.parse(monster);
+        const stamina = typeof data.stamina === 'number' ? data.stamina : 100;
+        const max = data.type === 'calm' ? 120 : 100;
+        setMonsterStamina(stamina);
+        setMaxStamina(max);
       }
     };
     loadStamina();
-  }, []);
+  }, [visible]);
 
   const durations = [15, 25, 30, 45, 60];
   const staminaCost = Math.ceil(selectedDuration / 5);
@@ -121,7 +130,18 @@ const DurationModal: React.FC<{
         const monsterData = JSON.parse(monster);
         monsterData.stamina = Math.max(0, monsterData.stamina - staminaCost);
         await AsyncStorage.setItem('monster', JSON.stringify(monsterData));
-        console.log(`[SkillTree] 体力更新 - 剩余: ${monsterData.stamina}`);
+        setMonsterStamina(monsterData.stamina);
+        console.log(`[SkillTree] 体力更新 - 剩余: ${monsterData.stamina}/${monsterData.maxStamina}`);
+      }
+
+      const user = await getCurrentUser();
+      if (user?.id) {
+        try {
+          await monsterService.consumeStamina(user.id, staminaCost);
+          console.log(`[SkillTree] 服务端体力扣除成功 - 用户ID: ${user.id}, 扣除: ${staminaCost}`);
+        } catch (err) {
+          console.error('[SkillTree] 服务端体力扣除失败:', err);
+        }
       }
 
       const isValidUrl = url.startsWith('http://') || url.startsWith('https://');
@@ -153,7 +173,7 @@ const DurationModal: React.FC<{
 
   return (
     <Modal visible={visible} transparent onRequestClose={onClose} animationType="slide">
-      <View style={styles.modalOverlay} onPress={onClose}>
+      <TouchableOpacity style={styles.modalOverlay} onPress={onClose} activeOpacity={1}>
         <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>开始学习</Text>
@@ -166,9 +186,9 @@ const DurationModal: React.FC<{
 
           <View style={styles.staminaInfo}>
             <View style={styles.staminaBar}>
-              <View style={[styles.staminaFill, { width: `${monsterStamina}%` }]} />
+              <View style={[styles.staminaFill, { width: `${Math.min(100, (monsterStamina / maxStamina) * 100)}%` }]} />
             </View>
-            <Text style={styles.staminaText}>体力: {monsterStamina}/100</Text>
+            <Text style={styles.staminaText}>体力: {monsterStamina}/{maxStamina}</Text>
           </View>
 
           <Text style={styles.modalSubtitle}>选择学习时长</Text>
@@ -199,7 +219,7 @@ const DurationModal: React.FC<{
             <Text style={styles.modalConfirmText}>开始学习</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </TouchableOpacity>
     </Modal>
   );
 };
@@ -220,8 +240,8 @@ const SkillTreeScreen = () => {
     if (domain) {
       const tree = getSkillTreeByDomain(domain as string);
       setSkillTree(tree || null);
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleNodeSelect = (name: string, url: string, suggestedDuration: number) => {
@@ -242,7 +262,7 @@ const SkillTreeScreen = () => {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.container}>
           <View style={styles.loadingContainer}>
-            <Ionicons name="spinner" size={32} color="#5D9BFA" style={{ animation: 'spin 1s linear infinite' }} />
+            <ActivityIndicator size="large" color="#5D9BFA" />
             <Text style={styles.loadingText}>加载中...</Text>
           </View>
         </View>
@@ -293,7 +313,7 @@ const SkillTreeScreen = () => {
         </View>
 
         <View style={styles.totalDurationBadge}>
-          <Ionicons name="clock" size={14} color="#5D9BFA" />
+          <Ionicons name="time" size={14} color="#5D9BFA" />
           <Text style={styles.totalDurationText}>总时长 {skillTree.totalDuration}小时</Text>
         </View>
 

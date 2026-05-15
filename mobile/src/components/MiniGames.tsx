@@ -17,6 +17,7 @@ const SudokuGame = ({ onWin }: { onWin: () => void }) => {
   const [solution, setSolution] = useState<number[][]>([]);
   const [given, setGiven] = useState<boolean[][]>([]);
   const [selected, setSelected] = useState<{ row: number; col: number } | null>(null);
+  const [showSolution, setShowSolution] = useState(false);
 
   // 数独生成逻辑
   const isValid = (grid: number[][], row: number, col: number, num: number) => {
@@ -80,6 +81,7 @@ const SudokuGame = ({ onWin }: { onWin: () => void }) => {
     setBoard(newBoard);
     setGiven(newGiven);
     setSelected(null);
+    setShowSolution(false);
   };
 
   useEffect(() => {
@@ -118,10 +120,21 @@ const SudokuGame = ({ onWin }: { onWin: () => void }) => {
 
   return (
     <View style={styles.gameContainer}>
-      <TouchableOpacity style={styles.newGameBtn} onPress={initGame}>
-        <Ionicons name="refresh" size={16} color="#5D9BFA" />
-        <Text style={styles.newGameText}>新游戏</Text>
-      </TouchableOpacity>
+      <View style={styles.sudokuHeader}>
+        <TouchableOpacity style={styles.newGameBtn} onPress={initGame}>
+          <Ionicons name="refresh" size={16} color="#5D9BFA" />
+          <Text style={styles.newGameText}>新游戏</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.newGameBtn, showSolution && styles.solutionBtnActive]}
+          onPress={() => setShowSolution(!showSolution)}
+        >
+          <Ionicons name={showSolution ? 'eye-off' : 'eye'} size={16} color={showSolution ? '#FF6B6B' : '#5D9BFA'} />
+          <Text style={[styles.newGameText, showSolution && { color: '#FF6B6B' }]}>
+            {showSolution ? '隐藏答案' : '显示答案'}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.sudokuGrid}>
         {board.map((row, rowIndex) => (
@@ -138,28 +151,32 @@ const SudokuGame = ({ onWin }: { onWin: () => void }) => {
                 ]}
                 onPress={() => setSelected({ row: rowIndex, col: colIndex })}
               >
-                {cell !== 0 && (
+                {cell !== 0 ? (
                   <Text style={[
                     styles.sudokuCellText,
                     given[rowIndex][colIndex] ? styles.sudokuCellTextGiven : styles.sudokuCellTextUser
                   ]}>
                     {cell}
                   </Text>
-                )}
+                ) : showSolution && solution[rowIndex]?.[colIndex] !== 0 ? (
+                  <Text style={[styles.sudokuCellText, styles.sudokuCellTextSolution]}>
+                    {solution[rowIndex][colIndex]}
+                  </Text>
+                ) : null}
               </TouchableOpacity>
             ))}
           </React.Fragment>
         ))}
       </View>
 
-      <View style={styles.numberPad}>
+      <View style={[styles.numberPad, showSolution && styles.numberPadDisabled]}>
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-          <TouchableOpacity key={num} style={styles.numberBtn} onPress={() => inputNumber(num)}>
-            <Text style={styles.numberBtnText}>{num}</Text>
+          <TouchableOpacity key={num} style={styles.numberBtn} onPress={() => inputNumber(num)} disabled={showSolution}>
+            <Text style={[styles.numberBtnText, showSolution && styles.numberBtnTextDisabled]}>{num}</Text>
           </TouchableOpacity>
         ))}
-        <TouchableOpacity style={[styles.numberBtn, styles.clearBtn]} onPress={clearCell}>
-          <Ionicons name="backspace-outline" size={18} color="#FF6B6B" />
+        <TouchableOpacity style={[styles.numberBtn, styles.clearBtn]} onPress={clearCell} disabled={showSolution}>
+          <Ionicons name="backspace-outline" size={18} color={showSolution ? '#555' : '#FF6B6B'} />
         </TouchableOpacity>
       </View>
     </View>
@@ -395,14 +412,6 @@ const MiniGames = ({ onGameComplete, onClose }: MiniGamesProps) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-          <Ionicons name="close" size={28} color="#8888AA" />
-        </TouchableOpacity>
-        <Text style={styles.title}>游戏恢复</Text>
-        <View style={styles.placeholder} />
-      </View>
-
       {currentScreen === 'welcome' && (
         <ScrollView style={styles.welcomeContent} showsVerticalScrollIndicator={false}>
           <View style={styles.welcomeSection}>
@@ -714,7 +723,9 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(93,155,250,0.2)',
   },
   closeBtn: {
+    alignSelf: 'flex-end',
     padding: 4,
+    marginBottom: 8,
   },
   title: {
     color: '#E8E8F0',
@@ -769,6 +780,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(93,155,250,0.1)',
     marginBottom: 20,
   },
+  sudokuHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  solutionBtnActive: {
+    backgroundColor: 'rgba(255,107,107,0.1)',
+  },
   newGameText: {
     color: '#5D9BFA',
     fontSize: 14,
@@ -813,6 +832,10 @@ const styles = StyleSheet.create({
   sudokuCellTextUser: {
     color: '#FFD700',
   },
+  sudokuCellTextSolution: {
+    color: '#3AE374',
+    opacity: 0.7,
+  },
   numberPad: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -835,6 +858,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     fontFamily: 'Courier',
+  },
+  numberBtnTextDisabled: {
+    color: '#555',
+  },
+  numberPadDisabled: {
+    opacity: 0.4,
   },
   clearBtn: {
     backgroundColor: 'rgba(255,107,107,0.15)',
@@ -968,6 +997,7 @@ const styles = StyleSheet.create({
   welcomeContent: {
     flex: 1,
     padding: 20,
+    paddingBottom: 40,
   },
   welcomeSection: {
     alignItems: 'center',
@@ -1109,6 +1139,7 @@ const styles = StyleSheet.create({
   tutorialContent: {
     flex: 1,
     padding: 20,
+    paddingBottom: 60,
   },
   tutorialHeader: {
     alignItems: 'center',
@@ -1244,6 +1275,7 @@ const styles = StyleSheet.create({
   },
   startBtn: {
     marginTop: 8,
+    marginBottom: 40,
     paddingVertical: 14,
     borderRadius: 16,
     backgroundColor: '#5D9BFA',

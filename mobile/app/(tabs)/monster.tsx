@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +7,7 @@ import MiniGames from '../../src/components/MiniGames';
 import { storage, STORAGE_KEYS } from '../../src/utils/storage';
 import { MONSTER_CONFIG } from '../../src/utils/constants';
 import { formatTimer } from '../../src/utils/helpers';
+import { router, useFocusEffect } from 'expo-router';
 
 type ActiveTab = 'tasks' | 'notes' | 'chat';
 
@@ -25,9 +26,11 @@ const MonsterManageScreen = () => {
   const [dailyPlays, setDailyPlays] = useState(0);
   const [lastPlayDate, setLastPlayDate] = useState<string>('');
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -616,12 +619,15 @@ const MonsterManageScreen = () => {
       <Modal
         visible={showGameModal}
         animationType="slide"
+        statusBarTranslucent
         onRequestClose={() => setShowGameModal(false)}
       >
-        <MiniGames
-          onGameComplete={handleGameComplete}
-          onClose={() => setShowGameModal(false)}
-        />
+        <View style={styles.modalFullScreen}>
+          <MiniGames
+            onGameComplete={handleGameComplete}
+            onClose={() => setShowGameModal(false)}
+          />
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -1139,6 +1145,10 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 100,
+  },
+  modalFullScreen: {
+    flex: 1,
+    backgroundColor: '#1A1A2E',
   },
 });
 

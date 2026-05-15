@@ -187,20 +187,33 @@ LearnFlow/
 
 核心表结构（详见 [schema.sql](server/schema.sql)）：
 
-| 表名 | 说明 |
-|------|------|
-| `users` | 用户表（手机号/邮箱注册，微信登录支持） |
-| `device_sessions` | 设备会话表（多设备登录管理） |
-| `skill_trees` | 技能树表（JSON 存储树结构） |
-| `learning_records` | 学习记录表（节点完成状态、学习时长） |
-| `node_progress` | 节点进度表（单个节点学习进度） |
-| `study_records` | 学习记录表（番茄钟学习记录） |
-| `popular_domains` | 热门领域表（搜索统计） |
-| `domains` | 领域表（领域分类管理） |
-| `monsters` | 怪物表（性格类型、体力/能量、等级经验） |
-| `monster_messages` | 怪物消息表（AI 对话记录） |
-| `notes` | 笔记表（学习笔记） |
-| `rewards` | 奖励表（游戏奖励记录） |
+| 表名 | 说明 | 数据写入来源 |
+|------|------|-------------|
+| `users` | 用户表（手机号/邮箱注册，微信登录支持） | 注册/登录页 → `authService.register` |
+| `device_sessions` | 设备会话表（多设备登录管理） | 服务端 auth 流程自动写入 |
+| `skill_trees` | 技能树表（JSON 存储树结构） | 搜索页生成技能树 → `skillService.generateSkillTree` |
+| `learning_records` | 学习记录表（节点完成状态、学习时长） | 服务端 model 已就绪，移动端未调用 |
+| `node_progress` | 节点进度表（单个节点学习进度） | 服务端 model 已就绪，移动端未调用 |
+| `study_records` | 学习记录表（番茄钟学习记录） | 服务端 model 已就绪，移动端未调用 |
+| `popular_domains` | 热门领域表（搜索统计） | 搜索页搜索/生成 → `skillService.searchPopularDomains` |
+| `domains` | 领域表（领域分类管理） | 服务端 model 已就绪，移动端未调用 |
+| `monsters` | 怪物表（性格类型、体力/能量、等级经验） | 怪物选择页创建 → `monsterService.createMonster`；学习页扣除体力 → `monsterService.consumeStamina` |
+| `monster_messages` | 怪物消息表（AI 对话记录） | 服务端 model 已就绪，移动端未调用 |
+| `notes` | 笔记表（学习笔记） | 服务端 model 已就绪，移动端未调用 |
+| `rewards` | 奖励表（游戏奖励记录） | 服务端 model 已就绪，移动端未调用 |
+
+## 当前实际发生数据写入的完整链路
+
+| 表 | 写入方法 | 调用链路 | 写入字段 |
+|---|---|---|---|
+| `users` | `AuthService.register` | 注册页 → `authService.register` → `POST /auth/register` | `username`, `email`, `password_hash`, `status='active'`, `created_at`, `updated_at` |
+| `users` | `DatabaseService.updateUserLoginInfo` | 登录页 → `authService.login` → `POST /auth/login` | `last_login_at`, `login_count`（累加+1）, `updated_at` |
+| `device_sessions` | `DatabaseService.createDeviceSession` | 注册/登录 → `AuthService.generateAuthResponse` | `user_id`, `device_id`, `device_type`, `device_name`, `expires_at` |
+| `monsters` | `MonsterModel.createMonster` | 怪物选择页 → `monsterService.createMonster` → `POST /monster/create` | `user_id`, `name`, `style`, `personality`, `stamina`, `max_stamina`, `energy`, `max_energy`, `personality_params`（JSON） |
+| `monsters` | `MonsterModel.consumeStamina` | 学习弹窗确认 → `monsterService.consumeStamina` → `POST /monster/stamina/consume` | `stamina`（扣减）, `updated_at` |
+| `skill_trees` | `DatabaseService.createSkillTree` | 搜索页生成 → `skillService.generateSkillTree` → `POST /skills/generate` | `user_id`, `domain`, `title`, `description`, `nodes`（JSON树结构）, `is_public` |
+| `popular_domains` | `DatabaseService.incrementDomainSearchCount` | 搜索页搜索 → `skillService.searchPopularDomains` → `GET /skills/search/domains` | `domain`, `search_count`（累加+1） |
+| `popular_domains` | `DatabaseService.incrementDomainGeneratedCount` | 搜索页生成技能树 → `skillService.generateSkillTree` → `POST /skills/generate` | `domain`, `generated_count`（累加+1） |
 
 ## API 端点
 

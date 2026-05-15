@@ -44,7 +44,9 @@ export const createMonster = async (
   });
 
   console.log(`[MonsterService] 怪物创建成功 - 怪物ID: ${monsterId}`);
-  return { success: true, monsterId };
+
+  const monster = await MonsterModel.getMonsterByUserId(userId);
+  return { success: true, monsterId, monster };
 };
 
 export const getMonsterStatus = async (userId: number) => {

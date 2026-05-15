@@ -15,7 +15,7 @@ const getPlatformIcon = (platform: PlatformType) => {
     case 'xiaohongshu':
       return { icon: 'book', color: '#FF2442' };
     case 'mooc':
-      return { icon: 'graduation-cap', color: '#5D9BFA' };
+      return { icon: 'school', color: '#5D9BFA' };
     default:
       return { icon: 'link', color: '#888' };
   }
@@ -69,7 +69,7 @@ const SkillNode: React.FC<{
         <View style={styles.nodeBadge}>
           <Text style={styles.nodeBadgeText}>{index + 1}</Text>
         </View>
-        <Ionicons name={platformInfo.icon} size={14} color={platformInfo.color} />
+        <Ionicons name={platformInfo.icon as any} size={14} color={platformInfo.color} />
       </View>
       <Text style={styles.skillNodeName}>{name}</Text>
       <View style={styles.skillNodeFooter}>
@@ -79,7 +79,7 @@ const SkillNode: React.FC<{
         <Text style={styles.durationText}>{duration}h</Text>
       </View>
       <View style={styles.arrowIcon}>
-        <Ionicons name="arrow-right" size={14} color="#5D9BFA" />
+        <Ionicons name="arrow-forward" size={14} color="#5D9BFA" />
       </View>
     </TouchableOpacity>
   );
@@ -92,7 +92,7 @@ const SkillTreeView: React.FC<SkillTreeViewProps> = ({ skillTree }) => {
         <Text style={styles.title}>{skillTree.title}</Text>
         <Text style={styles.description}>{skillTree.description}</Text>
         <View style={styles.totalDurationBadge}>
-          <Ionicons name="clock" size={14} color="#5D9BFA" />
+          <Ionicons name="time" size={14} color="#5D9BFA" />
           <Text style={styles.totalDurationText}>总时长 {skillTree.totalDuration}小时</Text>
         </View>
       </View>
@@ -100,7 +100,7 @@ const SkillTreeView: React.FC<SkillTreeViewProps> = ({ skillTree }) => {
       <View style={styles.treeContainer}>
         <View style={styles.centerNode}>
           <View style={styles.centerNodeInner}>
-            <Ionicons name="target" size={28} color="#fff" />
+            <Ionicons name="locate" size={28} color="#fff" />
             <Text style={styles.centerNodeText}>学习领域</Text>
           </View>
         </View>
@@ -182,8 +182,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: 'linear-gradient(135deg, #5D9BFA 0%, #8B5CF6 100%)',
-    background: 'linear-gradient(135deg, #5D9BFA 0%, #8B5CF6 100%)',
+    backgroundColor: '#5D9BFA',
     shadowColor: '#5D9BFA',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,

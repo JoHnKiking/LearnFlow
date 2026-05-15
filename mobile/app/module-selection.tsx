@@ -21,7 +21,7 @@ const predefinedModules: Module[] = [
   {
     id: 'ai-product-manager',
     name: 'AI产品经理',
-    icon: 'cpu',
+    icon: 'hardware-chip',
     color: '#5D9BFA',
     description: '掌握AI产品设计与落地',
     difficulty: '中级',
@@ -37,7 +37,7 @@ const predefinedModules: Module[] = [
   {
     id: 'english-communication',
     name: '英语沟通',
-    icon: 'languages',
+    icon: 'language',
     color: '#FF7D00',
     description: '提升英语听说能力',
     difficulty: '初级',

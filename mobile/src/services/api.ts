@@ -5,7 +5,9 @@ import {
   CreateUserRequest, 
   LoginRequest, 
   UserResponse,
-  AuthResponse 
+  AuthResponse,
+  MonsterSetupRequest,
+  MonsterResponse,
 } from '../types/skill';
 import { API_BASE_URL } from '../utils/constants';
 
@@ -192,4 +194,16 @@ export const skillService = {
     });
     return response.data.data;
   }
+};
+
+export const monsterService = {
+  createMonster: async (request: MonsterSetupRequest): Promise<MonsterResponse> => {
+    const response = await api.post('/monster/create', request);
+    return response.data.data;
+  },
+
+  consumeStamina: async (userId: number, amount: number): Promise<{ success: boolean }> => {
+    const response = await api.post('/monster/stamina/consume', { userId, amount });
+    return response.data;
+  },
 };
