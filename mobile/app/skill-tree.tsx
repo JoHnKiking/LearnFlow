@@ -106,7 +106,9 @@ const DurationModal: React.FC<{
   const staminaCost = Math.ceil(selectedDuration / 5);
 
   const handleConfirm = async () => {
+    console.log(`[SkillTree] 确认学习 - 节点: ${nodeName}, 时长: ${selectedDuration}分钟, 体力消耗: ${staminaCost}`);
     if (monsterStamina < staminaCost) {
+      console.log(`[SkillTree] 体力不足 - 需要: ${staminaCost}, 当前: ${monsterStamina}`);
       Alert.alert('体力不足', `需要 ${staminaCost} 点体力，当前体力 ${monsterStamina} 点`, [
         { text: '知道了', onPress: () => {} }
       ]);
@@ -119,26 +121,30 @@ const DurationModal: React.FC<{
         const monsterData = JSON.parse(monster);
         monsterData.stamina = Math.max(0, monsterData.stamina - staminaCost);
         await AsyncStorage.setItem('monster', JSON.stringify(monsterData));
+        console.log(`[SkillTree] 体力更新 - 剩余: ${monsterData.stamina}`);
       }
 
       const isValidUrl = url.startsWith('http://') || url.startsWith('https://');
       if (!isValidUrl) {
+        console.log(`[SkillTree] 无效URL: ${url}`);
         Alert.alert('错误', '链接格式不正确');
         return;
       }
 
       const supported = await Linking.canOpenURL(url);
       if (supported) {
+        console.log(`[SkillTree] 打开链接: ${url}`);
         Linking.openURL(url).catch(err => {
-          console.error('Linking error:', err);
+          console.error('[SkillTree] 打开链接失败:', err);
           Alert.alert('错误', '无法打开链接，请检查网络连接');
         });
       } else {
+        console.log(`[SkillTree] 设备不支持打开链接: ${url}`);
         Alert.alert('错误', '设备不支持打开此链接');
       }
       onClose();
     } catch (error) {
-      console.error('Handle confirm error:', error);
+      console.error('[SkillTree] 操作失败:', error);
       Alert.alert('错误', '操作失败，请稍后重试');
     }
   };

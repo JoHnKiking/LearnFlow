@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../../src/utils/constants';
 import { getCurrentUser } from '../../src/utils/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -51,16 +50,13 @@ const moduleConfigs: Record<ModuleType, Omit<Module, 'isLocked'>> = {
 };
 
 const MapScreen = () => {
-  const [user, setUser] = useState<any>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [modules, setModules] = useState<Module[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
       try {
+        console.log('[Map] 开始加载地图数据');
         const currentUser = await getCurrentUser();
-        setUser(currentUser);
-        setIsLoggedIn(!!currentUser);
 
         const selectedModules = await AsyncStorage.getItem('selectedModules');
         if (selectedModules) {
@@ -70,15 +66,17 @@ const MapScreen = () => {
             isLocked: false,
           })).filter(Boolean) as Module[];
           if (loadedModules.length > 0) {
+            console.log('[Map] 加载模块:', loadedModules.map(m => m.name));
             setModules(loadedModules);
           } else {
             setModules([{ ...moduleConfigs['ai-product-manager'], isLocked: false }]);
           }
         } else {
+          console.log('[Map] 无已选模块，使用默认模块');
           setModules([{ ...moduleConfigs['ai-product-manager'], isLocked: false }]);
         }
       } catch (error) {
-        console.error('Failed to load data:', error);
+        console.error('[Map] 加载数据失败:', error);
         setModules([{ ...moduleConfigs['ai-product-manager'], isLocked: false }]);
       }
     };
@@ -87,6 +85,7 @@ const MapScreen = () => {
   }, []);
 
   const handleModulePress = (moduleId: string) => {
+    console.log('[Map] 点击模块:', moduleId);
     router.push({ pathname: '/skill-tree', params: { domain: moduleId } });
   };
 
@@ -120,7 +119,7 @@ const MapScreen = () => {
                   {module.completedNodes}/{module.totalNodes} 节点
                 </Text>
               </View>
-              <Ionicons name="chevron-right" size={20} color="#8888AA" />
+              <Ionicons name="chevron-forward" size={20} color="#8888AA" />
             </TouchableOpacity>
           ))}
         </View>

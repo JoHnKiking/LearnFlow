@@ -7,6 +7,7 @@ import { generateMockSkillTree } from './skillService';
 import { SkillNode } from '../types/skill';
 
 export const createDomain = async (userId: number, name: string, type: 'custom' | 'preset') => {
+  console.log(`[DomainService] 创建领域 - 用户ID: ${userId}, 名称: ${name}, 类型: ${type}`);
   const mindMapData = await generateMockSkillTree(name);
   const domainId = await DomainModel.createDomain({
     userId,
@@ -17,6 +18,7 @@ export const createDomain = async (userId: number, name: string, type: 'custom' 
 
   await initializeNodeProgress(userId, domainId, mindMapData);
 
+  console.log(`[DomainService] 领域创建成功 - 领域ID: ${domainId}`);
   return { success: true, domainId, mindMapData };
 };
 
@@ -35,13 +37,17 @@ const initializeNodeProgress = async (userId: number, domainId: number, node: Sk
 };
 
 export const getDomains = async (userId: number) => {
+  console.log(`[DomainService] 获取领域列表 - 用户ID: ${userId}`);
   const domains = await DomainModel.getDomainsByUserId(userId);
+  console.log(`[DomainService] 获取到 ${domains.length} 个领域`);
   return { domains };
 };
 
 export const getDomainById = async (id: number) => {
+  console.log(`[DomainService] 获取领域详情 - 领域ID: ${id}`);
   const domain = await DomainModel.getDomainById(id);
   if (!domain) {
+    console.log(`[DomainService] 领域不存在 - 领域ID: ${id}`);
     return null;
   }
 
@@ -66,6 +72,7 @@ export const updateNodeProgress = async (
   studyTime?: number,
   notes?: string
 ) => {
+  console.log(`[DomainService] 更新节点进度 - 用户ID: ${userId}, 领域ID: ${domainId}, 节点: ${nodeId}, 状态: ${status}`);
   await NodeProgressModel.updateNodeProgress(userId, domainId, nodeId, {
     status,
     studyTime,
@@ -75,6 +82,7 @@ export const updateNodeProgress = async (
   await calculateDomainProgress(domainId);
 
   if (status === 'done') {
+    console.log(`[DomainService] 节点完成，发放奖励`);
     await RewardModel.createReward({
       userId,
       type: 'exp',
@@ -82,9 +90,10 @@ export const updateNodeProgress = async (
       source: `完成节点: ${nodeId}`
     });
 
-    await MonsterService.addExp(userId, 10);
+    await MonsterService.gainExp(userId, 10);
   }
 
+  console.log(`[DomainService] 节点进度更新成功`);
   return { success: true };
 };
 

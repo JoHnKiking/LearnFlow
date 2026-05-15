@@ -50,11 +50,13 @@ const MonsterManageScreen = () => {
 
   const loadData = async () => {
     try {
+      console.log('[Monster] 开始加载数据');
       const monster = await storage.getItem(STORAGE_KEYS.MONSTER);
       if (monster) {
         const resetData = await checkAndResetDaily(monster);
         setMonsterData(resetData);
       } else {
+        console.log('[Monster] 无怪物数据，创建默认怪物');
         const newMonster = {
           name: '小怪兽',
           type: MONSTER_CONFIG.TYPES.CALM,
@@ -144,19 +146,21 @@ const MonsterManageScreen = () => {
     const updated = [newNote, ...savedNotes];
     setSavedNotes(updated);
     await storage.setItem(STORAGE_KEYS.NOTES, updated);
+    console.log('[Monster] 笔记已保存，总数:', updated.length);
     setNotes('');
   };
 
   const handlePlayGame = () => {
     if (!monsterData) return;
 
-    // 检查今日剩余游玩次数（免费版4次）
     const maxPlays = 4;
     if (dailyPlays >= maxPlays) {
+      console.log('[Monster] 游戏次数已达上限:', dailyPlays);
       Alert.alert('提示', '今日体力补充已达上限，明天再来吧');
       return;
     }
 
+    console.log('[Monster] 打开游戏弹窗，今日已玩:', dailyPlays);
     setShowGameModal(true);
   };
 
@@ -166,10 +170,10 @@ const MonsterManageScreen = () => {
     let staminaBonus = rewards.stamina;
     let energyBonus = rewards.energy;
 
-    // 叛逆小怪双倍
     if (monsterData.type === MONSTER_CONFIG.TYPES.REBEL) {
       staminaBonus *= 2;
       energyBonus *= 2;
+      console.log('[Monster] 叛逆小怪双倍奖励 - 体力:', staminaBonus, '能量:', energyBonus);
     }
 
     const newStamina = Math.min(monsterData.stamina + staminaBonus, monsterData.maxStamina);
@@ -184,11 +188,11 @@ const MonsterManageScreen = () => {
     setMonsterData(updated);
     await storage.setItem(STORAGE_KEYS.MONSTER, updated);
 
-    // 增加游玩次数
     const newPlays = dailyPlays + 1;
     setDailyPlays(newPlays);
     await storage.setItem('dailyGamePlays', newPlays);
 
+    console.log('[Monster] 游戏完成 - 体力:', newStamina, '能量:', newPai, '今日已玩:', newPlays);
     setShowGameModal(false);
     Alert.alert('游戏完成！', `获得 ${staminaBonus} 体力值和 ${energyBonus} 能量Π`);
   };

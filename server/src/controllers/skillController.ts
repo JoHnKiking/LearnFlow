@@ -19,21 +19,25 @@ import {
 
 // 生成技能树
 export const generateSkillTree = async (req: Request, res: Response) => {
+  console.log(`[SkillController] POST /skill-tree/generate - 生成技能树`);
   try {
     const { domain, level = 'beginner' }: SkillTreeRequest = req.body;
     
     if (!domain) {
+      console.log(`[SkillController] 参数验证失败 - 缺少领域`);
       return res.status(400).json({ error: 'Domain is required' });
     }
 
+    console.log(`[SkillController] 生成技能树 - 领域: ${domain}, 等级: ${level}`);
     const skillTree = await generateMockSkillTree(domain, level);
     
+    console.log(`[SkillController] 技能树生成成功`);
     res.json({
       success: true,
       data: skillTree
     });
   } catch (error) {
-    console.error('Error generating skill tree:', error);
+    console.error('[SkillController] 生成技能树失败:', error);
     res.status(500).json({ 
       error: 'Failed to generate skill tree',
       message: error instanceof Error ? error.message : 'Unknown error'
@@ -43,6 +47,7 @@ export const generateSkillTree = async (req: Request, res: Response) => {
 
 // 获取技能树列表
 export const getSkillTreeList = async (req: Request, res: Response) => {
+  console.log(`[SkillController] GET /skill-tree/list - 获取技能树列表`);
   try {
     const { page, limit, search, category }: SkillTreeListRequest = req.query;
     
@@ -58,7 +63,7 @@ export const getSkillTreeList = async (req: Request, res: Response) => {
       data: result
     });
   } catch (error) {
-    console.error('Error getting skill tree list:', error);
+    console.error('[SkillController] 获取技能树列表失败:', error);
     res.status(500).json({ 
       error: 'Failed to get skill tree list',
       message: error instanceof Error ? error.message : 'Unknown error'

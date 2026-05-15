@@ -15,6 +15,7 @@ const SplashScreen = () => {
   ]).current;
 
   useEffect(() => {
+    console.log('[Splash] 启动页加载，2秒后跳转至故事页');
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,

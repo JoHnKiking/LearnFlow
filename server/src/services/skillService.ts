@@ -161,9 +161,9 @@ export const generateMockSkillTree = async (domain: string, level: string = 'beg
 // 获取技能树列表（从数据库）
 export const getSkillTreeList = async (request: SkillTreeListRequest) => {
   const { page = 1, limit = 10, search, category } = request;
+  console.log(`[SkillService] 获取技能树列表 - 页码: ${page}, 搜索: ${search || '无'}, 分类: ${category || '无'}`);
   
-  // 这里简化处理，实际应该根据搜索条件查询数据库
-  const result = await DatabaseService.getSkillTreesByUserId(1, page, limit); // 使用测试用户ID
+  const result = await DatabaseService.getSkillTreesByUserId(1, page, limit);
   
   return {
     trees: result.trees.map(tree => ({
@@ -182,9 +182,11 @@ export const getSkillTreeList = async (request: SkillTreeListRequest) => {
 
 // 根据ID获取技能树（从数据库）
 export const getSkillTreeById = async (id: string) => {
+  console.log(`[SkillService] 获取技能树详情 - ID: ${id}`);
   const tree = await DatabaseService.getSkillTreeById(parseInt(id));
   
   if (!tree) {
+    console.log(`[SkillService] 技能树不存在 - ID: ${id}`);
     return null;
   }
   
@@ -202,6 +204,7 @@ export const getSkillTreeById = async (id: string) => {
 // 保存用户技能树（到数据库）
 export const saveUserSkillTree = async (request: SaveSkillTreeRequest) => {
   const { userId, skillTree, title, tags } = request;
+  console.log(`[SkillService] 保存技能树 - 用户ID: ${userId}, 标题: ${title || skillTree.name}`);
   
   try {
     const treeId = await DatabaseService.createSkillTree({
@@ -209,13 +212,14 @@ export const saveUserSkillTree = async (request: SaveSkillTreeRequest) => {
       domain: skillTree.name,
       title: title || skillTree.name,
       description: skillTree.description,
-      nodes: [skillTree], // 保存为单节点树
+      nodes: [skillTree],
       isPublic: false
     });
     
+    console.log(`[SkillService] 技能树保存成功 - 树ID: ${treeId}`);
     return { success: true, treeId: treeId.toString() };
   } catch (error) {
-    console.error('保存技能树失败:', error);
+    console.error('[SkillService] 保存技能树失败:', error);
     return { success: false, error: '保存失败' };
   }
 };
@@ -272,20 +276,19 @@ export const updateUserProgress = async (userId: string, skillTreeId: string, co
 
 // 获取统计信息（从数据库）
 export const getStatistics = async (): Promise<SkillTreeStats> => {
+  console.log(`[SkillService] 获取统计信息`);
   const popularDomains = await DatabaseService.getPopularDomains(5);
   
-  // 简化统计计算
   return {
-    totalTrees: 100, // 需要从数据库统计
+    totalTrees: 100,
     popularDomains: popularDomains.map(d => ({ domain: d.domain, count: d.popularity })),
-    averageProgress: 45, // 需要从数据库计算
-    totalUsers: 50 // 需要从数据库统计
+    averageProgress: 45,
+    totalUsers: 50
   };
 };
 
-// 搜索热门领域（从数据库）
 export const searchPopularDomains = async (keyword: string) => {
-  // 更新搜索统计
+  console.log(`[SkillService] 搜索热门领域 - 关键词: ${keyword}`);
   await DatabaseService.incrementDomainSearchCount(keyword);
   
   const domains = await DatabaseService.getPopularDomains(10);
@@ -293,6 +296,7 @@ export const searchPopularDomains = async (keyword: string) => {
     .filter(d => d.domain.toLowerCase().includes(keyword.toLowerCase()))
     .map(d => d.domain);
   
+  console.log(`[SkillService] 搜索结果: ${results.length} 条`);
   return {
     keyword,
     results,
@@ -300,8 +304,8 @@ export const searchPopularDomains = async (keyword: string) => {
   };
 };
 
-// 获取推荐学习路径
 export const getRecommendedPath = async (domain: string, currentLevel: string, targetLevel: string) => {
+  console.log(`[SkillService] 获取推荐路径 - 领域: ${domain}, 当前等级: ${currentLevel}, 目标等级: ${targetLevel}`);
   return {
     domain,
     currentLevel,
@@ -315,8 +319,8 @@ export const getRecommendedPath = async (domain: string, currentLevel: string, t
   };
 };
 
-// 获取用户学习报告
 export const getUserLearningReport = async (userId: string, period: string = 'month') => {
+  console.log(`[SkillService] 获取学习报告 - 用户ID: ${userId}, 周期: ${period}`);
   return {
     userId,
     period,

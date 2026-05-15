@@ -49,6 +49,7 @@ const SudokuGame = ({ onWin }: { onWin: () => void }) => {
   };
 
   const initGame = () => {
+    console.log('[MiniGames] 初始化数独游戏');
     const newSolution = Array(9).fill(0).map(() => Array(9).fill(0));
     solveSudoku(newSolution);
     
@@ -172,7 +173,7 @@ const SokobanGame = ({ onWin }: { onWin: () => void }) => {
       name: '关卡 1',
       map: [
         '########',
-        '#  .   #',
+        '#      #',
         '# $@   #',
         '#  .   #',
         '########',
@@ -204,7 +205,7 @@ const SokobanGame = ({ onWin }: { onWin: () => void }) => {
       name: '关卡 4',
       map: [
         '########',
-        '#  .   #',
+        '#      #',
         '# $  $##',
         '#@ . . #',
         '########',
@@ -218,6 +219,7 @@ const SokobanGame = ({ onWin }: { onWin: () => void }) => {
 
   const initLevel = (levelIndex: number) => {
     const level = levels[levelIndex];
+    console.log('[MiniGames] 初始化推箱子关卡:', level.name);
     const newMap = level.map.map(row => row.split(''));
     let pPos = { x: 0, y: 0 };
     
@@ -358,24 +360,29 @@ const MiniGames = ({ onGameComplete, onClose }: MiniGamesProps) => {
   const [gameWon, setGameWon] = useState(false);
 
   const handleWin = () => {
+    console.log('[MiniGames] 游戏胜利');
     setGameWon(true);
   };
 
   const handleCollectReward = () => {
+    console.log('[MiniGames] 领取奖励');
     onGameComplete({ stamina: 5, energy: 3 });
   };
 
   const showTutorial = (gameType: GameType) => {
+    console.log('[MiniGames] 显示教程:', gameType);
     setCurrentGame(gameType);
     setCurrentScreen('tutorial');
   };
 
   const startGame = () => {
+    console.log('[MiniGames] 开始游戏:', currentGame);
     setCurrentScreen('game');
     setGameWon(false);
   };
 
   const goBack = () => {
+    console.log('[MiniGames] 返回，当前页面:', currentScreen);
     if (currentScreen === 'game') {
       setCurrentScreen('tutorial');
     } else if (currentScreen === 'tutorial') {

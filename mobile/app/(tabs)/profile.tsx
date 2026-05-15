@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Switch } f
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, BORDER_RADIUS } from '../../src/utils/constants';
+import { COLORS } from '../../src/utils/constants';
 import { getCurrentUser } from '../../src/utils/auth';
 import HelpModal from '../../src/components/HelpModal';
 
@@ -17,11 +17,13 @@ const ProfileScreen = () => {
   useEffect(() => {
     const loadUserData = async () => {
       try {
+        console.log('[Profile] 开始加载用户数据');
         const currentUser = await getCurrentUser();
         setUser(currentUser);
         setIsLoggedIn(!!currentUser);
+        console.log('[Profile] 用户登录状态:', !!currentUser);
       } catch (error) {
-        console.error('加载用户数据失败:', error);
+        console.error('[Profile] 加载用户数据失败:', error);
         setIsLoggedIn(false);
       }
     };
@@ -50,6 +52,7 @@ const ProfileScreen = () => {
   ];
 
   const handleLogout = () => {
+    console.log('[Profile] 用户点击退出登录');
     Alert.alert('确认退出', '您确定要退出登录吗？', [
       { text: '取消', style: 'cancel' },
       { 
@@ -93,7 +96,7 @@ const ProfileScreen = () => {
 
       <View style={styles.settingsGroup}>
         {[
-          { label: '关于 LearnFlow', icon: 'star' as const, onPress: null },
+          { label: '关于 LearnFlow', icon: 'star' as const, onPress: undefined },
           { label: '使用帮助', icon: 'settings' as const, onPress: () => setShowHelpModal(true) },
         ].map((item, i) => (
           <TouchableOpacity 

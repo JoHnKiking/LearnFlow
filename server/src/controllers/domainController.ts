@@ -9,10 +9,12 @@ import {
 } from '../services';
 
 export const createDomain = async (req: Request, res: Response) => {
+  console.log(`[DomainController] POST /domains - 创建领域`);
   try {
     const { userId, name, type = 'preset' } = req.body;
 
     if (!userId || !name) {
+      console.log(`[DomainController] 参数验证失败 - 缺少必填字段`);
       return res.status(400).json({ 
         error: 'User ID and name are required' 
       });
@@ -20,12 +22,13 @@ export const createDomain = async (req: Request, res: Response) => {
 
     const result = await createDomainService(parseInt(userId), name, type);
     
+    console.log(`[DomainController] 领域创建成功`);
     res.json({
       success: true,
       data: result
     });
   } catch (error) {
-    console.error('Error creating domain:', error);
+    console.error('[DomainController] 创建领域失败:', error);
     res.status(500).json({ 
       error: 'Failed to create domain',
       message: error instanceof Error ? error.message : 'Unknown error'
@@ -34,6 +37,7 @@ export const createDomain = async (req: Request, res: Response) => {
 };
 
 export const getDomains = async (req: Request, res: Response) => {
+  console.log(`[DomainController] GET /domains/:userId - 获取领域列表`);
   try {
     const { userId } = req.params;
 
@@ -48,7 +52,7 @@ export const getDomains = async (req: Request, res: Response) => {
       data: result
     });
   } catch (error) {
-    console.error('Error getting domains:', error);
+    console.error('[DomainController] 获取领域列表失败:', error);
     res.status(500).json({ 
       error: 'Failed to get domains',
       message: error instanceof Error ? error.message : 'Unknown error'
@@ -57,6 +61,7 @@ export const getDomains = async (req: Request, res: Response) => {
 };
 
 export const getDomainById = async (req: Request, res: Response) => {
+  console.log(`[DomainController] GET /domains/:id - 获取领域详情`);
   try {
     const { id } = req.params;
 
@@ -67,6 +72,7 @@ export const getDomainById = async (req: Request, res: Response) => {
     const domain = await getDomainByIdService(parseInt(id));
 
     if (!domain) {
+      console.log(`[DomainController] 领域不存在 - 领域ID: ${id}`);
       return res.status(404).json({ error: 'Domain not found' });
     }
     
@@ -75,7 +81,7 @@ export const getDomainById = async (req: Request, res: Response) => {
       data: domain
     });
   } catch (error) {
-    console.error('Error getting domain:', error);
+    console.error('[DomainController] 获取领域详情失败:', error);
     res.status(500).json({ 
       error: 'Failed to get domain',
       message: error instanceof Error ? error.message : 'Unknown error'
@@ -84,10 +90,12 @@ export const getDomainById = async (req: Request, res: Response) => {
 };
 
 export const updateNodeProgress = async (req: Request, res: Response) => {
+  console.log(`[DomainController] PUT /domains/node-progress - 更新节点进度`);
   try {
     const { userId, domainId, nodeId, status, studyTime, notes } = req.body;
 
     if (!userId || !domainId || !nodeId || !status) {
+      console.log(`[DomainController] 参数验证失败 - 缺少必填字段`);
       return res.status(400).json({ 
         error: 'User ID, domain ID, node ID, and status are required' 
       });

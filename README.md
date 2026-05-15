@@ -34,7 +34,7 @@ LearnFlow 是一款基于 React Native + Expo 的技能学习应用，通过像�
 ### 迷你游戏
 - **数独游戏**：经典 9×9 数独挑战
 - **推箱子游戏**：完成 3 关获得奖励
-- **每日限制**：每天可玩 3 次
+- **每日限制**：每天可玩 4 次
 
 ### 学习工具
 - **番茄钟**：25/45/60/90/120/180 分钟专注计时，支持任务管理
@@ -95,10 +95,12 @@ LearnFlow/
 │   │   │   ├── MonsterIcon.tsx    # 怪物像素图标
 │   │   │   ├── HelpModal.tsx      # 帮助弹窗
 │   │   │   ├── GameHelpModal.tsx  # 游戏帮助弹窗
-│   │   │   └── AnimatedCheckbox.tsx
+│   │   │   ├── AnimatedCheckbox.tsx
+│   │   │   └── index.ts           # 组件统一导出
 │   │   ├── data/
 │   │   │   ├── mockData.ts        # 模拟数据
-│   │   │   └── skillTrees.ts      # 预置技能树数据
+│   │   │   ├── skillTrees.ts      # 预置技能树数据
+│   │   │   └── index.ts
 │   │   ├── services/
 │   │   │   ├── api.ts             # API 服务层
 │   │   │   └── gameService.ts     # 游戏服务
@@ -106,14 +108,16 @@ LearnFlow/
 │   │   │   ├── useSkillTree.ts
 │   │   │   ├── useSearch.ts
 │   │   │   ├── useStatistics.ts
-│   │   │   └── useKeyboardPositioning.ts
+│   │   │   ├── useKeyboardPositioning.ts
+│   │   │   └── index.ts
 │   │   ├── utils/
 │   │   │   ├── auth.ts            # 认证工具
 │   │   │   ├── storage.ts         # 本地存储
 │   │   │   ├── constants.ts       # 常量配置
 │   │   │   ├── helpers.ts         # 辅助函数
-│   │   │   └── api.ts             # API 工具函数
+│   │   │   └── index.ts
 │   │   └── types/                 # TypeScript 类型定义
+│   │       └── skill.ts
 │   ├── assets/                    # 图片、字体等静态资源
 │   ├── app.json
 │   └── package.json
@@ -122,30 +126,50 @@ LearnFlow/
 │   ├── src/
 │   │   ├── app.ts                 # Express 应用入口
 │   │   ├── config/                # 数据库等配置
+│   │   │   └── database.ts
 │   │   ├── controllers/           # 控制器层
 │   │   │   ├── authController.ts
 │   │   │   ├── skillController.ts
 │   │   │   ├── monsterController.ts
 │   │   │   ├── noteController.ts
 │   │   │   ├── rewardController.ts
-│   │   │   └── domainController.ts
+│   │   │   ├── domainController.ts
+│   │   │   └── index.ts
 │   │   ├── models/                # 数据模型（12 个模型）
+│   │   │   ├── User.ts
+│   │   │   ├── DeviceSession.ts
+│   │   │   ├── SkillTree.ts
+│   │   │   ├── LearningRecord.ts
+│   │   │   ├── NodeProgress.ts
+│   │   │   ├── StudyRecord.ts
+│   │   │   ├── PopularDomain.ts
+│   │   │   ├── Domain.ts
+│   │   │   ├── Monster.ts
+│   │   │   ├── MonsterMessage.ts
+│   │   │   ├── Note.ts
+│   │   │   ├── Reward.ts
+│   │   │   └── index.ts
 │   │   ├── routes/                # 路由层
 │   │   │   ├── authRoutes.ts
 │   │   │   ├── skillRoutes.ts
 │   │   │   ├── monsterRoutes.ts
 │   │   │   ├── noteRoutes.ts
 │   │   │   ├── rewardRoutes.ts
-│   │   │   └── domainRoutes.ts
-│   │   └── services/              # 业务逻辑层
-│   │       ├── authService.ts
-│   │       ├── databaseService.ts
-│   │       ├── skillService.ts
-│   │       ├── llmService.ts      # LLM 集成服务
-│   │       ├── monsterService.ts
-│   │       ├── noteService.ts
-│   │       ├── rewardService.ts
-│   │       └── domainService.ts
+│   │   │   ├── domainRoutes.ts
+│   │   │   └── index.ts
+│   │   ├── services/              # 业务逻辑层
+│   │   │   ├── authService.ts
+│   │   │   ├── databaseService.ts
+│   │   │   ├── skillService.ts
+│   │   │   ├── llmService.ts      # LLM 集成服务
+│   │   │   ├── monsterService.ts
+│   │   │   ├── noteService.ts
+│   │   │   ├── rewardService.ts
+│   │   │   ├── domainService.ts
+│   │   │   └── index.ts
+│   │   └── types/                 # TypeScript 类型定义
+│   │       ├── skill.ts
+│   │       └── index.ts
 │   ├── sql/                       # 数据库初始化脚本
 │   ├── schema.sql                 # 数据库表结构
 │   ├── scripts/                   # 辅助脚本
@@ -169,9 +193,14 @@ LearnFlow/
 | `device_sessions` | 设备会话表（多设备登录管理） |
 | `skill_trees` | 技能树表（JSON 存储树结构） |
 | `learning_records` | 学习记录表（节点完成状态、学习时长） |
+| `node_progress` | 节点进度表（单个节点学习进度） |
+| `study_records` | 学习记录表（番茄钟学习记录） |
 | `popular_domains` | 热门领域表（搜索统计） |
+| `domains` | 领域表（领域分类管理） |
 | `monsters` | 怪物表（性格类型、体力/能量、等级经验） |
 | `monster_messages` | 怪物消息表（AI 对话记录） |
+| `notes` | 笔记表（学习笔记） |
+| `rewards` | 奖励表（游戏奖励记录） |
 
 ## API 端点
 
@@ -211,6 +240,27 @@ LearnFlow/
 | POST | `/exp/add` | 增加经验值 |
 | POST | `/chat` | AI 对话 |
 | GET | `/messages/:userId` | 获取对话记录 |
+
+### 笔记 (`/api/notes`)
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/` | 创建笔记 |
+| GET | `/user/:userId` | 获取用户笔记列表 |
+| GET | `/:id` | 获取单个笔记 |
+| PUT | `/:id` | 更新笔记 |
+| DELETE | `/:id` | 删除笔记 |
+
+### 奖励 (`/api/rewards`)
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/` | 创建奖励记录 |
+| GET | `/user/:userId` | 获取用户奖励记录 |
+
+### 领域 (`/api/domains`)
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/` | 获取领域列表 |
+| POST | `/` | 创建领域 |
 
 ## 快速开始
 
@@ -279,7 +329,7 @@ npm start               # 使用 Expo Go 扫码运行
 - **获取**：完成迷你游戏获得能量奖励
 
 ### 游戏系统
-- **每日限制**：3 次/天
+- **每日限制**：4 次/天
 - **数独**：完成一局获得奖励
 - **推箱子**：完成 3 关获得奖励
 - **奖励**：体力值 + 能量值（叛逆型翻倍）

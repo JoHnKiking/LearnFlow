@@ -75,7 +75,7 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
             <View style={styles.helpItem}>
               <Text style={styles.helpTitle}>💪 体力系统</Text>
               <Text style={styles.helpText}>
-                专注学习会消耗体力，完成小游戏可恢复体力。体力满值时无法进行游戏。游戏说明请在怪兽页面查看。
+                专注学习会消耗体力，完成小游戏可恢复体力。游戏说明请在怪兽页面查看。
               </Text>
             </View>
             <View style={styles.helpItem}>

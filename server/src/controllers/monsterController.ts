@@ -7,22 +7,25 @@ import {
   consumeEnergy as consumeEnergyService,
   consumeEnergyAmount as consumeEnergyAmountService,
   recoverEnergy as recoverEnergyService,
-  addExp as addExpService,
+  gainExp as gainExpService,
   chatWithMonster as chatWithMonsterService,
   getMonsterMessages as getMonsterMessagesService,
 } from '../services';
 
 export const createMonster = async (req: Request, res: Response) => {
+  console.log(`[MonsterController] POST /monsters - 创建怪物`);
   try {
     const { userId, name, style, personality } = req.body;
 
     if (!userId || !name || !personality) {
+      console.log(`[MonsterController] 参数验证失败 - 缺少必填字段`);
       return res.status(400).json({
         error: 'User ID, name, and personality are required'
       });
     }
 
     if (!['lively', 'calm', 'rebel'].includes(personality)) {
+      console.log(`[MonsterController] 参数验证失败 - 无效性格: ${personality}`);
       return res.status(400).json({
         error: 'Personality must be one of lively, calm, or rebel'
       });
@@ -34,12 +37,13 @@ export const createMonster = async (req: Request, res: Response) => {
       personality,
     });
 
+    console.log(`[MonsterController] 怪物创建成功`);
     res.json({
       success: true,
       data: result
     });
   } catch (error) {
-    console.error('Error creating monster:', error);
+    console.error('[MonsterController] 创建怪物失败:', error);
     res.status(500).json({
       error: 'Failed to create monster',
       message: error instanceof Error ? error.message : 'Unknown error'
@@ -48,6 +52,7 @@ export const createMonster = async (req: Request, res: Response) => {
 };
 
 export const getMonsterStatus = async (req: Request, res: Response) => {
+  console.log(`[MonsterController] GET /monsters/:userId - 获取怪物状态`);
   try {
     const { userId } = req.params;
 
@@ -58,6 +63,7 @@ export const getMonsterStatus = async (req: Request, res: Response) => {
     const status = await getMonsterStatusService(parseInt(userId));
 
     if (!status) {
+      console.log(`[MonsterController] 怪物不存在 - 用户ID: ${userId}`);
       return res.status(404).json({ error: 'Monster not found' });
     }
     
@@ -66,7 +72,7 @@ export const getMonsterStatus = async (req: Request, res: Response) => {
       data: status
     });
   } catch (error) {
-    console.error('Error getting monster status:', error);
+    console.error('[MonsterController] 获取怪物状态失败:', error);
     res.status(500).json({ 
       error: 'Failed to get monster status',
       message: error instanceof Error ? error.message : 'Unknown error'
@@ -75,6 +81,7 @@ export const getMonsterStatus = async (req: Request, res: Response) => {
 };
 
 export const consumeStamina = async (req: Request, res: Response) => {
+  console.log(`[MonsterController] POST /monsters/consume-stamina - 消耗体力`);
   try {
     const { userId, amount = 10 } = req.body;
 
@@ -89,7 +96,7 @@ export const consumeStamina = async (req: Request, res: Response) => {
       error: success ? undefined : 'Not enough stamina'
     });
   } catch (error) {
-    console.error('Error consuming stamina:', error);
+    console.error('[MonsterController] 消耗体力失败:', error);
     res.status(500).json({ 
       error: 'Failed to consume stamina',
       message: error instanceof Error ? error.message : 'Unknown error'
@@ -197,7 +204,7 @@ export const addExp = async (req: Request, res: Response) => {
       });
     }
 
-    const result = await addExpService(parseInt(userId), exp);
+    const result = await gainExpService(parseInt(userId), exp);
     
     res.json({
       success: true,

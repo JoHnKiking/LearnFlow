@@ -6,6 +6,7 @@ import { COLORS, SPACING } from '../src/utils/constants';
 
 const OnboardingScreen = () => {
   const handleStart = () => {
+    console.log('[Onboarding] 用户点击开始探索，跳转至故事页');
     router.replace('/story');
   };
 

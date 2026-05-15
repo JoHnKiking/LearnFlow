@@ -27,6 +27,7 @@ export const createMonster = async (
     personality: MonsterPersonalityType;
   }
 ) => {
+  console.log(`[MonsterService] 创建怪物 - 用户ID: ${userId}, 名称: ${payload.name}, 性格: ${payload.personality}`);
   const personalityParams = buildPersonalityParams(payload.personality);
   const maxStamina = getMaxStamina(payload.personality);
 
@@ -42,13 +43,16 @@ export const createMonster = async (
     personalityParams,
   });
 
+  console.log(`[MonsterService] 怪物创建成功 - 怪物ID: ${monsterId}`);
   return { success: true, monsterId };
 };
 
 export const getMonsterStatus = async (userId: number) => {
+  console.log(`[MonsterService] 获取怪物状态 - 用户ID: ${userId}`);
   const monster = await MonsterModel.getMonsterByUserId(userId);
 
   if (!monster) {
+    console.log(`[MonsterService] 怪物不存在 - 用户ID: ${userId}`);
     return null;
   }
 
@@ -98,8 +102,29 @@ export const recoverStamina = async (userId: number, amount: number = 20) => {
   return { success: true };
 };
 
+export const updateMonsterStamina = async (
+  userId: number,
+  delta: number
+) => {
+  console.log(`[MonsterService] 更新体力 - 用户ID: ${userId}, 变化量: ${delta}`);
+  const monster = await MonsterModel.getMonsterByUserId(userId);
+
+  if (!monster) {
+    console.log(`[MonsterService] 更新体力失败 - 怪物不存在`);
+    return { success: false, message: '怪物不存在' };
+  }
+
+  const newStamina = Math.max(0, Math.min(monster.maxStamina, monster.stamina + delta));
+  await MonsterModel.updateMonster(monster.userId, { stamina: newStamina });
+
+  console.log(`[MonsterService] 体力更新成功 - 旧值: ${monster.stamina}, 新值: ${newStamina}`);
+  return { success: true, stamina: newStamina };
+};
+
 export const consumeEnergy = async (userId: number): Promise<boolean> => {
+  console.log(`[MonsterService] 消耗能量 - 用户ID: ${userId}`);
   const success = await MonsterModel.consumeEnergy(userId);
+  console.log(`[MonsterService] 能量消耗${success ? '成功' : '失败'}`);
   return success;
 };
 
@@ -113,27 +138,32 @@ export const recoverEnergy = async (userId: number, amount: number = 1) => {
   return { success: true };
 };
 
-export const addExp = async (userId: number, exp: number) => {
+export const gainExp = async (userId: number, exp: number) => {
+  console.log(`[MonsterService] 获得经验 - 用户ID: ${userId}, 经验: ${exp}`);
   const monster = await MonsterModel.getMonsterByUserId(userId);
+
   if (!monster) {
-    return { success: false, error: 'Monster not found' };
+    console.log(`[MonsterService] 获得经验失败 - 怪物不存在`);
+    return { success: false, message: '怪物不存在' };
   }
 
-  let newExp = monster.exp + exp;
+  const newExp = monster.exp + exp;
+  const expToLevel = monster.level * 100;
   let newLevel = monster.level;
-  const expToNextLevel = monster.level * 100;
+  let remainingExp = newExp;
 
-  while (newExp >= expToNextLevel) {
-    newExp -= expToNextLevel;
+  while (remainingExp >= expToLevel) {
+    remainingExp -= expToLevel;
     newLevel++;
   }
 
   await MonsterModel.updateMonster(userId, {
-    exp: newExp,
-    level: newLevel
+    level: newLevel,
+    exp: remainingExp,
   });
 
-  return { success: true, level: newLevel, exp: newExp };
+  console.log(`[MonsterService] 经验更新 - 等级: ${monster.level} -> ${newLevel}, 经验: ${monster.exp} -> ${remainingExp}`);
+  return { success: true, level: newLevel, exp: remainingExp };
 };
 
 export const chatWithMonster = async (userId: number, message: string) => {

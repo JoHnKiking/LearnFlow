@@ -50,17 +50,21 @@ const ModuleSelectionScreen = () => {
 
   const toggleModule = (id: ModuleType) => {
     if (selectedModules.includes(id)) {
+      console.log('[ModuleSelection] 取消选择模块:', id);
       setSelectedModules(selectedModules.filter(m => m !== id));
     } else {
       if (selectedModules.length < 3) {
+        console.log('[ModuleSelection] 选择模块:', id);
         setSelectedModules([...selectedModules, id]);
       }
     }
   };
 
   const handleStart = async () => {
+    console.log('[ModuleSelection] 确认选择模块:', selectedModules);
     await AsyncStorage.setItem('selectedModules', JSON.stringify(selectedModules));
     await AsyncStorage.setItem('onboardingCompleted', 'true');
+    console.log('[ModuleSelection] 新手引导完成，进入主页');
     router.replace('/(tabs)');
   };
 

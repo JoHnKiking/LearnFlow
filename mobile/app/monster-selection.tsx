@@ -42,11 +42,13 @@ const MonsterSelectionScreen = () => {
   const [fadeAnim] = useState(new Animated.Value(1));
 
   const handleSelectMonster = (type: MonsterType) => {
+    console.log('[MonsterSelection] 选择怪物类型:', type);
     setSelectedType(type);
   };
 
   const handleContinue = async () => {
     if (step === 'select') {
+      console.log('[MonsterSelection] 进入命名步骤');
       Animated.sequence([
         Animated.timing(fadeAnim, {
           toValue: 0,
@@ -75,7 +77,9 @@ const MonsterSelectionScreen = () => {
         knowledgePoints: 0,
         createdAt: new Date().toISOString(),
       };
+      console.log('[MonsterSelection] 创建怪物数据:', monsterData.name, '类型:', selectedType);
       await AsyncStorage.setItem('monster', JSON.stringify(monsterData));
+      console.log('[MonsterSelection] 怪物数据已保存，跳转至模块选择');
       router.replace('/module-selection');
     }
   };

@@ -119,17 +119,21 @@ const RegisterScreen = () => {
   };
 
   const handleRegister = async () => {
+    console.log('[Register] 开始注册 - 用户名:', username, '邮箱:', email);
     if (!username || !email || !password || !confirmPassword) {
+      console.log('[Register] 验证失败 - 缺少必填字段');
       Alert.alert('错误', '请填写所有必填字段');
       return;
     }
 
     if (password !== confirmPassword) {
+      console.log('[Register] 验证失败 - 密码不一致');
       Alert.alert('错误', '两次输入的密码不一致');
       return;
     }
 
     if (password.length < 6) {
+      console.log('[Register] 验证失败 - 密码长度不足');
       Alert.alert('错误', '密码长度至少6位');
       return;
     }
@@ -138,18 +142,18 @@ const RegisterScreen = () => {
     try {
       const authResponse = await authService.register({ username, email, password });
       
+      console.log('[Register] 注册成功 - 用户ID:', authResponse.user?.id);
       await saveAuthData(authResponse);
       await AsyncStorage.setItem(STORAGE_KEYS.IS_NEW_USER, 'true');
       
       setLoading(false);
       Alert.alert('注册成功', '账号创建成功！');
       
-      // 新用户进入新手教程
       router.replace('/onboarding');
     } catch (error) {
+      console.error('[Register] 注册失败:', error);
       setLoading(false);
       
-      // 根据后端错误信息显示具体的提示
       if (error && typeof error === 'object' && 'message' in error) {
         const errorMessage = (error as any).message;
         if (errorMessage.includes('邮箱')) {

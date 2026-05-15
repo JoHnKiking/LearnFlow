@@ -44,6 +44,7 @@ export class DatabaseService {
   // ===== 技能树相关操作 =====
 
   static async createSkillTree(skillTreeData: CreateSkillTreeRequest): Promise<number> {
+    console.log(`[DatabaseService] 创建技能树 - 用户ID: ${skillTreeData.userId}, 领域: ${skillTreeData.domain}`);
     const connection = await DatabaseConnection.getConnection();
     const [result] = await connection.execute(
       'INSERT INTO skill_trees (user_id, domain, title, description, nodes, is_public) VALUES (?, ?, ?, ?, ?, ?)',
@@ -56,7 +57,9 @@ export class DatabaseService {
         skillTreeData.isPublic || false
       ]
     );
-    return (result as mysql.ResultSetHeader).insertId;
+    const insertId = (result as mysql.ResultSetHeader).insertId;
+    console.log(`[DatabaseService] 技能树创建成功 - ID: ${insertId}`);
+    return insertId;
   }
 
   static async getSkillTreeById(id: number): Promise<SkillTree | null> {
@@ -195,6 +198,7 @@ export class DatabaseService {
   }
 
   static async incrementDomainSearchCount(domain: string): Promise<void> {
+    console.log(`[DatabaseService] 增加领域搜索计数 - 领域: ${domain}`);
     const connection = await DatabaseConnection.getConnection();
     await connection.execute(
       'INSERT INTO popular_domains (domain, search_count) VALUES (?, 1) ON DUPLICATE KEY UPDATE search_count = search_count + 1',
@@ -203,6 +207,7 @@ export class DatabaseService {
   }
 
   static async incrementDomainGeneratedCount(domain: string): Promise<void> {
+    console.log(`[DatabaseService] 增加领域生成计数 - 领域: ${domain}`);
     const connection = await DatabaseConnection.getConnection();
     await connection.execute(
       'INSERT INTO popular_domains (domain, generated_count) VALUES (?, 1) ON DUPLICATE KEY UPDATE generated_count = generated_count + 1',

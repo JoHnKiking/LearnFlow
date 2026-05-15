@@ -47,10 +47,13 @@ export class AuthController {
 
   // 用户登录
   static async login(req: Request, res: Response) {
+    const startTime = Date.now();
     try {
       const loginRequest: LoginRequest = req.body;
+      console.log(`[AuthController] 开始处理登录 - 类型: ${loginRequest.type}, 邮箱: ${loginRequest.email || 'N/A'}`);
       
       if (!loginRequest.type) {
+        console.log(`[AuthController] 登录验证失败 - 缺少登录类型`);
         return res.status(400).json({ error: '登录类型不能为空' });
       }
 
@@ -61,15 +64,19 @@ export class AuthController {
       } else if (loginRequest.type === 'wechat') {
         authResponse = await AuthService.wechatLogin(loginRequest);
       } else {
+        console.log(`[AuthController] 登录验证失败 - 不支持的登录类型: ${loginRequest.type}`);
         return res.status(400).json({ error: '不支持的登录类型' });
       }
 
+      const duration = Date.now() - startTime;
+      console.log(`[AuthController] 登录成功 - 邮箱: ${loginRequest.email || 'N/A'}, 耗时: ${duration}ms`);
       res.json({
         success: true,
         data: authResponse
       });
     } catch (error) {
-      console.error('登录失败:', error);
+      const duration = Date.now() - startTime;
+      console.error(`[AuthController] 登录失败 - 错误: ${error}, 耗时: ${duration}ms`);
       res.status(400).json({
         success: false,
         error: error instanceof Error ? error.message : '登录失败'

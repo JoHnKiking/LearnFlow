@@ -6,10 +6,12 @@ import {
 } from '../services';
 
 export const createReward = async (req: Request, res: Response) => {
+  console.log(`[RewardController] POST /rewards - 创建奖励`);
   try {
     const { userId, type, amount, source } = req.body;
 
     if (!userId || !type || amount === undefined) {
+      console.log(`[RewardController] 参数验证失败 - 缺少必填字段`);
       return res.status(400).json({ 
         error: 'User ID, type, and amount are required' 
       });
@@ -22,12 +24,13 @@ export const createReward = async (req: Request, res: Response) => {
       source
     );
     
+    console.log(`[RewardController] 奖励创建成功`);
     res.json({
       success: true,
       data: result
     });
   } catch (error) {
-    console.error('Error creating reward:', error);
+    console.error('[RewardController] 创建奖励失败:', error);
     res.status(500).json({ 
       error: 'Failed to create reward',
       message: error instanceof Error ? error.message : 'Unknown error'
@@ -36,6 +39,7 @@ export const createReward = async (req: Request, res: Response) => {
 };
 
 export const getRewards = async (req: Request, res: Response) => {
+  console.log(`[RewardController] GET /rewards/:userId - 获取奖励列表`);
   try {
     const { userId } = req.params;
 
@@ -50,7 +54,7 @@ export const getRewards = async (req: Request, res: Response) => {
       data: result
     });
   } catch (error) {
-    console.error('Error getting rewards:', error);
+    console.error('[RewardController] 获取奖励列表失败:', error);
     res.status(500).json({ 
       error: 'Failed to get rewards',
       message: error instanceof Error ? error.message : 'Unknown error'
@@ -59,6 +63,7 @@ export const getRewards = async (req: Request, res: Response) => {
 };
 
 export const claimReward = async (req: Request, res: Response) => {
+  console.log(`[RewardController] POST /rewards/claim - 领取奖励`);
   try {
     const { rewardId } = req.body;
 
@@ -72,7 +77,7 @@ export const claimReward = async (req: Request, res: Response) => {
       success: result.success
     });
   } catch (error) {
-    console.error('Error claiming reward:', error);
+    console.error('[RewardController] 领取奖励失败:', error);
     res.status(500).json({ 
       error: 'Failed to claim reward',
       message: error instanceof Error ? error.message : 'Unknown error'

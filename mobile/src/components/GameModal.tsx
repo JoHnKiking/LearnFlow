@@ -49,8 +49,6 @@ const SudokuGame = ({ onWin }: { onWin: () => void }) => {
   const [given, setGiven] = useState<boolean[][]>([]);
   /** 当前选中的格子位置 */
   const [selected, setSelected] = useState<{ row: number; col: number } | null>(null);
-  /** 是否显示答案（放弃奖励） */
-  const [showSolution, setShowSolution] = useState(false);
 
   /**
    * 检查数字在当前位置是否有效
@@ -129,7 +127,6 @@ const SudokuGame = ({ onWin }: { onWin: () => void }) => {
     setBoard(newBoard);
     setGiven(newGiven);
     setSelected(null);
-    setShowSolution(false);
   };
 
   // 组件挂载时初始化游戏
@@ -177,19 +174,6 @@ const SudokuGame = ({ onWin }: { onWin: () => void }) => {
   };
 
   /**
-   * 显示答案（放弃奖励）
-   */
-  const handleShowSolution = () => {
-    Alert.alert('确认', '确定要放弃奖励查看答案吗？', [
-      { text: '取消', style: 'cancel' },
-      { text: '确定', onPress: () => {
-        setBoard(solution.map(row => [...row]));
-        setShowSolution(true);
-      }}
-    ]);
-  };
-
-  /**
    * 获取格子背景色
    */
   const getCellColor = (row: number, col: number): string => {
@@ -229,8 +213,7 @@ const SudokuGame = ({ onWin }: { onWin: () => void }) => {
                 {cell !== 0 && (
                   <Text style={[
                     styles.sudokuCellText,
-                    given[rowIndex][colIndex] ? styles.sudokuGiven : styles.sudokuInput,
-                    showSolution ? styles.sudokuSolution : {}
+                    given[rowIndex][colIndex] ? styles.sudokuGiven : styles.sudokuInput
                   ]}>
                     {cell}
                   </Text>
@@ -257,11 +240,7 @@ const SudokuGame = ({ onWin }: { onWin: () => void }) => {
         </TouchableOpacity>
       </View>
 
-      {/* 显示答案按钮 */}
-      <TouchableOpacity style={styles.hintBtn} onPress={handleShowSolution}>
-        <Text style={styles.hintBtnText}>💡 放弃奖励查看答案</Text>
-      </TouchableOpacity>
-    </View>
+      </View>
   );
 };
 
@@ -277,14 +256,6 @@ const SokobanGame = ({ onWin, monsterType }: { onWin: (level: number) => void; m
   const [playerPos, setPlayerPos] = useState({ x: 0, y: 0 });
   /** 游戏地图 */
   const [gameMap, setGameMap] = useState<string[][]>([]);
-  /** 是否显示答案 */
-  const [showAnswer, setShowAnswer] = useState(false);
-  /** 答案步骤 */
-  const [solutionSteps, setSolutionSteps] = useState<string[]>([]);
-  /** 当前答案步骤索引 */
-  const [currentStep, setCurrentStep] = useState(0);
-  /** 是否正在播放答案 */
-  const [isPlayingSolution, setIsPlayingSolution] = useState(false);
 
   /**
    * 初始化指定关卡
@@ -307,9 +278,6 @@ const SokobanGame = ({ onWin, monsterType }: { onWin: (level: number) => void; m
     setCurrentLevel(levelIndex);
     setGameMap(newMap);
     setPlayerPos(pPos);
-    setShowAnswer(false);
-    setSolutionSteps([]);
-    setCurrentStep(0);
   };
 
   // 组件挂载时初始化第一关
@@ -331,8 +299,6 @@ const SokobanGame = ({ onWin, monsterType }: { onWin: (level: number) => void; m
    * 移动玩家
    */
   const move = (dx: number, dy: number) => {
-    if (isPlayingSolution) return;
-
     // 重置当前关卡
     if (dx === 0 && dy === 0) {
       initLevel(currentLevel);
@@ -384,100 +350,6 @@ const SokobanGame = ({ onWin, monsterType }: { onWin: (level: number) => void; m
   };
 
   /**
-   * 显示答案（放弃奖励）
-   */
-  const handleShowAnswer = () => {
-    Alert.alert('确认', '确定要放弃奖励查看答案吗？', [
-      { text: '取消', style: 'cancel' },
-      { text: '确定', onPress: () => {
-        const level = getLevelByIndex(currentLevel);
-        setSolutionSteps(level.answer);
-        setShowAnswer(true);
-        setCurrentStep(0);
-      }}
-    ]);
-  };
-
-  /**
-   * 执行下一步答案
-   */
-  const handleNextStep = () => {
-    if (currentStep >= solutionSteps.length) return;
-    
-    const step = solutionSteps[currentStep];
-    let dx = 0, dy = 0;
-    switch (step) {
-      case '上': dy = -1; break;
-      case '下': dy = 1; break;
-      case '左': dx = -1; break;
-      case '右': dx = 1; break;
-    }
-    
-    setIsPlayingSolution(true);
-    setTimeout(() => {
-      move(dx, dy);
-      setCurrentStep(prev => prev + 1);
-      setIsPlayingSolution(false);
-    }, 300);
-  };
-
-  /**
-   * 播放全部答案
-   */
-  const handlePlayAll = () => {
-    if (solutionSteps.length === 0) return;
-    
-    setIsPlayingSolution(true);
-    let stepIndex = 0;
-    
-    const playStep = () => {
-      if (stepIndex >= solutionSteps.length) {
-        setIsPlayingSolution(false);
-        return;
-      }
-      
-      const step = solutionSteps[stepIndex];
-      let dx = 0, dy = 0;
-      switch (step) {
-        case '上': dy = -1; break;
-        case '下': dy = 1; break;
-        case '左': dx = -1; break;
-        case '右': dx = 1; break;
-      }
-      
-      const newMap = gameMap.map(row => [...row]);
-      const newX = playerPos.x + dx;
-      const newY = playerPos.y + dy;
-      
-      if (newY >= 0 && newY < gameMap.length && newX >= 0 && newX < gameMap[newY].length) {
-        const target = gameMap[newY][newX];
-        if (target !== '#') {
-          if (target === '$' || target === '*') {
-            const boxNewX = newX + dx;
-            const boxNewY = newY + dy;
-            if (boxNewY >= 0 && boxNewY < gameMap.length && boxNewX >= 0 && boxNewX < gameMap[boxNewY].length) {
-              const boxTarget = gameMap[boxNewY][boxNewX];
-              if (boxTarget === ' ' || boxTarget === '.') {
-                newMap[newY][newX] = target === '*' ? '.' : ' ';
-                newMap[boxNewY][boxNewX] = boxTarget === '.' ? '*' : '$';
-              }
-            }
-          }
-          setGameMap(newMap);
-          setPlayerPos({ x: newX, y: newY });
-        }
-      }
-      
-      stepIndex++;
-      setCurrentStep(stepIndex);
-      
-      setTimeout(playStep, 400);
-    };
-    
-    setTimeout(playStep, 300);
-  };
-
-  /**
    * 获取格子内容和样式
    */
   const getCellContent = (char: string, x: number, y: number): { type: string; content: string } => {
@@ -505,36 +377,6 @@ const SokobanGame = ({ onWin, monsterType }: { onWin: (level: number) => void; m
           <Text style={styles.newGameText}>重新开始</Text>
         </TouchableOpacity>
       </View>
-
-      {/* 答案显示区 */}
-      {showAnswer && (
-        <View style={styles.answerContainer}>
-          <Text style={styles.answerTitle}>📝 解题步骤 ({solutionSteps.length}步)</Text>
-          <View style={styles.answerSteps}>
-            {solutionSteps.map((step, i) => (
-              <Text key={i} style={currentStep > i ? styles.stepDone : styles.stepPending}>
-                {i + 1}. {step === '上' ? '⬆️' : step === '下' ? '⬇️' : step === '左' ? '⬅️' : '➡️'}
-              </Text>
-            ))}
-          </View>
-          <View style={styles.answerButtons}>
-            <TouchableOpacity 
-              style={styles.smallBtn} 
-              onPress={handleNextStep} 
-              disabled={isPlayingSolution || currentStep >= solutionSteps.length}
-            >
-              <Text style={styles.smallBtnText}>▶️ 下一步</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.smallBtn} 
-              onPress={handlePlayAll} 
-              disabled={isPlayingSolution}
-            >
-              <Text style={styles.smallBtnText}>⏩ 全部执行</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
 
       {/* 游戏地图 */}
       <View style={styles.sokobanGrid}>
@@ -579,11 +421,7 @@ const SokobanGame = ({ onWin, monsterType }: { onWin: (level: number) => void; m
         </TouchableOpacity>
       </View>
 
-      {/* 显示答案按钮 */}
-      <TouchableOpacity style={styles.hintBtn} onPress={handleShowAnswer}>
-        <Text style={styles.hintBtnText}>💡 放弃奖励查看答案</Text>
-      </TouchableOpacity>
-    </View>
+      </View>
   );
 };
 
@@ -607,11 +445,11 @@ const GameModal = ({ visible, onClose, onGameComplete, monsterType }: GameModalP
    * 处理游戏胜利
    */
   const handleWin = async (level?: number) => {
+    console.log('[GameModal] 游戏胜利 - 关卡:', level);
     setGameWon(true);
     setIsSubmitting(true);
     
     try {
-      // 提交游戏结果
       const result: GameResult = await mockSubmitGameResult(
         level || 1,
         true,
@@ -619,8 +457,8 @@ const GameModal = ({ visible, onClose, onGameComplete, monsterType }: GameModalP
       );
       
       if (result.success) {
+        console.log('[GameModal] 游戏结果提交成功 - 奖励:', result.rewards);
         setTimeout(() => {
-          // 先恢复状态，然后把奖励传出去，让外面处理关闭和提示
           setGameWon(false);
           setIsSubmitting(false);
           onGameComplete(result.rewards);
@@ -629,7 +467,7 @@ const GameModal = ({ visible, onClose, onGameComplete, monsterType }: GameModalP
         throw new Error(result.message || '游戏提交失败');
       }
     } catch (error) {
-      console.error('游戏提交失败:', error);
+      console.error('[GameModal] 游戏提交失败:', error);
       setIsSubmitting(false);
       setGameWon(false);
       Alert.alert('❌ 提交失败', '游戏结果提交失败，请重试', [

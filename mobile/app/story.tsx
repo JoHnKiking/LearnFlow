@@ -57,13 +57,16 @@ const useStoryAnimation = (totalFrames: number) => {
 
   const goToNextFrame = useCallback(() => {
     if (currentFrame < totalFrames - 1) {
+      console.log(`[Story] 切换到第 ${currentFrame + 2} 帧`);
       switchFrame(currentFrame + 1);
     } else {
+      console.log('[Story] 故事结束，跳转至怪物选择');
       router.replace(ROUTES.MONSTER_SELECTION);
     }
   }, [currentFrame, totalFrames, switchFrame]);
 
   const skipToSelection = useCallback(() => {
+    console.log('[Story] 跳过故事，跳转至怪物选择');
     router.replace(ROUTES.MONSTER_SELECTION);
   }, []);
 

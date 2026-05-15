@@ -100,7 +100,9 @@ const LoginScreen = () => {
   };
 
   const handleLogin = async () => {
+    console.log('[Login] 开始登录 - 邮箱:', email);
     if (!email || !password) {
+      console.log('[Login] 登录验证失败 - 邮箱或密码为空');
       Alert.alert('错误', '请输入邮箱和密码');
       return;
     }
@@ -116,6 +118,7 @@ const LoginScreen = () => {
         deviceName: '移动设备'
       });
       
+      console.log('[Login] 登录成功 - 用户:', authResponse.user?.username);
       await saveAuthData(authResponse);
       
       setLoading(false);
@@ -123,12 +126,14 @@ const LoginScreen = () => {
       
       router.replace('/(tabs)');
     } catch (error) {
+      console.error('[Login] 登录失败:', error);
       setLoading(false);
       showErrorAlert('登录失败', toErrorMessage(error));
     }
   };
 
   const handleSubmit = async () => {
+    console.log(`[Login] handleSubmit - 类型: ${loginType}, 邮箱: ${email}`);
     if (loginType === 'register' && (!name || !email || !password)) {
       Alert.alert('错误', '请填写完整信息');
       return;
@@ -143,14 +148,14 @@ const LoginScreen = () => {
       let authResponse;
       
       if (loginType === 'register') {
-        // 注册新用户
+        console.log('[Login] 开始注册 - 用户名:', name);
         authResponse = await authService.register({
           username: name,
           email,
           password
         });
       } else {
-        // 登录
+        console.log('[Login] 开始登录 - 邮箱:', email);
         authResponse = await authService.login({
           email,
           password,
@@ -161,6 +166,7 @@ const LoginScreen = () => {
         });
       }
       
+      console.log(`[Login] ${loginType === 'register' ? '注册' : '登录'}成功`);
       await saveAuthData(authResponse);
       
       setLoading(false);
@@ -174,6 +180,7 @@ const LoginScreen = () => {
           router.replace('/ (tabs)');
       }
     } catch (error) {
+      console.error(`[Login] ${loginType === 'register' ? '注册' : '登录'}失败:`, error);
       setLoading(false);
       showErrorAlert(
         loginType === 'register' ? '注册失败' : '登录失败',

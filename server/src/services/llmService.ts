@@ -77,6 +77,7 @@ export class LLMService {
 
   // 生成技能树
   async generateSkillTree(request: SkillTreeGenerationRequest): Promise<SkillNode> {
+    console.log(`[LLMService] 生成技能树 - 领域: ${request.domain}, 等级: ${request.level}, 提供商: ${this.config.provider}`);
     const prompt = SKILL_TREE_PROMPT_TEMPLATE(
       request.domain,
       request.level,
@@ -87,16 +88,17 @@ export class LLMService {
       const response = await this.callLLM(prompt);
       const skillTree = this.parseLLMResponse(response);
       
-      // 确保ID唯一性
+      console.log(`[LLMService] 技能树生成成功`);
       return this.ensureUniqueIds(skillTree);
     } catch (error) {
-      console.error('LLM skill tree generation failed:', error);
+      console.error('[LLMService] 技能树生成失败:', error);
       throw new Error(`Failed to generate skill tree: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   // 调用大模型API
   private async callLLM(prompt: string): Promise<string> {
+    console.log(`[LLMService] 调用LLM - 提供商: ${this.config.provider}, 模型: ${this.config.model || 'default'}`);
     switch (this.config.provider) {
       case LLMProvider.OPENAI:
         return await this.callOpenAI(prompt);
