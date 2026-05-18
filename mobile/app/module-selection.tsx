@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, ScrollView } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, ScrollView, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../src/utils/constants';
+import { useTheme } from '../src/contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-type ModuleType = 'ai-product-manager' | 'personal-finance' | 'english-communication';
+type ModuleType = 'ai-product-manager' | 'personal-finance' | 'english-communication' | string;
 
 interface Module {
   id: ModuleType;
@@ -45,189 +45,82 @@ const predefinedModules: Module[] = [
 ];
 
 const ModuleSelectionScreen = () => {
-  const [selectedModules, setSelectedModules] = useState<ModuleType[]>(['ai-product-manager']);
+  const { colors } = useTheme();
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const isAddMode = mode === 'add';
+  const [selectedModules, setSelectedModules] = useState<ModuleType[]>([]);
+  const [existingModules, setExistingModules] = useState<ModuleType[]>([]);
+  const [customName, setCustomName] = useState('');
   const [fadeAnim] = useState(new Animated.Value(1));
+
+  useEffect(() => {
+    if (isAddMode) {
+      const loadExisting = async () => {
+        const stored = await AsyncStorage.getItem('selectedModules');
+        if (stored) {
+          const parsed = JSON.parse(stored) as ModuleType[];
+          setExistingModules(parsed);
+          setSelectedModules(parsed);
+        }
+      };
+      loadExisting();
+    } else {
+      setSelectedModules(['ai-product-manager']);
+    }
+  }, [isAddMode]);
+
+  const availableModules = isAddMode
+    ? predefinedModules.filter(m => !existingModules.includes(m.id))
+    : predefinedModules;
 
   const toggleModule = (id: ModuleType) => {
     if (selectedModules.includes(id)) {
+      if (isAddMode) return;
       console.log('[ModuleSelection] 取消选择模块:', id);
       setSelectedModules(selectedModules.filter(m => m !== id));
     } else {
-      if (selectedModules.length < 3) {
-        console.log('[ModuleSelection] 选择模块:', id);
-        setSelectedModules([...selectedModules, id]);
-      }
+      if (!isAddMode && selectedModules.length >= 3) return;
+      console.log('[ModuleSelection] 选择模块:', id);
+      setSelectedModules([...selectedModules, id]);
     }
+  };
+
+  const handleCreateCustom = async () => {
+    const trimmed = customName.trim();
+    if (!trimmed) {
+      Alert.alert('提示', '请输入模块名称');
+      return;
+    }
+
+    const customId = `custom-${Date.now()}`;
+    const customModulesStr = await AsyncStorage.getItem('customModules');
+    const customModules: Record<string, { name: string }> = customModulesStr ? JSON.parse(customModulesStr) : {};
+    customModules[customId] = { name: trimmed };
+    await AsyncStorage.setItem('customModules', JSON.stringify(customModules));
+
+    const newSelected = [...selectedModules, customId];
+    setSelectedModules(newSelected);
+    setCustomName('');
+    console.log('[ModuleSelection] 自定义模块创建完成:', trimmed);
   };
 
   const handleStart = async () => {
     console.log('[ModuleSelection] 确认选择模块:', selectedModules);
     await AsyncStorage.setItem('selectedModules', JSON.stringify(selectedModules));
-    await AsyncStorage.setItem('onboardingCompleted', 'true');
-    console.log('[ModuleSelection] 新手引导完成，进入主页');
-    router.replace('/(tabs)');
+    if (isAddMode) {
+      console.log('[ModuleSelection] 添加模块完成，返回主页');
+      router.back();
+    } else {
+      await AsyncStorage.setItem('onboardingCompleted', 'true');
+      console.log('[ModuleSelection] 新手引导完成，进入主页');
+      router.replace('/(tabs)');
+    }
   };
 
-  return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.content}>
-          <View style={styles.pixelBackground} />
-
-          <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
-            <View style={styles.monsterAvatarContainer}>
-              <MonsterAvatar />
-            </View>
-
-            <View style={styles.bubble}>
-              <View style={styles.bubbleTail} />
-              <Text style={styles.bubbleText}>小怪兽，我们要探索哪些领域呢？</Text>
-            </View>
-
-            <Text style={styles.title}>选择学习模块</Text>
-            <Text style={styles.subtitle}>最多选择 3 个模块开始学习</Text>
-          </Animated.View>
-
-          <Animated.View style={[styles.modulesContainer, { opacity: fadeAnim }]}>
-            {predefinedModules.map((module, index) => {
-              const isSelected = selectedModules.includes(module.id);
-              const canSelect = selectedModules.length < 3 || isSelected;
-
-              return (
-                <TouchableOpacity
-                  key={module.id}
-                  onPress={() => canSelect && toggleModule(module.id)}
-                  disabled={!canSelect}
-                  activeOpacity={0.7}
-                >
-                  <View
-                    style={[
-                      styles.moduleCard,
-                      {
-                        backgroundColor: isSelected ? module.color : '#0F1030',
-                        borderColor: module.color,
-                        opacity: canSelect ? 1 : 0.5,
-                      },
-                    ]}
-                  >
-                    <View style={styles.moduleCardContent}>
-                      <View
-                        style={[
-                          styles.iconContainer,
-                          {
-                            backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : module.color,
-                          },
-                        ]}
-                      >
-                        <Ionicons
-                          name={module.icon as any}
-                          size={28}
-                          color={isSelected ? '#FFFFFF' : '#1A1A2E'}
-                        />
-                      </View>
-
-                      <View style={styles.moduleInfo}>
-                        <Text style={[styles.moduleName, { color: isSelected ? '#FFFFFF' : '#E8E8F0' }]}>
-                          {module.name}
-                        </Text>
-                        <Text style={[styles.moduleDescription, { color: isSelected ? 'rgba(255,255,255,0.9)' : '#8888AA' }]}>
-                          {module.description}
-                        </Text>
-                        <View
-                          style={[
-                            styles.difficultyBadge,
-                            {
-                              backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : 'rgba(93,155,250,0.15)',
-                            },
-                          ]}
-                        >
-                          <Text style={[styles.difficultyText, { color: isSelected ? '#FFFFFF' : module.color }]}>
-                            {module.difficulty}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {isSelected && (
-                        <View style={styles.checkMark}>
-                          <Ionicons name="checkmark" size={18} color="#FFFFFF" />
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-
-            <View style={styles.customModuleCard}>
-              <View style={styles.customModuleContent}>
-                <View style={styles.customIconContainer}>
-                  <Ionicons name="add" size={28} color="#8888AA" />
-                </View>
-
-                <View style={styles.customModuleInfo}>
-                  <Text style={styles.customModuleName}>自定义模块</Text>
-                  <Text style={styles.customModuleDescription}>即将开放，敬请期待</Text>
-                </View>
-
-                <View style={styles.proBadge}>
-                  <Text style={styles.proText}>PRO</Text>
-                </View>
-              </View>
-            </View>
-          </Animated.View>
-
-          <Text style={styles.selectedCount}>已选择 {selectedModules.length}/3 个模块</Text>
-
-          <View style={styles.spacer} />
-
-          <TouchableOpacity
-            style={[
-              styles.startButton,
-              {
-                backgroundColor: selectedModules.length === 0 ? '#2A2A4A' : 'rgba(93,155,250,0.8)',
-                opacity: selectedModules.length === 0 ? 0.5 : 1,
-                shadowColor: selectedModules.length === 0 ? 'transparent' : COLORS.PRIMARY,
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: selectedModules.length === 0 ? 0 : 0.35,
-                shadowRadius: 24,
-                elevation: selectedModules.length === 0 ? 0 : 5,
-              },
-            ]}
-            onPress={handleStart}
-            disabled={selectedModules.length === 0}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.startButtonText}>开始学习之旅 ✨</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-};
-
-const MonsterAvatar = () => {
-  return (
-    <View style={styles.monsterAvatar}>
-      <View style={styles.monsterHeadAvatar}>
-        <View style={styles.monsterEyesAvatar}>
-          <View style={styles.eyeAvatar}>
-            <View style={styles.pupilAvatar} />
-          </View>
-          <View style={styles.eyeAvatar}>
-            <View style={styles.pupilAvatar} />
-          </View>
-        </View>
-        <View style={styles.mouthAvatar} />
-      </View>
-      <View style={styles.bodyAvatar} />
-    </View>
-  );
-};
-
-const styles = StyleSheet.create({
+  const styles = useMemo(() => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -262,7 +155,7 @@ const styles = StyleSheet.create({
   monsterHeadAvatar: {
     width: 40,
     height: 24,
-    backgroundColor: '#5D9BFA',
+    backgroundColor: colors.primary,
     position: 'absolute',
     top: 16,
     left: 20,
@@ -283,7 +176,7 @@ const styles = StyleSheet.create({
   pupilAvatar: {
     width: 4,
     height: 5,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.background,
     position: 'absolute',
     top: 2,
     left: 3,
@@ -291,7 +184,7 @@ const styles = StyleSheet.create({
   mouthAvatar: {
     width: 16,
     height: 4,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.background,
     position: 'absolute',
     top: 18,
     left: 12,
@@ -299,16 +192,16 @@ const styles = StyleSheet.create({
   bodyAvatar: {
     width: 32,
     height: 8,
-    backgroundColor: '#5D9BFA',
+    backgroundColor: colors.primary,
     position: 'absolute',
     top: 40,
     left: 24,
   },
   bubble: {
-    backgroundColor: '#0F1030',
+    backgroundColor: colors.card,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#5D9BFA',
+    borderColor: colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     marginBottom: 20,
@@ -321,26 +214,26 @@ const styles = StyleSheet.create({
     borderBottomWidth: 8,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderBottomColor: '#5D9BFA',
+    borderBottomColor: colors.primary,
     position: 'absolute',
     top: -8,
     left: '50%',
     marginLeft: -8,
   },
   bubbleText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 14,
     fontFamily: 'Courier',
   },
   title: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 24,
     fontWeight: '800',
     fontFamily: 'Courier',
     marginBottom: 4,
   },
   subtitle: {
-    color: '#8888AA',
+    color: colors.textSecondary,
     fontSize: 13,
     fontFamily: 'Courier',
   },
@@ -400,10 +293,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   customModuleCard: {
-    backgroundColor: '#0F1030',
+    backgroundColor: colors.card,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: colors.border,
     borderStyle: 'dashed',
     overflow: 'hidden',
     opacity: 0.6,
@@ -418,7 +311,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -427,14 +320,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   customModuleName: {
-    color: '#8888AA',
+    color: colors.textSecondary,
     fontSize: 18,
     fontWeight: '700',
     fontFamily: 'Courier',
     marginBottom: 4,
   },
   customModuleDescription: {
-    color: '#555577',
+    color: colors.textTertiary,
     fontSize: 13,
     fontFamily: 'Courier',
   },
@@ -445,14 +338,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   proText: {
-    color: '#FFD700',
+    color: colors.warning,
     fontSize: 10,
     fontWeight: '600',
     fontFamily: 'Courier',
   },
   selectedCount: {
     textAlign: 'center',
-    color: '#8888AA',
+    color: colors.textSecondary,
     fontSize: 13,
     fontFamily: 'Courier',
     marginTop: 24,
@@ -468,11 +361,223 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   startButtonText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '700',
     fontFamily: 'Courier',
   },
-});
+  customInputCard: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: colors.borderDark,
+    borderStyle: 'dashed',
+    padding: 12,
+    marginBottom: 8,
+  },
+  customInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  customTextInput: {
+    flex: 1,
+    backgroundColor: colors.inputBg,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: colors.textPrimary,
+    fontFamily: 'Courier',
+  },
+  customAddBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: colors.orange,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  customAddBtnDisabled: {
+    opacity: 0.4,
+  },
+}), [colors]);
+
+  const MonsterAvatar = () => {
+    return (
+      <View style={styles.monsterAvatar}>
+        <View style={styles.monsterHeadAvatar}>
+          <View style={styles.monsterEyesAvatar}>
+            <View style={styles.eyeAvatar}>
+              <View style={styles.pupilAvatar} />
+            </View>
+            <View style={styles.eyeAvatar}>
+              <View style={styles.pupilAvatar} />
+            </View>
+          </View>
+          <View style={styles.mouthAvatar} />
+        </View>
+        <View style={styles.bodyAvatar} />
+      </View>
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.content}>
+          <View style={styles.pixelBackground} />
+
+          <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
+            <View style={styles.monsterAvatarContainer}>
+              <MonsterAvatar />
+            </View>
+
+            <View style={styles.bubble}>
+              <View style={styles.bubbleTail} />
+              <Text style={styles.bubbleText}>小怪兽，我们要探索哪些领域呢？</Text>
+            </View>
+
+            <Text style={styles.title}>{isAddMode ? '添加学习模块' : '选择学习模块'}</Text>
+            <Text style={styles.subtitle}>{isAddMode ? `还可添加 ${3 - existingModules.length} 个模块` : '最多选择 3 个模块开始学习'}</Text>
+          </Animated.View>
+
+          <Animated.View style={[styles.modulesContainer, { opacity: fadeAnim }]}>
+            {availableModules.map((module) => {
+              const isSelected = selectedModules.includes(module.id);
+              const canSelect = selectedModules.length < 3 || isSelected;
+
+              return (
+                <TouchableOpacity
+                  key={module.id}
+                  onPress={() => canSelect && toggleModule(module.id)}
+                  disabled={!canSelect}
+                  activeOpacity={0.7}
+                >
+                  <View
+                    style={[
+                      styles.moduleCard,
+                      {
+                        backgroundColor: isSelected ? module.color : '#0F1030',
+                        borderColor: module.color,
+                        opacity: canSelect ? 1 : 0.5,
+                      },
+                    ]}
+                  >
+                    <View style={styles.moduleCardContent}>
+                      <View
+                        style={[
+                          styles.iconContainer,
+                          {
+                            backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : module.color,
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name={module.icon as any}
+                          size={28}
+                          color={isSelected ? '#FFFFFF' : '#1A1A2E'}
+                        />
+                      </View>
+
+                      <View style={styles.moduleInfo}>
+                        <Text style={[styles.moduleName, { color: isSelected ? '#FFFFFF' : '#E8E8F0' }]}>
+                          {module.name}
+                        </Text>
+                        <Text style={[styles.moduleDescription, { color: isSelected ? 'rgba(255,255,255,0.9)' : '#8888AA' }]}>
+                          {module.description}
+                        </Text>
+                        <View
+                          style={[
+                            styles.difficultyBadge,
+                            {
+                              backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : 'rgba(93,155,250,0.15)',
+                            },
+                          ]}
+                        >
+                          <Text style={[styles.difficultyText, { color: isSelected ? '#FFFFFF' : module.color }]}>
+                            {module.difficulty}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {isSelected && (
+                        <View style={styles.checkMark}>
+                          <Ionicons name="checkmark" size={18} color={colors.textPrimary} />
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+
+            {isAddMode ? (
+              <View style={styles.customInputCard}>
+                <View style={styles.customInputRow}>
+                  <TextInput
+                    style={styles.customTextInput}
+                    placeholder="输入自定义模块名称..."
+                    placeholderTextColor={colors.textTertiary}
+                    value={customName}
+                    onChangeText={setCustomName}
+                    maxLength={20}
+                  />
+                  <TouchableOpacity
+                    style={[styles.customAddBtn, !customName.trim() && styles.customAddBtnDisabled]}
+                    onPress={handleCreateCustom}
+                    disabled={!customName.trim()}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="add" size={20} color={colors.textPrimary} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.customModuleCard}>
+                <View style={styles.customModuleContent}>
+                  <View style={styles.customIconContainer}>
+                    <Ionicons name="create" size={28} color={colors.orange} />
+                  </View>
+                  <View style={styles.customModuleInfo}>
+                    <Text style={styles.customModuleName}>自定义模块</Text>
+                    <Text style={styles.customModuleDescription}>即将开放，敬请期待</Text>
+                  </View>
+                </View>
+              </View>
+            )}
+          </Animated.View>
+
+          <Text style={styles.selectedCount}>
+            {isAddMode ? `已选择 ${selectedModules.length} 个模块` : `已选择 ${selectedModules.length}/3 个模块`}
+          </Text>
+
+          <View style={styles.spacer} />
+
+          <TouchableOpacity
+            style={[
+              styles.startButton,
+              {
+                backgroundColor: selectedModules.length === 0 ? '#2A2A4A' : 'rgba(93,155,250,0.8)',
+                opacity: selectedModules.length === 0 ? 0.5 : 1,
+                shadowColor: selectedModules.length === 0 ? 'transparent' : colors.primary,
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: selectedModules.length === 0 ? 0 : 0.35,
+                shadowRadius: 24,
+                elevation: selectedModules.length === 0 ? 0 : 5,
+              },
+            ]}
+            onPress={handleStart}
+            disabled={isAddMode ? selectedModules.length === existingModules.length : selectedModules.length === 0}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.startButtonText}>{isAddMode ? '确认添加' : '开始学习之旅 ✨'}</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
 
 export default ModuleSelectionScreen;

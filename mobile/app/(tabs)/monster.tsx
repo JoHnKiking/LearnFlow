@@ -7,7 +7,7 @@ import MiniGames from '../../src/components/MiniGames';
 import { storage, STORAGE_KEYS } from '../../src/utils/storage';
 import { MONSTER_CONFIG } from '../../src/utils/constants';
 import { formatTimer } from '../../src/utils/helpers';
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 
 type ActiveTab = 'tasks' | 'notes' | 'chat';
 
@@ -24,7 +24,6 @@ const MonsterManageScreen = () => {
   const [pomodoroTimeLeft, setPomodoroTimeLeft] = useState<number>(selectedTime * 60);
   const [showGameModal, setShowGameModal] = useState(false);
   const [dailyPlays, setDailyPlays] = useState(0);
-  const [lastPlayDate, setLastPlayDate] = useState<string>('');
 
   useFocusEffect(
     useCallback(() => {
@@ -93,10 +92,8 @@ const MonsterManageScreen = () => {
       
       if (lastDate === today && plays !== null) {
         setDailyPlays(plays);
-        setLastPlayDate(lastDate);
       } else {
         setDailyPlays(0);
-        setLastPlayDate(today);
         await storage.setItem('dailyGamePlays', 0);
         await storage.setItem('lastPlayDate', today);
       }
@@ -250,9 +247,6 @@ const MonsterManageScreen = () => {
 
   const staminaPercent = (monsterData.stamina / monsterData.maxStamina) * 100;
   const paiPercent = (monsterData.paiEnergy / monsterData.maxPaiEnergy) * 100;
-
-  const monsterType = monsterData.type as keyof typeof MONSTER_CONFIG.PERSONALITIES;
-  const personality = MONSTER_CONFIG.PERSONALITIES[monsterType] || MONSTER_CONFIG.PERSONALITIES.calm;
 
   const renderTasksTab = () => (
     <View style={styles.tabContent}>

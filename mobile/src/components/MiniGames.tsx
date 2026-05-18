@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { MONSTER_CONFIG } from '../utils/constants';
+import { useTheme } from '../contexts/ThemeContext';
 
 type GameType = 'sudoku' | 'sokoban';
 type Screen = 'welcome' | 'tutorial' | 'game';
@@ -12,6 +12,637 @@ interface MiniGamesProps {
 }
 
 // 数独部分
+const MiniGames = ({ onGameComplete, onClose }: MiniGamesProps) => {
+  const { colors } = useTheme();
+  const [currentScreen, setCurrentScreen] = useState<Screen>('welcome');
+  const [currentGame, setCurrentGame] = useState<GameType>('sudoku');
+  const [gameWon, setGameWon] = useState(false);
+
+  const handleWin = () => {
+    console.log('[MiniGames] 游戏胜利');
+    setGameWon(true);
+  };
+
+  const handleCollectReward = () => {
+    console.log('[MiniGames] 领取奖励');
+    onGameComplete({ stamina: 5, energy: 3 });
+  };
+
+  const showTutorial = (gameType: GameType) => {
+    console.log('[MiniGames] 显示教程:', gameType);
+    setCurrentGame(gameType);
+    setCurrentScreen('tutorial');
+  };
+
+  const startGame = () => {
+    console.log('[MiniGames] 开始游戏:', currentGame);
+    setCurrentScreen('game');
+    setGameWon(false);
+  };
+
+  const goBack = () => {
+    console.log('[MiniGames] 返回，当前页面:', currentScreen);
+    if (currentScreen === 'game') {
+      setCurrentScreen('tutorial');
+    } else if (currentScreen === 'tutorial') {
+      setCurrentScreen('welcome');
+    } else {
+      setCurrentScreen('welcome');
+    }
+    setGameWon(false);
+  };
+
+  const styles = useMemo(() => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: colors.card,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderDark,
+  },
+  closeBtn: {
+    alignSelf: 'flex-end',
+    padding: 4,
+    marginBottom: 8,
+  },
+  title: {
+    color: colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '700',
+    fontFamily: 'Courier',
+  },
+  placeholder: {
+    width: 36,
+  },
+  gameSelector: {
+    flexDirection: 'row',
+    padding: 16,
+    gap: 12,
+  },
+  gameTab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 12,
+    backgroundColor: colors.borderDark,
+    borderWidth: 1,
+    borderColor: colors.borderDark,
+  },
+  gameTabActive: {
+    backgroundColor: 'rgba(93,155,250,0.3)',
+    borderColor: colors.primary,
+  },
+  gameTabText: {
+    color: colors.textSecondary,
+    fontSize: 16,
+    fontWeight: '600',
+    fontFamily: 'Courier',
+  },
+  gameTabTextActive: {
+    color: colors.primary,
+  },
+  content: {
+    flex: 1,
+  },
+  gameContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  newGameBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: colors.borderDark,
+    marginBottom: 20,
+  },
+  sudokuHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  solutionBtnActive: {
+    backgroundColor: 'rgba(255,107,107,0.1)',
+  },
+  newGameText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '600',
+    fontFamily: 'Courier',
+  },
+  // 数独样式
+  sudokuGrid: {
+    width: '100%',
+    aspectRatio: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    backgroundColor: colors.card,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  sudokuCell: {
+    width: '11.111%',
+    aspectRatio: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background,
+    borderWidth: 0.5,
+    borderColor: 'rgba(93,155,250,0.3)',
+  },
+  sudokuCellSelected: {
+    backgroundColor: colors.borderDark,
+  },
+  sudokuCellGiven: {
+    backgroundColor: colors.borderDark,
+  },
+  sudokuCellText: {
+    fontSize: 18,
+    fontWeight: '700',
+    fontFamily: 'Courier',
+  },
+  sudokuCellTextGiven: {
+    color: colors.primary,
+  },
+  sudokuCellTextUser: {
+    color: colors.warning,
+  },
+  sudokuCellTextSolution: {
+    color: colors.success,
+    opacity: 0.7,
+  },
+  numberPad: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 20,
+    justifyContent: 'center',
+  },
+  numberBtn: {
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.borderDark,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(93,155,250,0.3)',
+  },
+  numberBtnText: {
+    color: colors.primary,
+    fontSize: 20,
+    fontWeight: '700',
+    fontFamily: 'Courier',
+  },
+  numberBtnTextDisabled: {
+    color: '#555',
+  },
+  numberPadDisabled: {
+    opacity: 0.4,
+  },
+  clearBtn: {
+    backgroundColor: 'rgba(255,107,107,0.15)',
+    borderColor: 'rgba(255,107,107,0.3)',
+  },
+  // 推箱子样式
+  sokobanHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginBottom: 20,
+  },
+  levelName: {
+    color: colors.warning,
+    fontSize: 16,
+    fontWeight: '700',
+    fontFamily: 'Courier',
+  },
+  sokobanGrid: {
+    backgroundColor: colors.card,
+    borderWidth: 2,
+    borderColor: '#FF7D00',
+    borderRadius: 12,
+    padding: 8,
+    marginBottom: 24,
+  },
+  sokobanRow: {
+    flexDirection: 'row',
+  },
+  sokobanCell: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sokobanCellWall: {
+    backgroundColor: '#3A3A5C',
+  },
+  sokobanCellFloor: {
+    backgroundColor: colors.background,
+  },
+  sokobanCellTarget: {
+    backgroundColor: 'rgba(255,215,0,0.2)',
+  },
+  sokobanCellPlayer: {
+    backgroundColor: 'rgba(93,155,250,0.3)',
+  },
+  sokobanCellBox: {
+    backgroundColor: 'rgba(255,125,0,0.4)',
+  },
+  sokobanCellBoxOnTarget: {
+    backgroundColor: 'rgba(58,227,116,0.4)',
+  },
+  sokobanCellText: {
+    fontSize: 20,
+  },
+  sokobanControls: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  controlRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  controlBtn: {
+    width: 60,
+    height: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.borderDark,
+    borderWidth: 1,
+    borderColor: 'rgba(93,155,250,0.3)',
+    borderRadius: 12,
+  },
+  resetBtn: {
+    backgroundColor: 'rgba(255,215,0,0.15)',
+    borderColor: 'rgba(255,215,0,0.3)',
+  },
+  // 胜利界面
+  winContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 40,
+  },
+  winTitle: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: colors.warning,
+    marginBottom: 12,
+    fontFamily: 'Courier',
+  },
+  winText: {
+    fontSize: 18,
+    color: colors.textPrimary,
+    marginBottom: 32,
+    fontFamily: 'Courier',
+  },
+  rewardsContainer: {
+    flexDirection: 'row',
+    gap: 32,
+    marginBottom: 32,
+  },
+  rewardItem: {
+    alignItems: 'center',
+  },
+  rewardValue: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: colors.warning,
+    fontFamily: 'Courier',
+  },
+  rewardLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontFamily: 'Courier',
+  },
+  collectBtn: {
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    backgroundColor: colors.primary,
+    borderRadius: 16,
+  },
+  collectBtnText: {
+    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '700',
+    fontFamily: 'Courier',
+  },
+  // 欢迎页面样式
+  welcomeContent: {
+    flex: 1,
+    padding: 20,
+    paddingBottom: 40,
+  },
+  welcomeSection: {
+    alignItems: 'center',
+    marginBottom: 32,
+    marginTop: 20,
+  },
+  welcomeBackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    marginBottom: 8,
+  },
+  welcomeTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: colors.warning,
+    marginBottom: 8,
+    fontFamily: 'Courier',
+  },
+  welcomeSubtitle: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    fontFamily: 'Courier',
+  },
+  rewardsSection: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: colors.borderDark,
+  },
+  rewardsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 40,
+    marginBottom: 12,
+  },
+  rewardBox: {
+    alignItems: 'center',
+  },
+  rewardIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  rewardAmount: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: colors.warning,
+    fontFamily: 'Courier',
+  },
+  rewardName: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontFamily: 'Courier',
+  },
+  rewardNote: {
+    fontSize: 12,
+    color: colors.primary,
+    fontFamily: 'Courier',
+    textAlign: 'center',
+  },
+  gamesSection: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 12,
+    fontFamily: 'Courier',
+  },
+  gameCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    gap: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(93,155,250,0.15)',
+  },
+  gameCardIcon: {
+    width: 50,
+    height: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.borderDark,
+    borderRadius: 12,
+  },
+  gameCardIconText: {
+    fontSize: 28,
+  },
+  gameCardInfo: {
+    flex: 1,
+  },
+  gameCardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 6,
+    fontFamily: 'Courier',
+  },
+  gameCardDesc: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 8,
+    fontFamily: 'Courier',
+  },
+  gameCardRules: {
+    fontSize: 12,
+    color: colors.textTertiary,
+    fontFamily: 'Courier',
+    lineHeight: 18,
+  },
+  tipsSection: {
+    backgroundColor: 'rgba(255,215,0,0.1)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+  },
+  tipsText: {
+    fontSize: 13,
+    color: colors.textPrimary,
+    fontFamily: 'Courier',
+    lineHeight: 20,
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 40,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  backBtnText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    fontFamily: 'Courier',
+  },
+  gameCardArrow: {
+    fontSize: 20,
+    color: colors.textSecondary,
+    alignSelf: 'center',
+  },
+  // 教程页面样式
+  tutorialContent: {
+    flex: 1,
+    padding: 20,
+    paddingBottom: 60,
+  },
+  tutorialHeader: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  tutorialIcon: {
+    fontSize: 48,
+    marginBottom: 8,
+  },
+  tutorialTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: colors.warning,
+    fontFamily: 'Courier',
+  },
+  tutorialSection: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(93,155,250,0.15)',
+  },
+  tutorialSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 12,
+    fontFamily: 'Courier',
+  },
+  tutorialText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontFamily: 'Courier',
+    lineHeight: 20,
+  },
+  exampleGrid: {
+    marginTop: 12,
+  },
+  exampleTitle: {
+    fontSize: 13,
+    color: colors.primary,
+    fontFamily: 'Courier',
+    marginBottom: 8,
+  },
+  smallGrid: {
+    backgroundColor: colors.card,
+    borderRadius: 8,
+    padding: 4,
+  },
+  smallRow: {
+    flexDirection: 'row',
+  },
+  smallCell: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 0.5,
+    borderColor: 'rgba(93,155,250,0.3)',
+  },
+  smallCellText: {
+    fontSize: 12,
+    color: colors.primary,
+    fontFamily: 'Courier',
+  },
+  stepList: {
+    gap: 12,
+  },
+  stepItem: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+  },
+  stepNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.borderDark,
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '700',
+    fontFamily: 'Courier',
+    textAlign: 'center',
+    textAlignVertical: 'center',
+  },
+  stepText: {
+    fontSize: 14,
+    color: colors.textPrimary,
+    fontFamily: 'Courier',
+  },
+  legend: {
+    gap: 8,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+  },
+  legendIcon: {
+    fontSize: 20,
+  },
+  legendText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontFamily: 'Courier',
+  },
+  controlsExample: {
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  controlGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    width: 170,
+    gap: 8,
+  },
+  controlExampleBtn: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    backgroundColor: colors.borderDark,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  controlExampleBtnCenter: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,215,0,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  startBtn: {
+    marginTop: 8,
+    marginBottom: 40,
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+  },
+  startBtnText: {
+    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '700',
+    fontFamily: 'Courier',
+    textAlign: 'center',
+  },
+}), [colors]);
+
 const SudokuGame = ({ onWin }: { onWin: () => void }) => {
   const [board, setBoard] = useState<number[][]>([]);
   const [solution, setSolution] = useState<number[][]>([]);
@@ -122,7 +753,7 @@ const SudokuGame = ({ onWin }: { onWin: () => void }) => {
     <View style={styles.gameContainer}>
       <View style={styles.sudokuHeader}>
         <TouchableOpacity style={styles.newGameBtn} onPress={initGame}>
-          <Ionicons name="refresh" size={16} color="#5D9BFA" />
+          <Ionicons name="refresh" size={16} color={colors.primary} />
           <Text style={styles.newGameText}>新游戏</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -147,7 +778,7 @@ const SudokuGame = ({ onWin }: { onWin: () => void }) => {
                   selected?.row === rowIndex && selected?.col === colIndex && styles.sudokuCellSelected,
                   given[rowIndex][colIndex] && styles.sudokuCellGiven,
                   (colIndex === 2 || colIndex === 5) && { borderRightWidth: 2, borderRightColor: '#5D9BFA' },
-                  (rowIndex === 2 || rowIndex === 5) && { borderBottomWidth: 2, borderBottomColor: '#5D9BFA' },
+                  (rowIndex === 2 || rowIndex === 5) && { borderBottomWidth: 2, borderBottomColor: colors.primary },
                 ]}
                 onPress={() => setSelected({ row: rowIndex, col: colIndex })}
               >
@@ -181,9 +812,9 @@ const SudokuGame = ({ onWin }: { onWin: () => void }) => {
       </View>
     </View>
   );
+
 };
 
-// 推箱子部分
 const SokobanGame = ({ onWin }: { onWin: () => void }) => {
   const levels = [
     {
@@ -322,7 +953,7 @@ const SokobanGame = ({ onWin }: { onWin: () => void }) => {
       <View style={styles.sokobanHeader}>
         <Text style={styles.levelName}>{levels[currentLevel].name}</Text>
         <TouchableOpacity style={styles.newGameBtn} onPress={() => initLevel(Math.floor(Math.random() * levels.length))}>
-          <Ionicons name="refresh" size={16} color="#5D9BFA" />
+          <Ionicons name="refresh" size={16} color={colors.primary} />
           <Text style={styles.newGameText}>换一关</Text>
         </TouchableOpacity>
       </View>
@@ -350,70 +981,37 @@ const SokobanGame = ({ onWin }: { onWin: () => void }) => {
 
       <View style={styles.sokobanControls}>
         <TouchableOpacity style={styles.controlBtn} onPress={() => move(0, -1)}>
-          <Ionicons name="chevron-up" size={28} color="#5D9BFA" />
+          <Ionicons name="chevron-up" size={28} color={colors.primary} />
         </TouchableOpacity>
         <View style={styles.controlRow}>
           <TouchableOpacity style={styles.controlBtn} onPress={() => move(-1, 0)}>
-            <Ionicons name="chevron-back" size={28} color="#5D9BFA" />
+            <Ionicons name="chevron-back" size={28} color={colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity style={[styles.controlBtn, styles.resetBtn]} onPress={() => move(0, 0)}>
-            <Ionicons name="refresh" size={20} color="#FFD700" />
+            <Ionicons name="refresh" size={20} color={colors.warning} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.controlBtn} onPress={() => move(1, 0)}>
-            <Ionicons name="chevron-forward" size={28} color="#5D9BFA" />
+            <Ionicons name="chevron-forward" size={28} color={colors.primary} />
           </TouchableOpacity>
         </View>
         <TouchableOpacity style={styles.controlBtn} onPress={() => move(0, 1)}>
-          <Ionicons name="chevron-down" size={28} color="#5D9BFA" />
+          <Ionicons name="chevron-down" size={28} color={colors.primary} />
         </TouchableOpacity>
       </View>
     </View>
   );
+
 };
-
-const MiniGames = ({ onGameComplete, onClose }: MiniGamesProps) => {
-  const [currentScreen, setCurrentScreen] = useState<Screen>('welcome');
-  const [currentGame, setCurrentGame] = useState<GameType>('sudoku');
-  const [gameWon, setGameWon] = useState(false);
-
-  const handleWin = () => {
-    console.log('[MiniGames] 游戏胜利');
-    setGameWon(true);
-  };
-
-  const handleCollectReward = () => {
-    console.log('[MiniGames] 领取奖励');
-    onGameComplete({ stamina: 5, energy: 3 });
-  };
-
-  const showTutorial = (gameType: GameType) => {
-    console.log('[MiniGames] 显示教程:', gameType);
-    setCurrentGame(gameType);
-    setCurrentScreen('tutorial');
-  };
-
-  const startGame = () => {
-    console.log('[MiniGames] 开始游戏:', currentGame);
-    setCurrentScreen('game');
-    setGameWon(false);
-  };
-
-  const goBack = () => {
-    console.log('[MiniGames] 返回，当前页面:', currentScreen);
-    if (currentScreen === 'game') {
-      setCurrentScreen('tutorial');
-    } else if (currentScreen === 'tutorial') {
-      setCurrentScreen('welcome');
-    } else {
-      setCurrentScreen('welcome');
-    }
-    setGameWon(false);
-  };
 
   return (
     <View style={styles.container}>
       {currentScreen === 'welcome' && (
         <ScrollView style={styles.welcomeContent} showsVerticalScrollIndicator={false}>
+          <TouchableOpacity onPress={onClose} style={styles.welcomeBackBtn}>
+            <Ionicons name="arrow-back" size={20} color={colors.textSecondary} />
+            <Text style={styles.backBtnText}>返回</Text>
+          </TouchableOpacity>
+
           <View style={styles.welcomeSection}>
             <Text style={styles.welcomeTitle}>🎮 游戏恢复</Text>
             <Text style={styles.welcomeSubtitle}>完成小游戏，恢复体力和能量！</Text>
@@ -495,7 +1093,7 @@ const MiniGames = ({ onGameComplete, onClose }: MiniGamesProps) => {
       {currentScreen === 'tutorial' && (
         <ScrollView style={styles.tutorialContent} showsVerticalScrollIndicator={false}>
           <TouchableOpacity onPress={goBack} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={20} color="#8888AA" />
+            <Ionicons name="arrow-back" size={20} color={colors.textSecondary} />
             <Text style={styles.backBtnText}>返回</Text>
           </TouchableOpacity>
 
@@ -659,7 +1257,7 @@ const MiniGames = ({ onGameComplete, onClose }: MiniGamesProps) => {
         !gameWon ? (
           <>
             <TouchableOpacity onPress={goBack} style={styles.backBtn}>
-              <Ionicons name="arrow-back" size={20} color="#8888AA" />
+              <Ionicons name="arrow-back" size={20} color={colors.textSecondary} />
               <Text style={styles.backBtnText}>返回教程</Text>
             </TouchableOpacity>
 
@@ -705,588 +1303,8 @@ const MiniGames = ({ onGameComplete, onClose }: MiniGamesProps) => {
       )}
     </View>
   );
-};
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1A1A2E',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#0F1030',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(93,155,250,0.2)',
-  },
-  closeBtn: {
-    alignSelf: 'flex-end',
-    padding: 4,
-    marginBottom: 8,
-  },
-  title: {
-    color: '#E8E8F0',
-    fontSize: 18,
-    fontWeight: '700',
-    fontFamily: 'Courier',
-  },
-  placeholder: {
-    width: 36,
-  },
-  gameSelector: {
-    flexDirection: 'row',
-    padding: 16,
-    gap: 12,
-  },
-  gameTab: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderRadius: 12,
-    backgroundColor: 'rgba(93,155,250,0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.2)',
-  },
-  gameTabActive: {
-    backgroundColor: 'rgba(93,155,250,0.3)',
-    borderColor: '#5D9BFA',
-  },
-  gameTabText: {
-    color: '#8888AA',
-    fontSize: 16,
-    fontWeight: '600',
-    fontFamily: 'Courier',
-  },
-  gameTabTextActive: {
-    color: '#5D9BFA',
-  },
-  content: {
-    flex: 1,
-  },
-  gameContainer: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  newGameBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: 'rgba(93,155,250,0.1)',
-    marginBottom: 20,
-  },
-  sudokuHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  solutionBtnActive: {
-    backgroundColor: 'rgba(255,107,107,0.1)',
-  },
-  newGameText: {
-    color: '#5D9BFA',
-    fontSize: 14,
-    fontWeight: '600',
-    fontFamily: 'Courier',
-  },
-  // 数独样式
-  sudokuGrid: {
-    width: '100%',
-    aspectRatio: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    backgroundColor: '#0F1030',
-    borderWidth: 2,
-    borderColor: '#5D9BFA',
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  sudokuCell: {
-    width: '11.111%',
-    aspectRatio: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1A1A2E',
-    borderWidth: 0.5,
-    borderColor: 'rgba(93,155,250,0.3)',
-  },
-  sudokuCellSelected: {
-    backgroundColor: 'rgba(93,155,250,0.2)',
-  },
-  sudokuCellGiven: {
-    backgroundColor: 'rgba(93,155,250,0.1)',
-  },
-  sudokuCellText: {
-    fontSize: 18,
-    fontWeight: '700',
-    fontFamily: 'Courier',
-  },
-  sudokuCellTextGiven: {
-    color: '#5D9BFA',
-  },
-  sudokuCellTextUser: {
-    color: '#FFD700',
-  },
-  sudokuCellTextSolution: {
-    color: '#3AE374',
-    opacity: 0.7,
-  },
-  numberPad: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 20,
-    justifyContent: 'center',
-  },
-  numberBtn: {
-    width: 48,
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(93,155,250,0.15)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.3)',
-  },
-  numberBtnText: {
-    color: '#5D9BFA',
-    fontSize: 20,
-    fontWeight: '700',
-    fontFamily: 'Courier',
-  },
-  numberBtnTextDisabled: {
-    color: '#555',
-  },
-  numberPadDisabled: {
-    opacity: 0.4,
-  },
-  clearBtn: {
-    backgroundColor: 'rgba(255,107,107,0.15)',
-    borderColor: 'rgba(255,107,107,0.3)',
-  },
-  // 推箱子样式
-  sokobanHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    marginBottom: 20,
-  },
-  levelName: {
-    color: '#FFD700',
-    fontSize: 16,
-    fontWeight: '700',
-    fontFamily: 'Courier',
-  },
-  sokobanGrid: {
-    backgroundColor: '#0F1030',
-    borderWidth: 2,
-    borderColor: '#FF7D00',
-    borderRadius: 12,
-    padding: 8,
-    marginBottom: 24,
-  },
-  sokobanRow: {
-    flexDirection: 'row',
-  },
-  sokobanCell: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sokobanCellWall: {
-    backgroundColor: '#3A3A5C',
-  },
-  sokobanCellFloor: {
-    backgroundColor: '#1A1A2E',
-  },
-  sokobanCellTarget: {
-    backgroundColor: 'rgba(255,215,0,0.2)',
-  },
-  sokobanCellPlayer: {
-    backgroundColor: 'rgba(93,155,250,0.3)',
-  },
-  sokobanCellBox: {
-    backgroundColor: 'rgba(255,125,0,0.4)',
-  },
-  sokobanCellBoxOnTarget: {
-    backgroundColor: 'rgba(58,227,116,0.4)',
-  },
-  sokobanCellText: {
-    fontSize: 20,
-  },
-  sokobanControls: {
-    alignItems: 'center',
-    gap: 8,
-  },
-  controlRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  controlBtn: {
-    width: 60,
-    height: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(93,155,250,0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.3)',
-    borderRadius: 12,
-  },
-  resetBtn: {
-    backgroundColor: 'rgba(255,215,0,0.15)',
-    borderColor: 'rgba(255,215,0,0.3)',
-  },
-  // 胜利界面
-  winContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 40,
-  },
-  winTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#FFD700',
-    marginBottom: 12,
-    fontFamily: 'Courier',
-  },
-  winText: {
-    fontSize: 18,
-    color: '#E8E8F0',
-    marginBottom: 32,
-    fontFamily: 'Courier',
-  },
-  rewardsContainer: {
-    flexDirection: 'row',
-    gap: 32,
-    marginBottom: 32,
-  },
-  rewardItem: {
-    alignItems: 'center',
-  },
-  rewardValue: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#FFD700',
-    fontFamily: 'Courier',
-  },
-  rewardLabel: {
-    fontSize: 14,
-    color: '#8888AA',
-    fontFamily: 'Courier',
-  },
-  collectBtn: {
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    backgroundColor: '#5D9BFA',
-    borderRadius: 16,
-  },
-  collectBtnText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-    fontFamily: 'Courier',
-  },
-  // 欢迎页面样式
-  welcomeContent: {
-    flex: 1,
-    padding: 20,
-    paddingBottom: 40,
-  },
-  welcomeSection: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  welcomeTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#FFD700',
-    marginBottom: 8,
-    fontFamily: 'Courier',
-  },
-  welcomeSubtitle: {
-    fontSize: 16,
-    color: '#8888AA',
-    fontFamily: 'Courier',
-  },
-  rewardsSection: {
-    backgroundColor: '#16213E',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.2)',
-  },
-  rewardsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 40,
-    marginBottom: 12,
-  },
-  rewardBox: {
-    alignItems: 'center',
-  },
-  rewardIcon: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
-  rewardAmount: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#FFD700',
-    fontFamily: 'Courier',
-  },
-  rewardName: {
-    fontSize: 14,
-    color: '#8888AA',
-    fontFamily: 'Courier',
-  },
-  rewardNote: {
-    fontSize: 12,
-    color: '#5D9BFA',
-    fontFamily: 'Courier',
-    textAlign: 'center',
-  },
-  gamesSection: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#E8E8F0',
-    marginBottom: 12,
-    fontFamily: 'Courier',
-  },
-  gameCard: {
-    backgroundColor: '#16213E',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    gap: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.15)',
-  },
-  gameCardIcon: {
-    width: 50,
-    height: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(93,155,250,0.1)',
-    borderRadius: 12,
-  },
-  gameCardIconText: {
-    fontSize: 28,
-  },
-  gameCardInfo: {
-    flex: 1,
-  },
-  gameCardTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#E8E8F0',
-    marginBottom: 6,
-    fontFamily: 'Courier',
-  },
-  gameCardDesc: {
-    fontSize: 13,
-    color: '#8888AA',
-    marginBottom: 8,
-    fontFamily: 'Courier',
-  },
-  gameCardRules: {
-    fontSize: 12,
-    color: '#555577',
-    fontFamily: 'Courier',
-    lineHeight: 18,
-  },
-  tipsSection: {
-    backgroundColor: 'rgba(255,215,0,0.1)',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-  },
-  tipsText: {
-    fontSize: 13,
-    color: '#E8E8F0',
-    fontFamily: 'Courier',
-    lineHeight: 20,
-  },
-  backBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  backBtnText: {
-    color: '#8888AA',
-    fontSize: 14,
-    fontFamily: 'Courier',
-  },
-  gameCardArrow: {
-    fontSize: 20,
-    color: '#8888AA',
-    alignSelf: 'center',
-  },
-  // 教程页面样式
-  tutorialContent: {
-    flex: 1,
-    padding: 20,
-    paddingBottom: 60,
-  },
-  tutorialHeader: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  tutorialIcon: {
-    fontSize: 48,
-    marginBottom: 8,
-  },
-  tutorialTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#FFD700',
-    fontFamily: 'Courier',
-  },
-  tutorialSection: {
-    backgroundColor: '#16213E',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.15)',
-  },
-  tutorialSectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#E8E8F0',
-    marginBottom: 12,
-    fontFamily: 'Courier',
-  },
-  tutorialText: {
-    fontSize: 14,
-    color: '#8888AA',
-    fontFamily: 'Courier',
-    lineHeight: 20,
-  },
-  exampleGrid: {
-    marginTop: 12,
-  },
-  exampleTitle: {
-    fontSize: 13,
-    color: '#5D9BFA',
-    fontFamily: 'Courier',
-    marginBottom: 8,
-  },
-  smallGrid: {
-    backgroundColor: '#0F1030',
-    borderRadius: 8,
-    padding: 4,
-  },
-  smallRow: {
-    flexDirection: 'row',
-  },
-  smallCell: {
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 0.5,
-    borderColor: 'rgba(93,155,250,0.3)',
-  },
-  smallCellText: {
-    fontSize: 12,
-    color: '#5D9BFA',
-    fontFamily: 'Courier',
-  },
-  stepList: {
-    gap: 12,
-  },
-  stepItem: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-  },
-  stepNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(93,155,250,0.2)',
-    color: '#5D9BFA',
-    fontSize: 14,
-    fontWeight: '700',
-    fontFamily: 'Courier',
-    textAlign: 'center',
-    textAlignVertical: 'center',
-  },
-  stepText: {
-    fontSize: 14,
-    color: '#E8E8F0',
-    fontFamily: 'Courier',
-  },
-  legend: {
-    gap: 8,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    gap: 10,
-    alignItems: 'center',
-  },
-  legendIcon: {
-    fontSize: 20,
-  },
-  legendText: {
-    fontSize: 13,
-    color: '#8888AA',
-    fontFamily: 'Courier',
-  },
-  controlsExample: {
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  controlGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    width: 170,
-    gap: 8,
-  },
-  controlExampleBtn: {
-    width: 50,
-    height: 50,
-    borderRadius: 12,
-    backgroundColor: 'rgba(93,155,250,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  controlExampleBtnCenter: {
-    width: 50,
-    height: 50,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,215,0,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  startBtn: {
-    marginTop: 8,
-    marginBottom: 40,
-    paddingVertical: 14,
-    borderRadius: 16,
-    backgroundColor: '#5D9BFA',
-  },
-  startBtnText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-    fontFamily: 'Courier',
-    textAlign: 'center',
-  },
-});
+
+};
 
 export default MiniGames;

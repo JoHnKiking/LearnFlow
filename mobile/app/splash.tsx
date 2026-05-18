@@ -2,9 +2,10 @@ import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { COLORS } from '../src/utils/constants';
+import { useTheme } from '../src/contexts/ThemeContext';
 
 const SplashScreen = () => {
+  const { colors } = useTheme();
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const translateYAnim = React.useRef(new Animated.Value(20)).current;
   const scaleAnim = React.useRef(new Animated.Value(0.8)).current;
@@ -59,6 +60,83 @@ const SplashScreen = () => {
 
     return () => clearTimeout(timer);
   }, []);
+
+  const styles = useMemo(() => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#0D0D1A',
+  },
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    paddingHorizontal: 20,
+  },
+  starsContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  star: {
+    position: 'absolute',
+    width: 4,
+    height: 4,
+    backgroundColor: '#FFE66D',
+  },
+  planetContainer: {
+    marginBottom: 48,
+  },
+  planet: {
+    width: 120,
+    height: 120,
+  },
+  planetBody: {
+    position: 'relative',
+    width: 72,
+    height: 72,
+    top: 24,
+    left: 24,
+  },
+  planetLayer: {
+    position: 'absolute',
+    backgroundColor: '#5D9BFA',
+  },
+  continent: {
+    position: 'absolute',
+    backgroundColor: '#3AE374',
+  },
+  titleContainer: {
+    alignItems: 'center',
+  },
+  title: {
+    color: '#FFFFFF',
+    fontSize: 32,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    fontFamily: 'Courier',
+    marginBottom: 8,
+  },
+  subtitle: {
+    color: '#5D9BFA',
+    fontSize: 16,
+    fontFamily: 'Courier',
+    letterSpacing: 2,
+  },
+  dotsContainer: {
+    position: 'absolute',
+    bottom: 64,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    backgroundColor: '#5D9BFA',
+  },
+}), [colors]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -143,81 +221,6 @@ const PixelPlanet = () => (
   </View>
 );
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0D0D1A',
-  },
-  content: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    paddingHorizontal: 20,
-  },
-  starsContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  star: {
-    position: 'absolute',
-    width: 4,
-    height: 4,
-    backgroundColor: '#FFE66D',
-  },
-  planetContainer: {
-    marginBottom: 48,
-  },
-  planet: {
-    width: 120,
-    height: 120,
-  },
-  planetBody: {
-    position: 'relative',
-    width: 72,
-    height: 72,
-    top: 24,
-    left: 24,
-  },
-  planetLayer: {
-    position: 'absolute',
-    backgroundColor: '#5D9BFA',
-  },
-  continent: {
-    position: 'absolute',
-    backgroundColor: '#3AE374',
-  },
-  titleContainer: {
-    alignItems: 'center',
-  },
-  title: {
-    color: '#FFFFFF',
-    fontSize: 32,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-    fontFamily: 'Courier',
-    marginBottom: 8,
-  },
-  subtitle: {
-    color: '#5D9BFA',
-    fontSize: 16,
-    fontFamily: 'Courier',
-    letterSpacing: 2,
-  },
-  dotsContainer: {
-    position: 'absolute',
-    bottom: 64,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    backgroundColor: '#5D9BFA',
-  },
-});
+
 
 export default SplashScreen;

@@ -1,16 +1,17 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Alert, ScrollView, TouchableOpacity, TextInput, Keyboard, Platform, Dimensions, KeyboardAvoidingView } from 'react-native';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, Alert, ScrollView, TouchableOpacity, TextInput, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../src/utils/constants';
+import { useTheme } from '../src/contexts/ThemeContext';
 import { authService } from '../src/services/api';
 import { saveAuthData } from '../src/utils/auth';
-import { showErrorAlert, toErrorMessage, createKeyboardPositioningListener, measureInputPosition, measureInputPositionByRef, getInputPositioningStyle } from '../src/utils';
+import { showErrorAlert, toErrorMessage, createKeyboardPositioningListener, measureInputPosition, measureInputPositionByRef } from '../src/utils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '../src/utils/storage';
 
 const RegisterScreen = () => {
+  const { colors } = useTheme();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,8 +19,6 @@ const RegisterScreen = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const [inputOffset, setInputOffset] = useState(0);
   const [activeInputY, setActiveInputY] = useState(0);
   const [isKeyboardActive, setIsKeyboardActive] = useState(false);
   
@@ -31,16 +30,11 @@ const RegisterScreen = () => {
 
   useEffect(() => {
     const cleanup = createKeyboardPositioningListener(
-      (keyboardH, offset) => {
-        setKeyboardHeight(keyboardH);
-        setInputOffset(offset);
+      () => {
         setIsKeyboardActive(true);
       },
       () => {
-        setKeyboardHeight(0);
-        setInputOffset(0);
         setIsKeyboardActive(false);
-        // 键盘收起时自动滚动回顶部
         if (scrollViewRef.current) {
           scrollViewRef.current.scrollTo({ y: 0, animated: true });
         }
@@ -173,6 +167,203 @@ const RegisterScreen = () => {
     router.push('/login');
   };
 
+  const styles = useMemo(() => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 0, // 平时底部限制死
+    minHeight: Dimensions.get('window').height, // 平时内容高度刚好等于屏幕高度
+  },
+  scrollContentActive: {
+    paddingBottom: 100, // 键盘激活时增加底部内边距
+    minHeight: Dimensions.get('window').height + 200, // 键盘激活时确保内容高度超过屏幕高度
+  },
+  backgroundDecorations: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    overflow: 'hidden',
+  },
+  gradientCircle1: {
+    position: 'absolute',
+    top: -80,
+    right: -80,
+    width: 256,
+    height: 256,
+    borderRadius: 128,
+    backgroundColor: colors.primary,
+    opacity: 0.1,
+  },
+  gradientCircle2: {
+    position: 'absolute',
+    top: '33%',
+    left: -80,
+    width: 192,
+    height: 192,
+    borderRadius: 96,
+    backgroundColor: colors.orange,
+    opacity: 0.08,
+  },
+  gradientCircle3: {
+    position: 'absolute',
+    bottom: 80,
+    right: 40,
+    width: 128,
+    height: 128,
+    borderRadius: 64,
+    backgroundColor: colors.success,
+    opacity: 0.06,
+  },
+  logoSection: {
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingBottom: 40,
+  },
+  logoContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    backgroundColor: 'linear-gradient(135deg, #5D9BFA, #7B5EA7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 32,
+    elevation: 5,
+  },
+  appTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#fff',
+    marginBottom: 4,
+    letterSpacing: -0.5,
+  },
+  appSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  formContainer: {
+    gap: 16,
+  },
+  inputContainer: {
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.backgroundDark,
+    borderWidth: 1,
+    borderColor: 'rgba(93,155,250,0.2)',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+  },
+  inputIcon: {
+    marginRight: 12,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 15,
+    color: colors.textPrimary,
+    paddingVertical: 0,
+  },
+  passwordToggle: {
+    padding: 4,
+  },
+  registerButton: {
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: 'rgba(93,155,250,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    elevation: 5,
+  },
+  registerButtonDisabled: {
+    backgroundColor: '#2A2A4A',
+    shadowOpacity: 0,
+  },
+  registerButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  loadingSpinner: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#fff',
+    borderTopColor: 'transparent',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+    gap: 12,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  dividerText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+  },
+  socialContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 32,
+  },
+  socialButton: {
+    flex: 1,
+    height: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.backgroundDark,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 16,
+  },
+  socialButtonText: {
+    fontSize: 13,
+    color: colors.textPrimary,
+  },
+  loginContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  loginText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  loginLink: {
+    color: colors.primary,
+    fontWeight: '700',
+    marginLeft: 4,
+  },
+  termsText: {
+    textAlign: 'center',
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginBottom: 20,
+  },
+  termsLink: {
+    color: colors.primary,
+  },
+}), [colors]);
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <ScrollView 
@@ -208,12 +399,12 @@ const RegisterScreen = () => {
             style={styles.inputContainer}
             onLayout={handleInputLayout}
           >
-            <Ionicons name="person" size={20} color={COLORS.PRIMARY} style={styles.inputIcon} />
+            <Ionicons name="person" size={20} color={colors.primary} style={styles.inputIcon} />
             <TextInput
               ref={usernameInputRef}
               style={styles.textInput}
               placeholder="用户名"
-              placeholderTextColor={COLORS.TEXT_SECONDARY}
+              placeholderTextColor={colors.textSecondary}
               value={username}
               onChangeText={setUsername}
               autoCapitalize="none"
@@ -226,12 +417,12 @@ const RegisterScreen = () => {
             style={styles.inputContainer}
             onLayout={handleInputLayout}
           >
-            <Ionicons name="mail" size={20} color={COLORS.PRIMARY} style={styles.inputIcon} />
+            <Ionicons name="mail" size={20} color={colors.primary} style={styles.inputIcon} />
             <TextInput
               ref={emailInputRef}
               style={styles.textInput}
               placeholder="邮箱"
-              placeholderTextColor={COLORS.TEXT_SECONDARY}
+              placeholderTextColor={colors.textSecondary}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -245,12 +436,12 @@ const RegisterScreen = () => {
             style={styles.inputContainer}
             onLayout={handleInputLayout}
           >
-            <Ionicons name="lock-closed" size={20} color={COLORS.PRIMARY} style={styles.inputIcon} />
+            <Ionicons name="lock-closed" size={20} color={colors.primary} style={styles.inputIcon} />
             <TextInput
               ref={passwordInputRef}
               style={styles.textInput}
               placeholder="密码"
-              placeholderTextColor={COLORS.TEXT_SECONDARY}
+              placeholderTextColor={colors.textSecondary}
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
@@ -265,7 +456,7 @@ const RegisterScreen = () => {
               <Ionicons 
                 name={showPassword ? "eye-off" : "eye"} 
                 size={20} 
-                color={COLORS.TEXT_SECONDARY} 
+                color={colors.textSecondary} 
               />
             </TouchableOpacity>
           </View>
@@ -274,12 +465,12 @@ const RegisterScreen = () => {
             style={styles.inputContainer}
             onLayout={handleInputLayout}
           >
-            <Ionicons name="lock-closed" size={20} color={COLORS.PRIMARY} style={styles.inputIcon} />
+            <Ionicons name="lock-closed" size={20} color={colors.primary} style={styles.inputIcon} />
             <TextInput
               ref={confirmPasswordInputRef}
               style={styles.textInput}
               placeholder="确认密码"
-              placeholderTextColor={COLORS.TEXT_SECONDARY}
+              placeholderTextColor={colors.textSecondary}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry={!showConfirmPassword}
@@ -294,7 +485,7 @@ const RegisterScreen = () => {
               <Ionicons 
                 name={showConfirmPassword ? "eye-off" : "eye"} 
                 size={20} 
-                color={COLORS.TEXT_SECONDARY} 
+                color={colors.textSecondary} 
               />
             </TouchableOpacity>
           </View>
@@ -358,203 +549,8 @@ const RegisterScreen = () => {
         </ScrollView>
       </SafeAreaView>
     );
-};
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.BACKGROUND,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingBottom: 0, // 平时底部限制死
-    minHeight: Dimensions.get('window').height, // 平时内容高度刚好等于屏幕高度
-  },
-  scrollContentActive: {
-    paddingBottom: 100, // 键盘激活时增加底部内边距
-    minHeight: Dimensions.get('window').height + 200, // 键盘激活时确保内容高度超过屏幕高度
-  },
-  backgroundDecorations: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    overflow: 'hidden',
-  },
-  gradientCircle1: {
-    position: 'absolute',
-    top: -80,
-    right: -80,
-    width: 256,
-    height: 256,
-    borderRadius: 128,
-    backgroundColor: COLORS.PRIMARY,
-    opacity: 0.1,
-  },
-  gradientCircle2: {
-    position: 'absolute',
-    top: '33%',
-    left: -80,
-    width: 192,
-    height: 192,
-    borderRadius: 96,
-    backgroundColor: COLORS.ORANGE,
-    opacity: 0.08,
-  },
-  gradientCircle3: {
-    position: 'absolute',
-    bottom: 80,
-    right: 40,
-    width: 128,
-    height: 128,
-    borderRadius: 64,
-    backgroundColor: COLORS.SUCCESS,
-    opacity: 0.06,
-  },
-  logoSection: {
-    alignItems: 'center',
-    paddingTop: 60,
-    paddingBottom: 40,
-  },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
-    backgroundColor: 'linear-gradient(135deg, #5D9BFA, #7B5EA7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: COLORS.PRIMARY,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 32,
-    elevation: 5,
-  },
-  appTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#fff',
-    marginBottom: 4,
-    letterSpacing: -0.5,
-  },
-  appSubtitle: {
-    fontSize: 14,
-    color: COLORS.TEXT_SECONDARY,
-  },
-  formContainer: {
-    gap: 16,
-  },
-  inputContainer: {
-    height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.BACKGROUND_DARK,
-    borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.2)',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  textInput: {
-    flex: 1,
-    fontSize: 15,
-    color: COLORS.TEXT_PRIMARY,
-    paddingVertical: 0,
-  },
-  passwordToggle: {
-    padding: 4,
-  },
-  registerButton: {
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: 'rgba(93,155,250,0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: COLORS.PRIMARY,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 24,
-    elevation: 5,
-  },
-  registerButtonDisabled: {
-    backgroundColor: '#2A2A4A',
-    shadowOpacity: 0,
-  },
-  registerButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  loadingSpinner: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#fff',
-    borderTopColor: 'transparent',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 24,
-    gap: 12,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  dividerText: {
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 13,
-  },
-  socialContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 32,
-  },
-  socialButton: {
-    flex: 1,
-    height: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: COLORS.BACKGROUND_DARK,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 16,
-  },
-  socialButtonText: {
-    fontSize: 13,
-    color: COLORS.TEXT_PRIMARY,
-  },
-  loginContainer: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  loginText: {
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 14,
-  },
-  loginLink: {
-    color: COLORS.PRIMARY,
-    fontWeight: '700',
-    marginLeft: 4,
-  },
-  termsText: {
-    textAlign: 'center',
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 12,
-    marginBottom: 20,
-  },
-  termsLink: {
-    color: COLORS.PRIMARY,
-  },
-});
+
+};
 
 export default RegisterScreen;

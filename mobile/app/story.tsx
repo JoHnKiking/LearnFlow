@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../src/utils/constants';
+import { useTheme } from '../src/contexts/ThemeContext';
 
 // 页面路由常量
 const ROUTES = {
@@ -178,6 +178,7 @@ const StaminaFrame = () => (
  * 展示欢迎引导动画，帮助用户了解应用功能
  */
 const StoryScreen = () => {
+  const { colors } = useTheme();
   const { currentFrame, slideAnimation, goToNextFrame, skipToSelection } = useStoryAnimation(STORY_FRAMES.length);
 
   const currentStory = STORY_FRAMES[currentFrame];
@@ -199,61 +200,7 @@ const StoryScreen = () => {
     }),
   };
 
-  return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.content}>
-        <View style={styles.pixelBackground} />
-
-        {/* 跳过按钮 */}
-        <TouchableOpacity style={styles.skipButton} onPress={skipToSelection}>
-          <Text style={styles.skipText}>跳过</Text>
-          <Ionicons name="chevron-forward" size={16} color="#8888AA" />
-        </TouchableOpacity>
-
-        {/* 故事内容区域 */}
-        <View style={styles.storyContainer}>
-          <Animated.View
-            style={[styles.storyContent, animatedStyle]}
-          >
-            <View style={styles.illustrationContainer}>
-              <StoryIllustration frameIndex={currentFrame} />
-            </View>
-
-            <Text style={styles.title}>{currentStory.title}</Text>
-            <Text style={styles.text}>{currentStory.text}</Text>
-            <Text style={styles.subtext}>{currentStory.subtext}</Text>
-          </Animated.View>
-        </View>
-
-        {/* 进度指示器 */}
-        <View style={styles.progressContainer}>
-          {STORY_FRAMES.map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.progressDot,
-                {
-                  backgroundColor: index === currentFrame ? '#5D9BFA' : 'rgba(255,255,255,0.2)',
-                  transform: [{ scale: index === currentFrame ? 1.5 : 1 }],
-                },
-              ]}
-            />
-          ))}
-        </View>
-
-        {/* 下一步按钮 */}
-        <TouchableOpacity style={styles.nextButton} onPress={goToNextFrame}>
-          <Text style={styles.nextButtonText}>
-            {isLastFrame ? '开始冒险' : '继续'}
-          </Text>
-          <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
-  );
-};
-
-const styles = StyleSheet.create({
+  const styles = useMemo(() => StyleSheet.create({
   // 容器样式
   container: {
     flex: 1,
@@ -373,7 +320,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(93,155,250,0.8)',
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: COLORS.PRIMARY,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.35,
     shadowRadius: 24,
@@ -617,6 +564,60 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-});
+}), [colors]);
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <View style={styles.content}>
+        <View style={styles.pixelBackground} />
+
+        {/* 跳过按钮 */}
+        <TouchableOpacity style={styles.skipButton} onPress={skipToSelection}>
+          <Text style={styles.skipText}>跳过</Text>
+          <Ionicons name="chevron-forward" size={16} color="#8888AA" />
+        </TouchableOpacity>
+
+        {/* 故事内容区域 */}
+        <View style={styles.storyContainer}>
+          <Animated.View
+            style={[styles.storyContent, animatedStyle]}
+          >
+            <View style={styles.illustrationContainer}>
+              <StoryIllustration frameIndex={currentFrame} />
+            </View>
+
+            <Text style={styles.title}>{currentStory.title}</Text>
+            <Text style={styles.text}>{currentStory.text}</Text>
+            <Text style={styles.subtext}>{currentStory.subtext}</Text>
+          </Animated.View>
+        </View>
+
+        {/* 进度指示器 */}
+        <View style={styles.progressContainer}>
+          {STORY_FRAMES.map((_, index) => (
+            <View
+              key={index}
+              style={[
+                styles.progressDot,
+                {
+                  backgroundColor: index === currentFrame ? '#5D9BFA' : 'rgba(255,255,255,0.2)',
+                  transform: [{ scale: index === currentFrame ? 1.5 : 1 }],
+                },
+              ]}
+            />
+          ))}
+        </View>
+
+        {/* 下一步按钮 */}
+        <TouchableOpacity style={styles.nextButton} onPress={goToNextFrame}>
+          <Text style={styles.nextButtonText}>
+            {isLastFrame ? '开始冒险' : '继续'}
+          </Text>
+          <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+
 
 export default StoryScreen;

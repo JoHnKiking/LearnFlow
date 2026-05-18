@@ -1,24 +1,23 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Alert, ScrollView, TouchableOpacity, TextInput, Keyboard, Platform, Dimensions, KeyboardAvoidingView } from 'react-native';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, Alert, ScrollView, TouchableOpacity, TextInput, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../src/utils/constants';
+import { useTheme } from '../src/contexts/ThemeContext';
 import { authService } from '../src/services/api';
 import { saveAuthData } from '../src/utils/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '../src/utils/storage';
-import { showErrorAlert, toErrorMessage, createKeyboardPositioningListener, measureInputPosition, measureInputPositionByRef, getInputPositioningStyle } from '../src/utils';
+import { showErrorAlert, toErrorMessage, createKeyboardPositioningListener, measureInputPosition, measureInputPositionByRef } from '../src/utils';
 
 const LoginScreen = () => {
+  const { colors } = useTheme();
   const [loginType, setLoginType] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const [inputOffset, setInputOffset] = useState(0);
   const [activeInputY, setActiveInputY] = useState(0);
   const [isKeyboardActive, setIsKeyboardActive] = useState(false);
   
@@ -29,16 +28,11 @@ const LoginScreen = () => {
 
   useEffect(() => {
     const cleanup = createKeyboardPositioningListener(
-      (keyboardH, offset) => {
-        setKeyboardHeight(keyboardH);
-        setInputOffset(offset);
+      () => {
         setIsKeyboardActive(true);
       },
       () => {
-        setKeyboardHeight(0);
-        setInputOffset(0);
         setIsKeyboardActive(false);
-        // 键盘收起时自动滚动回顶部
         if (scrollViewRef.current) {
           scrollViewRef.current.scrollTo({ y: 0, animated: true });
         }
@@ -97,39 +91,6 @@ const LoginScreen = () => {
         }
       });
     }, 100);
-  };
-
-  const handleLogin = async () => {
-    console.log('[Login] 开始登录 - 邮箱:', email);
-    if (!email || !password) {
-      console.log('[Login] 登录验证失败 - 邮箱或密码为空');
-      Alert.alert('错误', '请输入邮箱和密码');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const authResponse = await authService.login({
-        email,
-        password,
-        deviceId: 'mobile-device',
-        type: 'email',
-        deviceType: 'android',
-        deviceName: '移动设备'
-      });
-      
-      console.log('[Login] 登录成功 - 用户:', authResponse.user?.username);
-      await saveAuthData(authResponse);
-      
-      setLoading(false);
-      Alert.alert('登录成功', '欢迎回来！');
-      
-      router.replace('/(tabs)');
-    } catch (error) {
-      console.error('[Login] 登录失败:', error);
-      setLoading(false);
-      showErrorAlert('登录失败', toErrorMessage(error));
-    }
   };
 
   const handleSubmit = async () => {
@@ -195,6 +156,267 @@ const LoginScreen = () => {
     router.push('/register');
   };
 
+  const styles = useMemo(() => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 0, // 平时底部限制死
+    minHeight: Dimensions.get('window').height, // 平时内容高度刚好等于屏幕高度
+  },
+  scrollContentActive: {
+    paddingBottom: 100, // 键盘激活时增加底部内边距
+    minHeight: Dimensions.get('window').height + 200, // 键盘激活时确保内容高度超过屏幕高度
+  },
+  backgroundDecorations: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    overflow: 'hidden',
+  },
+  gradientCircle1: {
+    position: 'absolute',
+    top: -80,
+    right: -80,
+    width: 256,
+    height: 256,
+    borderRadius: 128,
+    backgroundColor: colors.primary,
+    opacity: 0.1,
+  },
+  gradientCircle2: {
+    position: 'absolute',
+    top: '33%',
+    left: -80,
+    width: 192,
+    height: 192,
+    borderRadius: 96,
+    backgroundColor: colors.orange,
+    opacity: 0.08,
+  },
+  gradientCircle3: {
+    position: 'absolute',
+    bottom: 80,
+    right: 40,
+    width: 128,
+    height: 128,
+    borderRadius: 64,
+    backgroundColor: colors.success,
+    opacity: 0.06,
+  },
+  logoSection: {
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingBottom: 40,
+  },
+  logoContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    backgroundColor: 'linear-gradient(135deg, #5D9BFA, #7B5EA7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 32,
+    elevation: 5,
+  },
+  appTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#fff',
+    marginBottom: 4,
+    letterSpacing: -0.5,
+  },
+  appSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  tabContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  tabSwitcher: {
+    flexDirection: 'row',
+    backgroundColor: colors.backgroundDark,
+    borderRadius: 16,
+    padding: 4,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  activeTabButton: {
+    backgroundColor: 'rgba(93,155,250,0.8)',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  tabText: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    fontWeight: '400',
+  },
+  activeTabText: {
+    color: '#fff',
+    fontWeight: '700',
+  },
+  formContainer: {
+    gap: 16,
+  },
+  inputContainer: {
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.backgroundDark,
+    borderWidth: 1,
+    borderColor: 'rgba(93,155,250,0.2)',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+  },
+  inputIcon: {
+    marginRight: 12,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 15,
+    color: colors.textPrimary,
+    paddingVertical: 0,
+  },
+  passwordToggle: {
+    padding: 4,
+  },
+  forgotPassword: {
+    alignSelf: 'flex-end',
+  },
+  forgotPasswordText: {
+    fontSize: 13,
+    color: colors.primary,
+  },
+  loginButton: {
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: 'rgba(93,155,250,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    elevation: 5,
+  },
+  loginButtonDisabled: {
+    backgroundColor: '#2A2A4A',
+    shadowOpacity: 0,
+  },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  loadingSpinner: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#fff',
+    borderTopColor: 'transparent',
+  },
+  wechatContainer: {
+    paddingVertical: 16,
+  },
+  wechatButton: {
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: colors.success,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: colors.success,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    elevation: 5,
+  },
+  wechatButtonDisabled: {
+    backgroundColor: '#2A2A4A',
+    shadowOpacity: 0,
+  },
+  wechatButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+    gap: 12,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  dividerText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+  },
+  socialContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 32,
+  },
+  socialButton: {
+    flex: 1,
+    height: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.backgroundDark,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 16,
+  },
+  socialButtonText: {
+    fontSize: 13,
+    color: colors.textPrimary,
+  },
+  registerContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  registerText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  registerLink: {
+    color: colors.primary,
+    fontWeight: '700',
+    marginLeft: 4,
+  },
+  termsText: {
+    textAlign: 'center',
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginBottom: 20,
+  },
+  termsLink: {
+    color: colors.primary,
+  },
+}), [colors]);
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <ScrollView 
@@ -250,12 +472,12 @@ const LoginScreen = () => {
           <View style={styles.formContainer}>
             {loginType === 'register' && (
               <View style={styles.inputContainer} onLayout={handleInputLayout}>
-                <Ionicons name="person" size={20} color={COLORS.PRIMARY} style={styles.inputIcon} />
+                <Ionicons name="person" size={20} color={colors.primary} style={styles.inputIcon} />
                 <TextInput
                   ref={nameInputRef}
                   style={styles.textInput}
                   placeholder="你的名字"
-                  placeholderTextColor={COLORS.TEXT_SECONDARY}
+                  placeholderTextColor={colors.textSecondary}
                   value={name}
                   onChangeText={setName}
                   autoCapitalize="none"
@@ -266,12 +488,12 @@ const LoginScreen = () => {
             )}
             
             <View style={styles.inputContainer} onLayout={handleInputLayout}>
-              <Ionicons name="mail" size={20} color={COLORS.PRIMARY} style={styles.inputIcon} />
+              <Ionicons name="mail" size={20} color={colors.primary} style={styles.inputIcon} />
               <TextInput
                 ref={emailInputRef}
                 style={styles.textInput}
                 placeholder="邮箱"
-                placeholderTextColor={COLORS.TEXT_SECONDARY}
+                placeholderTextColor={colors.textSecondary}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -285,12 +507,12 @@ const LoginScreen = () => {
               style={styles.inputContainer}
               onLayout={handleInputLayout}
             >
-              <Ionicons name="lock-closed" size={20} color={COLORS.PRIMARY} style={styles.inputIcon} />
+              <Ionicons name="lock-closed" size={20} color={colors.primary} style={styles.inputIcon} />
               <TextInput
                 ref={passwordInputRef}
                 style={styles.textInput}
                 placeholder="密码"
-                placeholderTextColor={COLORS.TEXT_SECONDARY}
+                placeholderTextColor={colors.textSecondary}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -305,7 +527,7 @@ const LoginScreen = () => {
                 <Ionicons 
                   name={showPassword ? "eye-off" : "eye"} 
                   size={20} 
-                  color={COLORS.TEXT_SECONDARY} 
+                  color={colors.textSecondary} 
                 />
               </TouchableOpacity>
             </View>
@@ -373,267 +595,8 @@ const LoginScreen = () => {
         </ScrollView>
       </SafeAreaView>
     );
-};
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.BACKGROUND,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingBottom: 0, // 平时底部限制死
-    minHeight: Dimensions.get('window').height, // 平时内容高度刚好等于屏幕高度
-  },
-  scrollContentActive: {
-    paddingBottom: 100, // 键盘激活时增加底部内边距
-    minHeight: Dimensions.get('window').height + 200, // 键盘激活时确保内容高度超过屏幕高度
-  },
-  backgroundDecorations: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    overflow: 'hidden',
-  },
-  gradientCircle1: {
-    position: 'absolute',
-    top: -80,
-    right: -80,
-    width: 256,
-    height: 256,
-    borderRadius: 128,
-    backgroundColor: COLORS.PRIMARY,
-    opacity: 0.1,
-  },
-  gradientCircle2: {
-    position: 'absolute',
-    top: '33%',
-    left: -80,
-    width: 192,
-    height: 192,
-    borderRadius: 96,
-    backgroundColor: COLORS.ORANGE,
-    opacity: 0.08,
-  },
-  gradientCircle3: {
-    position: 'absolute',
-    bottom: 80,
-    right: 40,
-    width: 128,
-    height: 128,
-    borderRadius: 64,
-    backgroundColor: COLORS.SUCCESS,
-    opacity: 0.06,
-  },
-  logoSection: {
-    alignItems: 'center',
-    paddingTop: 60,
-    paddingBottom: 40,
-  },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
-    backgroundColor: 'linear-gradient(135deg, #5D9BFA, #7B5EA7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: COLORS.PRIMARY,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 32,
-    elevation: 5,
-  },
-  appTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#fff',
-    marginBottom: 4,
-    letterSpacing: -0.5,
-  },
-  appSubtitle: {
-    fontSize: 14,
-    color: COLORS.TEXT_SECONDARY,
-  },
-  tabContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  tabSwitcher: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.BACKGROUND_DARK,
-    borderRadius: 16,
-    padding: 4,
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  activeTabButton: {
-    backgroundColor: 'rgba(93,155,250,0.8)',
-    shadowColor: COLORS.PRIMARY,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  tabText: {
-    fontSize: 15,
-    color: COLORS.TEXT_SECONDARY,
-    fontWeight: '400',
-  },
-  activeTabText: {
-    color: '#fff',
-    fontWeight: '700',
-  },
-  formContainer: {
-    gap: 16,
-  },
-  inputContainer: {
-    height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.BACKGROUND_DARK,
-    borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.2)',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  textInput: {
-    flex: 1,
-    fontSize: 15,
-    color: COLORS.TEXT_PRIMARY,
-    paddingVertical: 0,
-  },
-  passwordToggle: {
-    padding: 4,
-  },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-  },
-  forgotPasswordText: {
-    fontSize: 13,
-    color: COLORS.PRIMARY,
-  },
-  loginButton: {
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: 'rgba(93,155,250,0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: COLORS.PRIMARY,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 24,
-    elevation: 5,
-  },
-  loginButtonDisabled: {
-    backgroundColor: '#2A2A4A',
-    shadowOpacity: 0,
-  },
-  loginButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  loadingSpinner: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#fff',
-    borderTopColor: 'transparent',
-  },
-  wechatContainer: {
-    paddingVertical: 16,
-  },
-  wechatButton: {
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: COLORS.SUCCESS,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: COLORS.SUCCESS,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 24,
-    elevation: 5,
-  },
-  wechatButtonDisabled: {
-    backgroundColor: '#2A2A4A',
-    shadowOpacity: 0,
-  },
-  wechatButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 24,
-    gap: 12,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  dividerText: {
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 13,
-  },
-  socialContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 32,
-  },
-  socialButton: {
-    flex: 1,
-    height: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: COLORS.BACKGROUND_DARK,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 16,
-  },
-  socialButtonText: {
-    fontSize: 13,
-    color: COLORS.TEXT_PRIMARY,
-  },
-  registerContainer: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  registerText: {
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 14,
-  },
-  registerLink: {
-    color: COLORS.PRIMARY,
-    fontWeight: '700',
-    marginLeft: 4,
-  },
-  termsText: {
-    textAlign: 'center',
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 12,
-    marginBottom: 20,
-  },
-  termsLink: {
-    color: COLORS.PRIMARY,
-  },
-});
+
+};
 
 export default LoginScreen;

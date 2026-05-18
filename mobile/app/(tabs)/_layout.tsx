@@ -1,17 +1,19 @@
 import { Tabs } from 'expo-router';
-import { COLORS } from '../../src/utils/constants';
+import { useTheme } from '../../src/contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function TabLayout() {
+  const { colors } = useTheme();
+
   return (
     <Tabs
       screenOptions={({ route }) => ({
-        tabBarActiveTintColor: COLORS.PRIMARY,
-        tabBarInactiveTintColor: '#6B7280',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textTertiary,
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: 'rgba(15, 20, 50, 0.95)',
-          borderTopColor: 'rgba(93, 155, 250, 0.2)',
+          backgroundColor: colors.tabBar,
+          borderTopColor: colors.tabBarBorder,
           borderTopWidth: 1,
           paddingTop: 8,
           paddingBottom: 8,
@@ -22,7 +24,7 @@ export default function TabLayout() {
           fontWeight: '500',
           fontFamily: 'Courier',
         },
-        tabBarIcon: ({ focused, color, size }) => {
+        tabBarIcon: ({ focused, color }) => {
           let iconName: keyof typeof Ionicons.glyphMap;
 
           if (route.name === 'index') {
