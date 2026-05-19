@@ -15,6 +15,7 @@ function AppContent() {
         <Stack.Screen name="module-selection" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="skill-tree" />
+        <Stack.Screen name="pomodoro" options={{ gestureEnabled: false }} />
       </Stack>
       <StatusBar style={isDark ? 'light' : 'dark'} />
     </>

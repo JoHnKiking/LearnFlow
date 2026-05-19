@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 
-type GameType = 'sudoku' | 'sokoban';
+type GameType = 'sudoku';
 type Screen = 'welcome' | 'tutorial' | 'game';
 
 interface MiniGamesProps {
@@ -815,194 +815,6 @@ const SudokuGame = ({ onWin }: { onWin: () => void }) => {
 
 };
 
-const SokobanGame = ({ onWin }: { onWin: () => void }) => {
-  const levels = [
-    {
-      name: '关卡 1',
-      map: [
-        '########',
-        '#      #',
-        '# $@   #',
-        '#  .   #',
-        '########',
-      ],
-    },
-    {
-      name: '关卡 2',
-      map: [
-        '  ####',
-        '  #  #',
-        '###$ #',
-        '#  .$ #',
-        '#@ .  #',
-        '#######',
-      ],
-    },
-    {
-      name: '关卡 3',
-      map: [
-        '  #####',
-        '###  ##',
-        '# $ $ #',
-        '# .@. #',
-        '### ##',
-        ' #### ',
-      ],
-    },
-    {
-      name: '关卡 4',
-      map: [
-        '########',
-        '#      #',
-        '# $  $##',
-        '#@ . . #',
-        '########',
-      ],
-    },
-  ];
-
-  const [currentLevel, setCurrentLevel] = useState(0);
-  const [playerPos, setPlayerPos] = useState({ x: 0, y: 0 });
-  const [gameMap, setGameMap] = useState<string[][]>([]);
-
-  const initLevel = (levelIndex: number) => {
-    const level = levels[levelIndex];
-    console.log('[MiniGames] 初始化推箱子关卡:', level.name);
-    const newMap = level.map.map(row => row.split(''));
-    let pPos = { x: 0, y: 0 };
-    
-    for (let y = 0; y < newMap.length; y++) {
-      for (let x = 0; x < newMap[y].length; x++) {
-        if (newMap[y][x] === '@') {
-          pPos = { x, y };
-          newMap[y][x] = ' ';
-        }
-      }
-    }
-    
-    setCurrentLevel(levelIndex);
-    setGameMap(newMap);
-    setPlayerPos(pPos);
-  };
-
-  useEffect(() => {
-    initLevel(Math.floor(Math.random() * levels.length));
-  }, []);
-
-  const checkWin = () => {
-    for (let row of gameMap) {
-      if (row.includes('$') || row.includes('.')) return false;
-    }
-    return true;
-  };
-
-  const move = (dx: number, dy: number) => {
-    if (dx === 0 && dy === 0) {
-      initLevel(currentLevel);
-      return;
-    }
-
-    const newX = playerPos.x + dx;
-    const newY = playerPos.y + dy;
-    
-    if (newY < 0 || newY >= gameMap.length || newX < 0 || newX >= gameMap[newY].length) return;
-    
-    const target = gameMap[newY][newX];
-    if (target === '#') return;
-
-    const newMap = gameMap.map(row => [...row]);
-
-    if (target === '$' || target === '*') {
-      const boxNewX = newX + dx;
-      const boxNewY = newY + dy;
-      
-      if (boxNewY < 0 || boxNewY >= gameMap.length || boxNewX < 0 || boxNewX >= gameMap[boxNewY].length) return;
-      
-      const boxTarget = gameMap[boxNewY][boxNewX];
-      if (boxTarget === ' ' || boxTarget === '.') {
-        newMap[newY][newX] = target === '*' ? '.' : ' ';
-        newMap[boxNewY][boxNewX] = boxTarget === '.' ? '*' : '$';
-      } else {
-        return;
-      }
-    }
-
-    setGameMap(newMap);
-    setPlayerPos({ x: newX, y: newY });
-
-    if (checkWin()) {
-      setTimeout(() => onWin(), 300);
-    }
-  };
-
-  const getCellContent = (char: string, x: number, y: number) => {
-    if (playerPos.x === x && playerPos.y === y) {
-      return { type: 'player', content: '😊' };
-    }
-    switch (char) {
-      case '#': return { type: 'wall', content: '🧱' };
-      case '$': return { type: 'box', content: '📦' };
-      case '*': return { type: 'box-on-target', content: '✅' };
-      case '.': return { type: 'target', content: '🎯' };
-      default: return { type: 'floor', content: '' };
-    }
-  };
-
-  return (
-    <View style={styles.gameContainer}>
-      <View style={styles.sokobanHeader}>
-        <Text style={styles.levelName}>{levels[currentLevel].name}</Text>
-        <TouchableOpacity style={styles.newGameBtn} onPress={() => initLevel(Math.floor(Math.random() * levels.length))}>
-          <Ionicons name="refresh" size={16} color={colors.primary} />
-          <Text style={styles.newGameText}>换一关</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.sokobanGrid}>
-        {gameMap.map((row, rowIndex) => (
-          <View key={rowIndex} style={styles.sokobanRow}>
-            {row.map((cell, colIndex) => {
-              const { type, content } = getCellContent(cell, colIndex, rowIndex);
-              const cellStyle = type === 'wall' ? styles.sokobanCellWall :
-                               type === 'floor' ? styles.sokobanCellFloor :
-                               type === 'target' ? styles.sokobanCellTarget :
-                               type === 'player' ? styles.sokobanCellPlayer :
-                               type === 'box' ? styles.sokobanCellBox :
-                               styles.sokobanCellBoxOnTarget;
-              return (
-                <View key={colIndex} style={[styles.sokobanCell, cellStyle]}>
-                  <Text style={styles.sokobanCellText}>{content}</Text>
-                </View>
-              );
-            })}
-          </View>
-        ))}
-      </View>
-
-      <View style={styles.sokobanControls}>
-        <TouchableOpacity style={styles.controlBtn} onPress={() => move(0, -1)}>
-          <Ionicons name="chevron-up" size={28} color={colors.primary} />
-        </TouchableOpacity>
-        <View style={styles.controlRow}>
-          <TouchableOpacity style={styles.controlBtn} onPress={() => move(-1, 0)}>
-            <Ionicons name="chevron-back" size={28} color={colors.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.controlBtn, styles.resetBtn]} onPress={() => move(0, 0)}>
-            <Ionicons name="refresh" size={20} color={colors.warning} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.controlBtn} onPress={() => move(1, 0)}>
-            <Ionicons name="chevron-forward" size={28} color={colors.primary} />
-          </TouchableOpacity>
-        </View>
-        <TouchableOpacity style={styles.controlBtn} onPress={() => move(0, 1)}>
-          <Ionicons name="chevron-down" size={28} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-};
-
   return (
     <View style={styles.container}>
       {currentScreen === 'welcome' && (
@@ -1056,33 +868,12 @@ const SokobanGame = ({ onWin }: { onWin: () => void }) => {
               </View>
               <Text style={styles.gameCardArrow}>→</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.gameCard} 
-              onPress={() => showTutorial('sokoban')}
-            >
-              <View style={styles.gameCardIcon}>
-                <Text style={styles.gameCardIconText}>📦</Text>
-              </View>
-              <View style={styles.gameCardInfo}>
-                <Text style={styles.gameCardTitle}>推箱子</Text>
-                <Text style={styles.gameCardDesc}>
-                  将所有箱子推到目标位置上即可过关
-                </Text>
-                <Text style={styles.gameCardRules}>
-                  • 点击方向键移动角色
-                  {'\n'}• 中间按钮重置当前关卡
-                  {'\n'}• 箱子只能推，不能拉
-                </Text>
-              </View>
-              <Text style={styles.gameCardArrow}>→</Text>
-            </TouchableOpacity>
           </View>
 
           <View style={styles.tipsSection}>
             <Text style={styles.sectionTitle}>💡 小贴士</Text>
             <Text style={styles.tipsText}>
-              • 每天可游玩4次，凌晨5点重置次数
+              • 每天可游玩3次，凌晨5点重置次数
               {'\n'}• 完成游戏后奖励会自动添加到你的账户
               {'\n'}• 游戏过程中可随时退出，不会消耗次数
             </Text>
@@ -1168,88 +959,6 @@ const SokobanGame = ({ onWin }: { onWin: () => void }) => {
               </TouchableOpacity>
             </>
           )}
-
-          {currentGame === 'sokoban' && (
-            <>
-              <View style={styles.tutorialHeader}>
-                <Text style={styles.tutorialIcon}>📦</Text>
-                <Text style={styles.tutorialTitle}>推箱子教程</Text>
-              </View>
-
-              <View style={styles.tutorialSection}>
-                <Text style={styles.tutorialSectionTitle}>🎯 游戏目标</Text>
-                <Text style={styles.tutorialText}>
-                  将所有箱子（📦）推到目标位置（🎯）上即可过关。
-                </Text>
-                <View style={styles.exampleGrid}>
-                  <Text style={styles.exampleTitle}>图例：</Text>
-                  <View style={styles.legend}>
-                    <View style={styles.legendItem}>
-                      <Text style={styles.legendIcon}>🧱</Text>
-                      <Text style={styles.legendText}>墙壁（无法通过）</Text>
-                    </View>
-                    <View style={styles.legendItem}>
-                      <Text style={styles.legendIcon}>😊</Text>
-                      <Text style={styles.legendText}>玩家（你控制的角色）</Text>
-                    </View>
-                    <View style={styles.legendItem}>
-                      <Text style={styles.legendIcon}>📦</Text>
-                      <Text style={styles.legendText}>箱子（需要推动）</Text>
-                    </View>
-                    <View style={styles.legendItem}>
-                      <Text style={styles.legendIcon}>🎯</Text>
-                      <Text style={styles.legendText}>目标位置</Text>
-                    </View>
-                    <View style={styles.legendItem}>
-                      <Text style={styles.legendIcon}>✅</Text>
-                      <Text style={styles.legendText}>箱子在目标上（成功！）</Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.tutorialSection}>
-                <Text style={styles.tutorialSectionTitle}>🎮 操作方式</Text>
-                <View style={styles.controlsExample}>
-                  <View style={styles.controlGrid}>
-                    <View></View>
-                    <TouchableOpacity style={styles.controlExampleBtn}>
-                      <Text>⬆️</Text>
-                    </TouchableOpacity>
-                    <View></View>
-                    <TouchableOpacity style={styles.controlExampleBtn}>
-                      <Text>⬅️</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.controlExampleBtnCenter}>
-                      <Text>🔄</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.controlExampleBtn}>
-                      <Text>➡️</Text>
-                    </TouchableOpacity>
-                    <View></View>
-                    <TouchableOpacity style={styles.controlExampleBtn}>
-                      <Text>⬇️</Text>
-                    </TouchableOpacity>
-                    <View></View>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.tutorialSection}>
-                <Text style={styles.tutorialSectionTitle}>💡 游戏规则</Text>
-                <Text style={styles.tutorialText}>
-                  • 玩家只能推动箱子，不能拉动
-                  {'\n'}• 箱子只能推到空地或目标位置
-                  {'\n'}• 不能推动箱子撞墙或推两个箱子
-                  {'\n'}• 点击中间按钮可重置当前关卡
-                </Text>
-              </View>
-
-              <TouchableOpacity style={styles.startBtn} onPress={startGame}>
-                <Text style={styles.startBtnText}>开始游戏 🎯</Text>
-              </TouchableOpacity>
-            </>
-          )}
         </ScrollView>
       )}
 
@@ -1261,24 +970,8 @@ const SokobanGame = ({ onWin }: { onWin: () => void }) => {
               <Text style={styles.backBtnText}>返回教程</Text>
             </TouchableOpacity>
 
-            <View style={styles.gameSelector}>
-              <TouchableOpacity
-                style={[styles.gameTab, currentGame === 'sudoku' && styles.gameTabActive]}
-                onPress={() => setCurrentGame('sudoku')}
-              >
-                <Text style={[styles.gameTabText, currentGame === 'sudoku' && styles.gameTabTextActive]}>🧩 数独</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.gameTab, currentGame === 'sokoban' && styles.gameTabActive]}
-                onPress={() => setCurrentGame('sokoban')}
-              >
-                <Text style={[styles.gameTabText, currentGame === 'sokoban' && styles.gameTabTextActive]}>📦 推箱子</Text>
-              </TouchableOpacity>
-            </View>
-
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-              {currentGame === 'sudoku' && <SudokuGame onWin={handleWin} />}
-              {currentGame === 'sokoban' && <SokobanGame onWin={handleWin} />}
+              <SudokuGame onWin={handleWin} />
             </ScrollView>
           </>
         ) : (

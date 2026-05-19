@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import MonsterIcon from '../../src/components/MonsterIcon';
 import MiniGames from '../../src/components/MiniGames';
 import { storage, STORAGE_KEYS } from '../../src/utils/storage';
@@ -97,6 +98,7 @@ const MonsterManageScreen = () => {
         await storage.setItem('dailyGamePlays', 0);
         await storage.setItem('lastPlayDate', today);
       }
+
     } catch (error) {
       console.error('加载数据失败:', error);
     }
@@ -153,7 +155,7 @@ const MonsterManageScreen = () => {
   const handlePlayGame = () => {
     if (!monsterData) return;
 
-    const maxPlays = 4;
+    const maxPlays = 3;
     if (dailyPlays >= maxPlays) {
       console.log('[Monster] 游戏次数已达上限:', dailyPlays);
       Alert.alert('提示', '今日体力补充已达上限，明天再来吧');
@@ -165,22 +167,24 @@ const MonsterManageScreen = () => {
   };
 
   const handleGameComplete = async (rewards: { stamina: number; energy: number }) => {
-    if (!monsterData) return;
+    const storedJson = await AsyncStorage.getItem(STORAGE_KEYS.MONSTER);
+    if (!storedJson) return;
+    const latestData = JSON.parse(storedJson);
 
     let staminaBonus = rewards.stamina;
     let energyBonus = rewards.energy;
 
-    if (monsterData.type === MONSTER_CONFIG.TYPES.REBEL) {
+    if (latestData.type === MONSTER_CONFIG.TYPES.REBEL) {
       staminaBonus *= 2;
       energyBonus *= 2;
       console.log('[Monster] 叛逆小怪双倍奖励 - 体力:', staminaBonus, '能量:', energyBonus);
     }
 
-    const newStamina = Math.min(monsterData.stamina + staminaBonus, monsterData.maxStamina);
-    const newPai = Math.min(monsterData.paiEnergy + energyBonus, monsterData.maxPaiEnergy);
+    const newStamina = Math.min(latestData.stamina + staminaBonus, latestData.maxStamina);
+    const newPai = Math.min(latestData.paiEnergy + energyBonus, latestData.maxPaiEnergy);
 
     const updated = {
-      ...monsterData,
+      ...latestData,
       stamina: newStamina,
       paiEnergy: newPai,
     };
