@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, AppState,
-  AppStateStatus, Modal, Animated, Easing, Dimensions,
+  View, Text, StyleSheet, TouchableOpacity, AppState, Alert,
+  AppStateStatus, Modal, Animated, Easing, Dimensions, Linking, BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Brightness from 'expo-brightness';
@@ -26,11 +26,13 @@ const formatDisplay = (seconds: number): string => {
 
 const PomodoroScreen = () => {
   const { nodeName, url, duration } = useLocalSearchParams<{
-    nodeName: string; url: string; duration: string;
+    nodeName?: string; url?: string; duration: string;
   }>();
   const { colors } = useTheme();
 
   const totalSeconds = parseInt(duration || '25', 10) * 60;
+
+  console.log('[Pomodoro] 启动番茄钟', { nodeName, url, duration, totalSeconds });
 
   const [timerSeconds, setTimerSeconds] = useState(totalSeconds);
   const [isPaused, setIsPaused] = useState(false);
@@ -52,6 +54,29 @@ const PomodoroScreen = () => {
   const timerRef = useRef(totalSeconds);
   const appStateRef = useRef<AppStateStatus>('active');
   const initialBrightnessRef = useRef(0.5);
+
+  const navigation = useNavigation();
+
+  // 拦截硬件返回 & 手势返回
+  useEffect(() => {
+    const backAction = () => {
+      if (completedRef.current) return false;
+      setShowExitConfirm(true);
+      return true;
+    };
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (completedRef.current) return;
+      e.preventDefault();
+      setShowExitConfirm(true);
+    });
+
+    return () => {
+      backHandler.remove();
+      unsubscribe();
+    };
+  }, [navigation]);
 
   // 环形进度动画
   const progressAnim = useRef(new Animated.Value(1)).current;
@@ -131,6 +156,7 @@ const PomodoroScreen = () => {
         // 计算奖励
         const staminaReward = Math.ceil(parseInt(duration || '25', 10) / 5);
         const energyReward = Math.floor(parseInt(duration || '25', 10) / 10);
+        console.log('[Pomodoro] 计时完成，发放奖励', { staminaReward, energyReward });
         setRewards({ stamina: staminaReward, energy: energyReward });
         // 发放奖励到怪兽
         AsyncStorage.getItem('monster').then(monster => {
@@ -168,15 +194,14 @@ const PomodoroScreen = () => {
       appStateRef.current = nextState;
 
       if (prev === 'active' && nextState !== 'active') {
-        // 切到后台：如果当前未暂停，记录切出时间
-        if (!isPausedRef.current) {
-          pausedAtRef.current = Date.now();
-        }
+        console.log('[Pomodoro] 切到后台，保存运行状态');
         persistRuntime();
       } else if (prev !== 'active' && nextState === 'active') {
-        // 回到前台
+        console.log('[Pomodoro] 回到前台，恢复计时');
         if (exitedRef.current || completedRef.current) return;
-        // 恢复计时
+
+        if (isPausedRef.current) return;
+
         const elapsed = getElapsed();
         const remaining = Math.max(0, totalSeconds - elapsed);
         if (remaining <= 0) {
@@ -197,11 +222,6 @@ const PomodoroScreen = () => {
         } else {
           timerRef.current = remaining;
           setTimerSeconds(remaining);
-          // 清除暂停标记，继续计时
-          if (pausedAtRef.current) {
-            totalPausedRef.current += Date.now() - pausedAtRef.current;
-            pausedAtRef.current = null;
-          }
         }
       }
     });
@@ -214,6 +234,7 @@ const PomodoroScreen = () => {
     (async () => {
       const stored = await AsyncStorage.getItem(POMODORO_STATE_KEY);
       if (stored) {
+        console.log('[Pomodoro] 检测到上次异常退出，进度作废');
         // 存在运行时状态说明上次异常退出（杀进程/崩溃），本次进度作废
         await clearRuntime();
       }
@@ -237,6 +258,7 @@ const PomodoroScreen = () => {
   const confirmAction = useCallback(() => {
     if (!actionConfirm) return;
     const type = actionConfirm.type;
+    console.log('[Pomodoro] 确认操作:', type);
     setActionConfirm(null);
 
     switch (type) {
@@ -266,7 +288,7 @@ const PomodoroScreen = () => {
         break;
       case 'stop':
         exitedRef.current = true;
-        completedRef.current = false;
+        completedRef.current = true;
         clearRuntime();
         router.back();
         break;
@@ -283,18 +305,11 @@ const PomodoroScreen = () => {
     setActionConfirm({ type: 'stop' });
   }, []);
 
-  const handleExit = useCallback(() => {
-    if (completedRef.current) {
-      router.back();
-      return;
-    }
-    setShowExitConfirm(true);
-  }, []);
-
   const confirmExit = useCallback(() => {
+    console.log('[Pomodoro] 确认退出，计时终止，无奖励');
     setShowExitConfirm(false);
     exitedRef.current = true;
-    completedRef.current = false;
+    completedRef.current = true;
     clearRuntime();
     router.back();
   }, [clearRuntime]);
@@ -315,6 +330,7 @@ const PomodoroScreen = () => {
       flexDirection: 'row', alignItems: 'center', gap: 8,
     },
     headerTitle: { fontSize: 15, fontWeight: '600', color: colors.textSecondary, fontFamily: 'Courier' },
+    headerNode: { fontSize: 12, color: colors.textTertiary, fontFamily: 'Courier', marginTop: 2 },
     brightnessBtn: {
       width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
       backgroundColor: colors.borderDark,
@@ -407,6 +423,23 @@ const PomodoroScreen = () => {
     backBtnText: {
       color: colors.textPrimary, fontSize: 16, fontWeight: '700', fontFamily: 'Courier',
     },
+    gotoBtn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+      paddingHorizontal: 32, paddingVertical: 12, backgroundColor: '#6C63FF',
+      borderRadius: 16, marginBottom: 12,
+    },
+    gotoBtnText: {
+      color: '#FFFFFF', fontSize: 15, fontWeight: '600', fontFamily: 'Courier',
+    },
+    navLinkBtn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+      paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12,
+      backgroundColor: 'rgba(108,99,255,0.1)', borderWidth: 1, borderColor: 'rgba(108,99,255,0.25)',
+      marginTop: 12,
+    },
+    navLinkText: {
+      fontSize: 14, color: '#6C63FF', fontWeight: '600', fontFamily: 'Courier',
+    },
     // 确认弹窗
     confirmOverlay: {
       flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 40,
@@ -424,9 +457,9 @@ const PomodoroScreen = () => {
       fontSize: 14, color: colors.textSecondary, fontFamily: 'Courier',
       textAlign: 'center', marginBottom: 24, lineHeight: 20,
     },
-    confirmMsgWarn: {
-      fontSize: 13, color: colors.error, fontFamily: 'Courier',
-      textAlign: 'center', marginBottom: 20, lineHeight: 18,
+    confirmMsgNote: {
+      fontSize: 13, color: colors.textTertiary, fontFamily: 'Courier',
+      textAlign: 'center', marginBottom: 24, lineHeight: 18,
     },
     confirmRow: {
       flexDirection: 'row', gap: 12, width: '100%',
@@ -474,6 +507,27 @@ const PomodoroScreen = () => {
           <Text style={styles.rewardLabel}>⚡ 能量Π</Text>
         </View>
       </View>
+      {url ? (
+        <TouchableOpacity
+          style={styles.gotoBtn}
+          onPress={async () => {
+            console.log('[Pomodoro] 跳转学习网页', url);
+            const supported = await Linking.canOpenURL(url);
+            if (supported) {
+              Linking.openURL(url).catch(err => {
+                console.error('[Pomodoro] Linking error:', err);
+                Alert.alert('错误', '无法打开链接，请检查网络连接');
+              });
+            } else {
+              Alert.alert('错误', '设备不支持打开此链接');
+            }
+          }}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="open-outline" size={18} color="#FFFFFF" />
+          <Text style={styles.gotoBtnText}>去学习网页</Text>
+        </TouchableOpacity>
+      ) : null}
       <TouchableOpacity style={styles.backBtn} onPress={handleCompletionBack} activeOpacity={0.7}>
         <Text style={styles.backBtnText}>返回节点列表 ✨</Text>
       </TouchableOpacity>
@@ -538,17 +592,11 @@ const PomodoroScreen = () => {
     <Modal visible={showExitConfirm} transparent onRequestClose={() => setShowExitConfirm(false)} animationType="fade">
       <View style={styles.confirmOverlay}>
         <View style={styles.confirmCard}>
-          <Ionicons name="warning" size={40} color={colors.error} style={{ marginBottom: 12 }} />
-          <Text style={styles.confirmTitle}>确定要退出吗？</Text>
-          <Text style={styles.confirmMsg}>
-            退出后计时将立即终止，本次专注进度清零，无法获得任何奖励
-          </Text>
-          <Text style={styles.confirmMsgWarn}>
-            ⚠️ 此操作不可撤销
-          </Text>
+          <Text style={styles.confirmTitle}>是否退出</Text>
+          <Text style={styles.confirmMsgNote}>注：退出体力不再返还</Text>
           <View style={styles.confirmRow}>
             <TouchableOpacity style={styles.confirmCancel} onPress={() => setShowExitConfirm(false)} activeOpacity={0.7}>
-              <Text style={styles.confirmCancelText}>继续专注</Text>
+              <Text style={styles.confirmCancelText}>取消</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.confirmDanger} onPress={confirmExit} activeOpacity={0.7}>
               <Text style={styles.confirmDangerText}>确认退出</Text>
@@ -563,10 +611,12 @@ const PomodoroScreen = () => {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerLeft} onPress={handleExit} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={22} color={colors.textSecondary} />
-          <Text style={styles.headerTitle}>{isCompleted ? '专注完成' : '正在专注'}</Text>
-        </TouchableOpacity>
+        <View style={styles.headerLeft}>
+          <View>
+            <Text style={styles.headerTitle}>{isCompleted ? '专注完成' : '正在专注'}</Text>
+            {nodeName ? <Text style={styles.headerNode}>{nodeName}</Text> : null}
+          </View>
+        </View>
         <TouchableOpacity
           style={styles.brightnessBtn}
           onPress={() => setShowBrightness(!showBrightness)}
@@ -584,6 +634,27 @@ const PomodoroScreen = () => {
           <Text style={styles.timerSub}>「{nodeName}」</Text>
           {isPaused && <Text style={styles.pausedHint}>⏸ 已暂停</Text>}
         </View>
+        {url ? (
+          <TouchableOpacity
+            style={styles.navLinkBtn}
+            onPress={async () => {
+              console.log('[Pomodoro] 在计时中跳转学习网页', url);
+              const supported = await Linking.canOpenURL(url);
+              if (supported) {
+                Linking.openURL(url).catch(err => {
+                  console.error('[Pomodoro] Linking error:', err);
+                  Alert.alert('错误', '无法打开链接，请检查网络连接');
+                });
+              } else {
+                Alert.alert('错误', '设备不支持打开此链接');
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="open-outline" size={16} color={colors.primary} />
+            <Text style={styles.navLinkText}>去学习网页</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       {/* 操作按钮 */}

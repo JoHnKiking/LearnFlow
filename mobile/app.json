@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "scheme": "learnflow",
+    "plugins": ["expo-router"],
     "splash": {
       "backgroundColor": "#ffffff"
     },

@@ -184,6 +184,7 @@ const DurationModal: React.FC<{
       Alert.alert('体力不足', `需要 ${staminaCost} 点体力，当前体力 ${monsterStamina} 点`);
       return;
     }
+    console.log('[DurationModal] 确认开始学习', { nodeName, url, selectedDuration, staminaCost });
     try {
       const monster = await AsyncStorage.getItem('monster');
       if (monster) {
@@ -429,13 +430,42 @@ const SkillTreeScreen = () => {
     setEditNodeVisible(true);
   };
 
+  const openEditDefaultNode = (node: SkillNode, stageId: string) => {
+    const pseudo: CustomNode = {
+      id: node.id,
+      stageId,
+      name: node.name,
+      url: node.url,
+      platform: node.platform,
+      duration: node.duration,
+    };
+    setEditingNode(pseudo);
+    setEditNodeName(node.name);
+    setEditNodeUrl(node.url);
+    setEditNodePlatform(node.platform);
+    setEditNodeVisible(true);
+  };
+
   const handleSaveEditNode = () => {
     if (!editingNode || !editNodeName.trim() || !editNodeUrl.trim()) return;
-    saveCustomNodes(customNodes.map(n =>
-      n.id === editingNode.id
-        ? { ...n, name: editNodeName.trim(), url: editNodeUrl.trim(), platform: editNodePlatform }
-        : n,
-    ));
+    const exists = customNodes.some(n => n.id === editingNode.id);
+    if (exists) {
+      saveCustomNodes(customNodes.map(n =>
+        n.id === editingNode.id
+          ? { ...n, name: editNodeName.trim(), url: editNodeUrl.trim(), platform: editNodePlatform }
+          : n,
+      ));
+    } else {
+      const newNode: CustomNode = {
+        id: editingNode.id,
+        stageId: editingNode.stageId,
+        name: editNodeName.trim(),
+        url: editNodeUrl.trim(),
+        platform: editNodePlatform,
+        duration: 1,
+      };
+      saveCustomNodes([...customNodes, newNode]);
+    }
     setEditNodeVisible(false);
     showToast('结点已更新');
   };
@@ -443,6 +473,7 @@ const SkillTreeScreen = () => {
   // ===================== 结点跳转 =====================
 
   const handleNodeSelect = (name: string, url: string, suggestedDuration: number) => {
+    console.log('[SkillTree] 选择结点', { name, url, suggestedDuration });
     setSelectedNode({ name, url, suggestedDuration });
     setModalVisible(true);
   };
@@ -610,18 +641,24 @@ const SkillTreeScreen = () => {
                   {stage.nodes.map((node, nodeIndex) => {
                     const customNodeObj = customNodes.find(cn => cn.id === node.id);
                     const isCustomNode = !!customNodeObj;
+                    const displayName = customNodeObj?.name ?? node.name;
+                    const displayPlatform = customNodeObj?.platform ?? node.platform;
+                    const displayUrl = customNodeObj?.url ?? node.url;
                     return (
                       <SkillNodeItem
                         key={node.id}
-                        name={node.name}
-                        platform={node.platform}
+                        name={displayName}
+                        platform={displayPlatform}
                         duration={node.duration}
-                        url={node.url}
+                        url={displayUrl}
                         index={nodeIndex}
                         stageColor={stageColor}
                         onSelect={handleNodeSelect}
                         isCustom={isCustomNode}
-                        onLongPress={isCustomNode ? () => handleDeleteNode(node.id, node.name) : undefined}
+                        onLongPress={isCustomNode
+                          ? () => handleDeleteNode(node.id, node.name)
+                          : () => openEditDefaultNode(node, stage.id)
+                        }
                         onEdit={isCustomNode ? () => openEditNode(customNodeObj!) : undefined}
                       />
                     );

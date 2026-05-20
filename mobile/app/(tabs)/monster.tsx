@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,7 +8,7 @@ import MiniGames from '../../src/components/MiniGames';
 import { storage, STORAGE_KEYS } from '../../src/utils/storage';
 import { MONSTER_CONFIG } from '../../src/utils/constants';
 import { formatTimer } from '../../src/utils/helpers';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, router } from 'expo-router';
 
 type ActiveTab = 'tasks' | 'notes' | 'chat';
 
@@ -21,8 +21,6 @@ const MonsterManageScreen = () => {
   const [tasks, setTasks] = useState<any[]>([]);
   const [newTaskText, setNewTaskText] = useState('');
   const [selectedTime, setSelectedTime] = useState<typeof MONSTER_CONFIG.POMODORO.TIME_OPTIONS[number]>(MONSTER_CONFIG.POMODORO.TIME_OPTIONS[0]);
-  const [pomodoroActive, setPomodoroActive] = useState(false);
-  const [pomodoroTimeLeft, setPomodoroTimeLeft] = useState<number>(selectedTime * 60);
   const [showGameModal, setShowGameModal] = useState(false);
   const [dailyPlays, setDailyPlays] = useState(0);
 
@@ -32,24 +30,7 @@ const MonsterManageScreen = () => {
     }, [])
   );
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    if (pomodoroActive && pomodoroTimeLeft > 0) {
-      interval = setInterval(() => {
-        setPomodoroTimeLeft(prev => {
-          if (prev <= 1) {
-            setPomodoroActive(false);
-            Alert.alert('专注完成！', '恭喜你完成了一次专注学习！');
-            return selectedTime * 60;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [pomodoroActive, pomodoroTimeLeft, selectedTime]);
+  const pomodoroTimeLeft = selectedTime * 60;
 
   const loadData = async () => {
     try {
@@ -333,13 +314,7 @@ const MonsterManageScreen = () => {
                 styles.timeOption,
                 { backgroundColor: selectedTime === time ? '#5D9BFA' : 'rgba(93,155,250,0.15)' },
               ]}
-              onPress={() => {
-                if (!pomodoroActive) {
-                  setSelectedTime(time);
-                  setPomodoroTimeLeft(time * 60);
-                }
-              }}
-              disabled={pomodoroActive}
+              onPress={() => setSelectedTime(time)}
             >
               <Text
                 style={[
@@ -359,20 +334,14 @@ const MonsterManageScreen = () => {
           </View>
           <View style={styles.pomodoroButtons}>
             <TouchableOpacity
-              style={[
-                styles.pomodoroButton,
-                { backgroundColor: pomodoroActive ? '#FF6B6B' : '#5D9BFA' },
-              ]}
-              onPress={() => setPomodoroActive(!pomodoroActive)}
+              style={[styles.pomodoroButton, { backgroundColor: '#5D9BFA' }]}
+              onPress={() => {
+                console.log('[Monster] 番茄钟开始专注, duration:', selectedTime);
+                router.push({ pathname: '/pomodoro', params: { duration: String(selectedTime) } });
+              }}
             >
-              <Ionicons
-                name={pomodoroActive ? 'pause' : 'play'}
-                size={20}
-                color="#FFFFFF"
-              />
-              <Text style={styles.pomodoroButtonText}>
-                {pomodoroActive ? '暂停' : '开始专注'}
-              </Text>
+              <Ionicons name="play" size={20} color="#FFFFFF" />
+              <Text style={styles.pomodoroButtonText}>开始专注</Text>
             </TouchableOpacity>
           </View>
         </View>
