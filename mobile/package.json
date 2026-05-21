@@ -13,6 +13,7 @@
     "axios": "1.6.0",
     "expo": "54.0.33",
     "expo-brightness": "~14.0.8",
+    "expo-build-properties": "^55.0.14",
     "expo-constants": "18.0.13",
     "expo-keep-awake": "~15.0.8",
     "expo-linking": "8.0.11",

@@ -6,7 +6,17 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "scheme": "learnflow",
-    "plugins": ["expo-router"],
+    "plugins": [
+      "expo-router",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+    ],
     "splash": {
       "backgroundColor": "#ffffff"
     },
@@ -20,12 +30,9 @@
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
       },
-      "package": "com.johnkiwu.learnflow",
-      "usesCleartextTraffic": true
+      "package": "com.johnkiwu.learnflow"
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
+    "web": {},
     "extra": {
       "apiBaseUrl": "https://heterotrichous-gerty-catadromous.ngrok-free.dev/api",
       "eas": {
