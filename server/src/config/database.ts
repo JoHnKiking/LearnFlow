@@ -19,36 +19,46 @@ export const dbConfig: DatabaseConfig = {
   database: process.env.DB_NAME || 'learnflow'
 };
 
-// 创建连接池
-export const pool = mysql.createPool({
+const poolConfig = {
   ...dbConfig,
-  connectionLimit: 10
-});
+  connectionLimit: 10,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 10000,
+};
+
+export const pool = mysql.createPool(poolConfig);
 
 export class DatabaseConnection {
   private static connection: mysql.Connection | null = null;
 
   static async getConnection(): Promise<mysql.Connection> {
-    if (!this.connection) {
+    if (this.connection) {
       try {
-        this.connection = await mysql.createConnection(dbConfig);
-        console.log('MySQL数据库连接成功');
-      } catch (error) {
-        console.error('MySQL数据库连接失败:', error);
-        console.error('连接配置:', {
-          host: dbConfig.host,
-          port: dbConfig.port,
-          user: dbConfig.user,
-          database: dbConfig.database
-        });
-        const err = error as { code?: string };
-        if (err.code === 'ER_ACCESS_DENIED_ERROR') {
-          console.error(
-            '提示: 用户名或密码不对。请修改 server/.env 中的 DB_USER、DB_PASSWORD，使其与在本机执行 mysql -u <用户> -p 能登录的凭据一致；若 root 无密码则清空 DB_PASSWORD。仍失败时可尝试将 DB_HOST 在 127.0.0.1 与 localhost 之间切换（两者在 MySQL 里可能是不同登录方式）。'
-          );
-        }
-        throw new Error(`数据库连接失败: ${error instanceof Error ? error.message : '未知错误'}`);
+        await this.connection.ping();
+        return this.connection;
+      } catch {
+        this.connection = null;
       }
+    }
+
+    try {
+      this.connection = await mysql.createConnection(poolConfig);
+      console.log('MySQL数据库连接成功');
+    } catch (error) {
+      console.error('MySQL数据库连接失败:', error);
+      console.error('连接配置:', {
+        host: dbConfig.host,
+        port: dbConfig.port,
+        user: dbConfig.user,
+        database: dbConfig.database
+      });
+      const err = error as { code?: string };
+      if (err.code === 'ER_ACCESS_DENIED_ERROR') {
+        console.error(
+          '提示: 用户名或密码不对。请修改 server/.env 中的 DB_USER、DB_PASSWORD，使其与在本机执行 mysql -u <用户> -p 能登录的凭据一致；若 root 无密码则清空 DB_PASSWORD。仍失败时可尝试将 DB_HOST 在 127.0.0.1 与 localhost 之间切换（两者在 MySQL 里可能是不同登录方式）。'
+        );
+      }
+      throw new Error(`数据库连接失败: ${error instanceof Error ? error.message : '未知错误'}`);
     }
     return this.connection;
   }

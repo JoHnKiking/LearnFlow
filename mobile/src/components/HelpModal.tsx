@@ -72,6 +72,7 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
           {/* 使用帮助 */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>📋 使用帮助</Text>
+            <View style={styles.sectionDivider} />
             <View style={styles.helpItem}>
               <Text style={styles.helpTitle}>💪 体力系统</Text>
               <Text style={styles.helpText}>
@@ -95,6 +96,7 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
           {/* 问题反馈 */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>📝 问题反馈</Text>
+            <View style={styles.sectionDivider} />
             <Text style={styles.sectionDesc}>请选择您遇到的问题类型，或直接描述问题：</Text>
             
             {/* 问题示例列表 */}
@@ -149,12 +151,13 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
           {/* 联系我们 */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>📞 联系我们</Text>
+            <View style={styles.sectionDivider} />
             <Text style={styles.contactText}>
               如果您在使用过程中有任何问题或建议，欢迎随时联系我们：
             </Text>
-            <View style={styles.contactInfo}>
+            <View style={styles.contactCard}>
               <Text style={styles.contactItem}>📧 邮箱：support@learnflow.com</Text>
-              <Text style={styles.contactItem}>💬 客服：工作日 9:00-18:00</Text>
+              <Text style={[styles.contactItem, styles.contactItemLast]}>💬 客服：工作日 9:00-18:00</Text>
             </View>
           </View>
         </ScrollView>
@@ -218,71 +221,65 @@ const styles = StyleSheet.create({
   placeholder: {
     width: 44,
   },
-  /** 内容容器 */
   content: {
-    padding: 16,
-    paddingBottom: 32,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 40,
   },
-  /** 区域容器 */
   section: {
-    marginBottom: 24,
+    marginBottom: 28,
   },
-  /** 区域标题 */
   sectionTitle: {
     color: '#5D9BFA',
     fontSize: 16,
     fontWeight: '700',
-    marginBottom: 12,
-    fontFamily: 'Courier',
+    marginBottom: 14,
   },
-  /** 区域描述 */
+  sectionDivider: {
+    height: 1,
+    backgroundColor: 'rgba(93, 155, 250, 0.12)',
+    marginBottom: 14,
+  },
   sectionDesc: {
     color: '#8888AA',
     fontSize: 13,
-    marginBottom: 12,
+    marginBottom: 14,
+    lineHeight: 1.5,
   },
-  /** 帮助项容器 */
   helpItem: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
+    padding: 14,
+    marginBottom: 10,
   },
-  /** 帮助项标题 */
   helpTitle: {
     color: '#E8E8F0',
     fontSize: 14,
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: 6,
   },
-  /** 帮助项文本 */
   helpText: {
     color: '#8888AA',
     fontSize: 13,
-    lineHeight: 1.6,
+    lineHeight: 1.7,
   },
-  /** 示例列表容器 */
   examplesList: {
-    marginBottom: 16,
+    marginBottom: 18,
   },
-  /** 示例项容器 */
   exampleItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
-    padding: 12,
+    padding: 14,
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderRadius: 12,
     marginBottom: 8,
     borderWidth: 1,
     borderColor: 'transparent',
   },
-  /** 选中的示例项样式 */
   exampleItemSelected: {
     backgroundColor: 'rgba(93, 155, 250, 0.1)',
     borderColor: 'rgba(93, 155, 250, 0.3)',
   },
-  /** 示例单选按钮 */
   exampleRadio: {
     width: 20,
     height: 20,
@@ -292,80 +289,76 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
-    flexShrink: 0,
+    marginRight: 12,
   },
-  /** 选中的单选按钮内部 */
   exampleRadioInner: {
     width: 10,
     height: 10,
     borderRadius: 5,
     backgroundColor: '#5D9BFA',
   },
-  /** 示例内容区域 */
   exampleContent: {
     flex: 1,
   },
-  /** 示例标题 */
   exampleTitle: {
     color: '#E8E8F0',
     fontSize: 14,
     fontWeight: '600',
-    marginBottom: 2,
+    marginBottom: 4,
   },
-  /** 示例描述 */
   exampleDesc: {
     color: '#8888AA',
     fontSize: 12,
-    lineHeight: 1.5,
+    lineHeight: 1.6,
   },
-  /** 反馈输入容器 */
   feedbackInputContainer: {
-    marginBottom: 16,
+    marginBottom: 18,
   },
-  /** 反馈标签 */
   feedbackLabel: {
     color: '#8888AA',
     fontSize: 13,
-    marginBottom: 8,
+    marginBottom: 10,
   },
-  /** 反馈输入框 */
   feedbackInput: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
-    padding: 12,
+    padding: 14,
     color: '#E8E8F0',
     fontSize: 14,
     minHeight: 100,
     textAlignVertical: 'top',
+    lineHeight: 1.6,
   },
-  /** 提交按钮 */
   submitBtn: {
     backgroundColor: '#5D9BFA',
     borderRadius: 12,
-    padding: 16,
+    padding: 14,
     alignItems: 'center',
   },
-  /** 提交按钮文字 */
   submitBtnText: {
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '600',
   },
-  /** 联系文本 */
   contactText: {
     color: '#8888AA',
     fontSize: 13,
-    lineHeight: 1.6,
-    marginBottom: 12,
+    lineHeight: 1.7,
+    marginBottom: 14,
   },
-  /** 联系方式列表 */
-  contactInfo: {
-    gap: 8,
+  contactCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 14,
   },
-  /** 联系方式项 */
   contactItem: {
     color: '#E8E8F0',
     fontSize: 13,
+    lineHeight: 1.7,
+    marginBottom: 8,
+  },
+  contactItemLast: {
+    marginBottom: 0,
   },
 });
 

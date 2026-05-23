@@ -1,13 +1,13 @@
 # LearnFlow 服务端 Ubuntu 部署指南
 
-目标服务器：`119.31.133.45`（全新 Ubuntu）
+目标服务器：`119.91.133.45`（全新 Ubuntu）
 
 ---
 
 ## 一、SSH 连接服务器
 
 ```bash
-ssh root@119.31.133.45
+ssh root@119.91.133.45
 ```
 
 如使用普通用户，后续命令需加 `sudo`。
@@ -87,7 +87,7 @@ cd learnflow/server
 ```bash
 rsync -avz --exclude node_modules --exclude dist \
   /Users/johnkiwu/Documents/github/LearnFlow/server/ \
-  root@119.31.133.45:/opt/learnflow/server/
+  root@119.91.133.45:/opt/learnflow/server/
 ```
 
 ---
@@ -173,7 +173,7 @@ apt-get install -y nginx
 ```nginx
 server {
     listen 80;
-    server_name 119.31.133.45;
+    server_name 119.91.133.45;
 
     location /api/ {
         proxy_pass http://127.0.0.1:3001/api/;
@@ -199,7 +199,7 @@ ufw allow 80/tcp
 
 ```json
 "extra": {
-  "apiBaseUrl": "http://119.31.133.45:3001/api",
+  "apiBaseUrl": "http://119.91.133.45:3001/api",
   "eas": {
     "projectId": "a4114c63-9fd5-43d7-9771-accfb461b82c"
   }
@@ -209,7 +209,7 @@ ufw allow 80/tcp
 若已配置 Nginx 反代，改为：
 
 ```json
-"apiBaseUrl": "http://119.31.133.45/api"
+"apiBaseUrl": "http://119.91.133.45/api"
 ```
 
 修改后重启 Expo Go 扫描即可生效。打包 APK 则需重新 `eas build`。
@@ -240,7 +240,7 @@ lsof -i :3001
 ## 完整流程汇总
 
 ```bash
-ssh root@119.31.133.45
+ssh root@119.91.133.45
 
 curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
 apt-get install -y nodejs mysql-server nginx git
@@ -253,7 +253,7 @@ mkdir -p /opt/learnflow
 cd /opt/learnflow
 
 # 上传代码（选一种）
-# rsync -avz --exclude node_modules --exclude dist /Users/johnkiwu/Documents/github/LearnFlow/server/ root@119.31.133.45:/opt/learnflow/server/
+# rsync -avz --exclude node_modules --exclude dist /Users/johnkiwu/Documents/github/LearnFlow/server/ root@119.91.133.45:/opt/learnflow/server/
 
 cd /opt/learnflow/server
 mysql -u root -p'Wzy283537!' < schema.sql
