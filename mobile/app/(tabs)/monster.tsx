@@ -1,14 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import MonsterIcon from '../../src/components/MonsterIcon';
-import GameModal from '../../src/components/GameModal';
-import GameHelpModal from '../../src/components/GameHelpModal';
-import AnimatedCheckbox from '../../src/components/AnimatedCheckbox';
+import MiniGames from '../../src/components/MiniGames';
 import { storage, STORAGE_KEYS } from '../../src/utils/storage';
 import { MONSTER_CONFIG } from '../../src/utils/constants';
 import { formatTimer } from '../../src/utils/helpers';
+import { useFocusEffect, router } from 'expo-router';
+// ============================================================
+// 服务端持久化接口（第1步已在 api.ts / skill.ts 中定义）
+// 本地优先 + 异步服务端同步，失败不阻断主流程
+// ============================================================
+import { noteService, rewardService } from '../../src/services/api';
+import { getCurrentUser } from '../../src/utils/auth';
 
 type ActiveTab = 'tasks' | 'notes' | 'chat';
 
@@ -17,46 +23,30 @@ const MonsterManageScreen = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('tasks');
   const [notes, setNotes] = useState('');
   const [savedNotes, setSavedNotes] = useState<any[]>([]);
-  const [showGameHelpModal, setShowGameHelpModal] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   const [tasks, setTasks] = useState<any[]>([]);
   const [newTaskText, setNewTaskText] = useState('');
   const [selectedTime, setSelectedTime] = useState<typeof MONSTER_CONFIG.POMODORO.TIME_OPTIONS[number]>(MONSTER_CONFIG.POMODORO.TIME_OPTIONS[0]);
-  const [pomodoroActive, setPomodoroActive] = useState(false);
-  const [pomodoroTimeLeft, setPomodoroTimeLeft] = useState<number>(selectedTime * 60);
   const [showGameModal, setShowGameModal] = useState(false);
   const [dailyPlays, setDailyPlays] = useState(0);
-  const [lastPlayDate, setLastPlayDate] = useState<string>('');
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    if (pomodoroActive && pomodoroTimeLeft > 0) {
-      interval = setInterval(() => {
-        setPomodoroTimeLeft(prev => {
-          if (prev <= 1) {
-            setPomodoroActive(false);
-            Alert.alert('专注完成！', '恭喜你完成了一次专注学习！');
-            return selectedTime * 60;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [pomodoroActive, pomodoroTimeLeft, selectedTime]);
+  const pomodoroTimeLeft = selectedTime * 60;
 
   const loadData = async () => {
     try {
+      console.log('[Monster] 开始加载数据');
       const monster = await storage.getItem(STORAGE_KEYS.MONSTER);
       if (monster) {
         const resetData = await checkAndResetDaily(monster);
         setMonsterData(resetData);
       } else {
+        console.log('[Monster] 无怪物数据，创建默认怪物');
         const newMonster = {
           name: '小怪兽',
           type: MONSTER_CONFIG.TYPES.CALM,
@@ -90,13 +80,12 @@ const MonsterManageScreen = () => {
       
       if (lastDate === today && plays !== null) {
         setDailyPlays(plays);
-        setLastPlayDate(lastDate);
       } else {
         setDailyPlays(0);
-        setLastPlayDate(today);
         await storage.setItem('dailyGamePlays', 0);
         await storage.setItem('lastPlayDate', today);
       }
+
     } catch (error) {
       console.error('加载数据失败:', error);
     }
@@ -143,42 +132,91 @@ const MonsterManageScreen = () => {
       date: new Date().toISOString(),
     };
 
+    // --- 本地存储（主流程，即时响应）---
     const updated = [newNote, ...savedNotes];
     setSavedNotes(updated);
     await storage.setItem(STORAGE_KEYS.NOTES, updated);
+    console.log('[Monster] 笔记已保存，总数:', updated.length);
     setNotes('');
+
+    // --- 服务端异步同步（静默失败，不阻断 UI）---
+    try {
+      const user = await getCurrentUser();
+      if (user?.id) {
+        await noteService.createNote({
+          userId: user.id,
+          date: newNote.date,
+          content: newNote.content,
+        });
+        console.log('[Monster] 笔记已同步至服务端');
+      }
+    } catch (error) {
+      console.warn('[Monster] 笔记同步服务端失败，仅本地存储:', error);
+    }
   };
 
   const handlePlayGame = () => {
     if (!monsterData) return;
 
-    // 检查今日剩余游玩次数（免费版4次）
-    const maxPlays = 4;
-    if (dailyPlays >= maxPlays) {
+    // 读取每日游戏次数上限（免费版 3 次，PRO 版见 MONSTER_CONFIG.GAME.PRO_DAILY_LIMIT）
+    const dailyGameLimit = MONSTER_CONFIG.GAME.DAILY_LIMIT;
+    if (dailyPlays >= dailyGameLimit) {
+      console.log('[Monster] 游戏次数已达上限:', dailyPlays);
       Alert.alert('提示', '今日体力补充已达上限，明天再来吧');
       return;
     }
 
+    console.log('[Monster] 打开游戏弹窗，今日已玩:', dailyPlays);
     setShowGameModal(true);
   };
 
   const handleGameComplete = async (rewards: { stamina: number; energy: number }) => {
-    if (!monsterData) return;
+    const storedJson = await AsyncStorage.getItem(STORAGE_KEYS.MONSTER);
+    if (!storedJson) return;
+    const latestData = JSON.parse(storedJson);
 
     let staminaBonus = rewards.stamina;
     let energyBonus = rewards.energy;
 
-    // 叛逆小怪双倍
-    if (monsterData.type === MONSTER_CONFIG.TYPES.REBEL) {
+    // 获取当前登录用户（服务端同步需要 userId）
+    const user = await getCurrentUser();
+
+    if (latestData.type === MONSTER_CONFIG.TYPES.REBEL) {
       staminaBonus *= 2;
       energyBonus *= 2;
+      console.log('[Monster] 叛逆小怪双倍奖励 - 体力:', staminaBonus, '能量:', energyBonus);
     }
 
-    const newStamina = Math.min(monsterData.stamina + staminaBonus, monsterData.maxStamina);
-    const newPai = Math.min(monsterData.paiEnergy + energyBonus, monsterData.maxPaiEnergy);
+    // --- 服务端奖励持久化（静默失败，不阻断主流程）---
+    try {
+      if (user?.id) {
+        // 记录体力奖励（叛逆双倍已在上面前置计算）
+        await rewardService.createReward({
+          userId: user.id,
+          type: 'stamina',
+          source: 'game_win',
+          amount: staminaBonus,
+        });
+        // 记录能量奖励
+        await rewardService.createReward({
+          userId: user.id,
+          type: 'energy',
+          source: 'game_win',
+          amount: energyBonus,
+        });
+        console.log('[Monster] 奖励已同步至服务端');
+      }
+    } catch (error) {
+      console.warn('[Monster] 奖励同步服务端失败，仅本地记录:', error);
+    }
+
+    // --- 本地存储（主流程不变）---
+
+    const newStamina = Math.min(latestData.stamina + staminaBonus, latestData.maxStamina);
+    const newPai = Math.min(latestData.paiEnergy + energyBonus, latestData.maxPaiEnergy);
 
     const updated = {
-      ...monsterData,
+      ...latestData,
       stamina: newStamina,
       paiEnergy: newPai,
     };
@@ -186,11 +224,11 @@ const MonsterManageScreen = () => {
     setMonsterData(updated);
     await storage.setItem(STORAGE_KEYS.MONSTER, updated);
 
-    // 增加游玩次数
     const newPlays = dailyPlays + 1;
     setDailyPlays(newPlays);
     await storage.setItem('dailyGamePlays', newPlays);
 
+    console.log('[Monster] 游戏完成 - 体力:', newStamina, '能量:', newPai, '今日已玩:', newPlays);
     setShowGameModal(false);
     Alert.alert('游戏完成！', `获得 ${staminaBonus} 体力值和 ${energyBonus} 能量Π`);
   };
@@ -245,9 +283,6 @@ const MonsterManageScreen = () => {
 
   const staminaPercent = (monsterData.stamina / monsterData.maxStamina) * 100;
   const paiPercent = (monsterData.paiEnergy / monsterData.maxPaiEnergy) * 100;
-
-  const monsterType = monsterData.type as keyof typeof MONSTER_CONFIG.PERSONALITIES;
-  const personality = MONSTER_CONFIG.PERSONALITIES[monsterType] || MONSTER_CONFIG.PERSONALITIES.calm;
 
   const renderTasksTab = () => (
     <View style={styles.tabContent}>
@@ -330,13 +365,7 @@ const MonsterManageScreen = () => {
                 styles.timeOption,
                 { backgroundColor: selectedTime === time ? '#5D9BFA' : 'rgba(93,155,250,0.15)' },
               ]}
-              onPress={() => {
-                if (!pomodoroActive) {
-                  setSelectedTime(time);
-                  setPomodoroTimeLeft(time * 60);
-                }
-              }}
-              disabled={pomodoroActive}
+              onPress={() => setSelectedTime(time)}
             >
               <Text
                 style={[
@@ -356,20 +385,14 @@ const MonsterManageScreen = () => {
           </View>
           <View style={styles.pomodoroButtons}>
             <TouchableOpacity
-              style={[
-                styles.pomodoroButton,
-                { backgroundColor: pomodoroActive ? '#FF6B6B' : '#5D9BFA' },
-              ]}
-              onPress={() => setPomodoroActive(!pomodoroActive)}
+              style={[styles.pomodoroButton, { backgroundColor: '#5D9BFA' }]}
+              onPress={() => {
+                console.log('[Monster] 番茄钟开始专注, duration:', selectedTime);
+                router.push({ pathname: '/pomodoro', params: { duration: String(selectedTime) } });
+              }}
             >
-              <Ionicons
-                name={pomodoroActive ? 'pause' : 'play'}
-                size={20}
-                color="#FFFFFF"
-              />
-              <Text style={styles.pomodoroButtonText}>
-                {pomodoroActive ? '暂停' : '开始专注'}
-              </Text>
+              <Ionicons name="play" size={20} color="#FFFFFF" />
+              <Text style={styles.pomodoroButtonText}>开始专注</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -456,53 +479,65 @@ const MonsterManageScreen = () => {
               <View style={styles.monsterPixelPattern} />
 
               <View style={styles.monsterCardContent}>
-                <View style={styles.monsterTop}>
+                <View style={styles.monsterTopRow}>
                   <View style={styles.monsterIconContainer}>
                     <MonsterIcon type={monsterData.type} size={80} />
                   </View>
 
                   <View style={styles.monsterInfo}>
-                    <View style={styles.monsterNameRow}>
-                      <Text style={styles.monsterName}>{monsterData.name}</Text>
-                      <View style={styles.levelBadge}>
-                        <Text style={styles.levelText}>Lv.{monsterData.level}</Text>
-                      </View>
-                    </View>
+                    <Text style={styles.monsterName} numberOfLines={1}>{monsterData.name}</Text>
                     <Text style={styles.monsterPersonality}>
                       {monsterData.type === MONSTER_CONFIG.TYPES.LIVELY ? '活力型怪兽 ⚡'
                         : monsterData.type === MONSTER_CONFIG.TYPES.CALM ? '沉稳型怪兽 🌟'
                           : '叛逆型怪兽 💫'}
                     </Text>
                   </View>
-
-                  <View style={styles.rightButtons}>
-                    <TouchableOpacity
-                      style={[styles.gameButton, dailyPlays >= 4 && styles.gameButtonDisabled]}
-                      onPress={handlePlayGame}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons name="game-controller-outline" size={20} color={dailyPlays >= 4 ? '#555577' : '#FF7D00'} />
-                      <View style={styles.gameButtonContent}>
-                        <Text style={[styles.gameButtonText, { color: dailyPlays >= 4 ? '#555577' : '#FF7D00' }]}>
-                          游戏
-                        </Text>
-                        <Text style={styles.gameButtonSubText}>
-                          剩余: {4 - dailyPlays}次
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.infoButton}
-                      onPress={() => setShowGameHelpModal(true)}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons name="information-circle-outline" size={20} color="#8888AA" />
-                    </TouchableOpacity>
-                  </View>
                 </View>
 
+                <View style={styles.monsterActionRow}>
+                  <TouchableOpacity
+                    style={[styles.gameButton, dailyPlays >= MONSTER_CONFIG.GAME.DAILY_LIMIT && styles.gameButtonDisabled]}
+                    onPress={handlePlayGame}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="game-controller-outline" size={20} color={dailyPlays >= MONSTER_CONFIG.GAME.DAILY_LIMIT ? '#555577' : '#FF7D00'} />
+                    <View style={styles.gameButtonContent}>
+                      <Text style={[styles.gameButtonText, { color: dailyPlays >= MONSTER_CONFIG.GAME.DAILY_LIMIT ? '#555577' : '#FF7D00' }]}>游戏</Text>
+                      <Text style={styles.gameButtonSubText}>
+                        剩余: {MONSTER_CONFIG.GAME.DAILY_LIMIT - dailyPlays}次
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
 
+                  <TouchableOpacity
+                    style={styles.infoButton}
+                    onPress={() => setShowInfo(!showInfo)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="information" size={18} color="#8888AA" />
+                  </TouchableOpacity>
+                </View>
+
+                {showInfo && (
+                  <View style={styles.infoCard}>
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoTitle}>💪 体力值</Text>
+                      <Text style={styles.infoText}>
+                        • 单次知识节点跳转消耗 10 体力{'\n'}
+                        • 每日凌晨 5:00 自动恢复至上限{'\n'}
+                        • 小游戏可额外补充体力
+                      </Text>
+                    </View>
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoTitle}>Π 能量</Text>
+                      <Text style={styles.infoText}>
+                        • AI对话消耗 = 对话Token数 × 0.05{'\n'}
+                        • 每日凌晨 5:00 自动恢复至上限{'\n'}
+                        • 小游戏可额外补充能量
+                      </Text>
+                    </View>
+                  </View>
+                )}
 
                 <View style={styles.statsRow}>
                   <View style={styles.statContainer}>
@@ -598,17 +633,20 @@ const MonsterManageScreen = () => {
         <View style={styles.bottomPadding} />
       </ScrollView>
 
-      <GameModal
+      {/* 游戏弹窗 */}
+      <Modal
         visible={showGameModal}
-        onClose={() => setShowGameModal(false)}
-        onGameComplete={handleGameComplete}
-        monsterType={monsterData?.type}
-      />
-
-      <GameHelpModal
-        visible={showGameHelpModal}
-        onClose={() => setShowGameHelpModal(false)}
-      />
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={() => setShowGameModal(false)}
+      >
+        <View style={styles.modalFullScreen}>
+          <MiniGames
+            onGameComplete={handleGameComplete}
+            onClose={() => setShowGameModal(false)}
+          />
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -678,31 +716,52 @@ const styles = StyleSheet.create({
     position: 'relative',
     zIndex: 1,
   },
-  monsterTop: {
+  monsterTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
-    marginBottom: 24,
+    marginBottom: 16,
   },
-  monsterIconContainer: {},
+  monsterActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 16,
+  },
+  monsterIconContainer: {
+    width: 108,
+    height: 108,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(93,155,250,0.2)',
+    flexShrink: 0,
+  },
   monsterInfo: {
     flex: 1,
+    justifyContent: 'center',
+    gap: 8,
   },
   rightButtons: {
-    flexDirection: 'row',
+    width: 92,
     gap: 8,
-    alignItems: 'center',
+    alignItems: 'stretch',
   },
   gameButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
     backgroundColor: 'rgba(255,125,0,0.15)',
     borderWidth: 1,
     borderColor: 'rgba(255,125,0,0.3)',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    minHeight: 52,
   },
   gameButtonDisabled: {
     backgroundColor: 'rgba(85,85,119,0.15)',
@@ -711,6 +770,8 @@ const styles = StyleSheet.create({
   gameButtonContent: {
     flexDirection: 'column',
     gap: 2,
+    alignItems: 'flex-start',
+    flex: 1,
   },
   gameButtonText: {
     color: '#FF7D00',
@@ -724,12 +785,15 @@ const styles = StyleSheet.create({
     fontFamily: 'Courier',
   },
   infoButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    flexShrink: 0,
   },
   infoCard: {
     marginBottom: 16,
@@ -760,29 +824,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     marginBottom: 4,
+    flexWrap: 'wrap',
   },
   monsterName: {
     color: '#FFFFFF',
     fontSize: 24,
     fontWeight: '800',
     fontFamily: 'Courier',
-  },
-  levelBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,215,0,0.2)',
-  },
-  levelText: {
-    color: '#FFD700',
-    fontSize: 11,
-    fontWeight: '700',
-    fontFamily: 'Courier',
+    flexShrink: 1,
   },
   monsterPersonality: {
     color: '#8888AA',
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: 'Courier',
+    lineHeight: 20,
   },
   statsRow: {
     gap: 12,
@@ -1108,6 +1163,10 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 100,
+  },
+  modalFullScreen: {
+    flex: 1,
+    backgroundColor: '#1A1A2E',
   },
 });
 

@@ -1,10 +1,21 @@
+import Constants from 'expo-constants';
+
 // 应用常量配置
-// 公网 / 跨网调试：在 mobile/.env 设置 EXPO_PUBLIC_API_URL=https://<子域>.ngrok-free.app/api
-// 或启动前：EXPO_PUBLIC_API_URL=https://xxx.ngrok-free.app/api npx expo start
+// 公网 / 跨网调试：优先读 Expo extra.apiBaseUrl，其次读 EXPO_PUBLIC_API_URL
+// 都未配置时才回退到 localhost。
+const extraApiBaseUrl = Constants.expoConfig?.extra?.apiBaseUrl;
+const rawApiBaseUrl =
+  (typeof extraApiBaseUrl === 'string' ? extraApiBaseUrl : undefined) ??
+  process.env.EXPO_PUBLIC_API_URL?.trim();
+
 export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001/api';
+  rawApiBaseUrl && rawApiBaseUrl.length > 0 ? rawApiBaseUrl : 'http://localhost:3001/api';
 export const APP_NAME = 'LearnFlow';
 export const APP_VERSION = '1.0.0';
+
+console.log('[Config] extra.apiBaseUrl =', extraApiBaseUrl);
+console.log('[Config] EXPO_PUBLIC_API_URL =', process.env.EXPO_PUBLIC_API_URL);
+console.log('[Config] API_BASE_URL =', API_BASE_URL);
 
 // 页面路由常量
 export const ROUTES = {
@@ -174,6 +185,14 @@ export const MONSTER_CONFIG = {
 
   POMODORO: {
     TIME_OPTIONS: [25, 45, 60, 90, 120, 180] as const,
+  } as const,
+
+  // 小游戏配置
+  // DAILY_LIMIT: 免费版每日游戏次数上限
+  // PRO_DAILY_LIMIT: PRO 版每日游戏次数上限（预留，后续根据用户等级读取不同值）
+  GAME: {
+    DAILY_LIMIT: 3,
+    PRO_DAILY_LIMIT: 10,
   } as const,
 
   PERSONALITIES: {
