@@ -1,25 +1,17 @@
 import * as NoteModel from '../models/Note';
-import * as MonsterService from './monsterService';
 
 export const createNote = async (userId: number, date: Date, content?: string) => {
   console.log(`[NoteService] 创建笔记 - 用户ID: ${userId}, 日期: ${date}`);
-  let monsterComment: string | undefined;
-  
-  if (content) {
-    console.log(`[NoteService] 请求怪物评论`);
-    const commentResult = await MonsterService.chatWithMonster(userId, `我今天学习了：${content}`);
-    monsterComment = commentResult.message;
-  }
 
+  // 纯笔记存储，不再自动调用 AI 生成怪兽评论
   const noteId = await NoteModel.createNote({
     userId,
     date,
     content,
-    monsterComment
   });
 
   console.log(`[NoteService] 笔记创建成功 - 笔记ID: ${noteId}`);
-  return { success: true, noteId, monsterComment };
+  return { success: true, noteId };
 };
 
 export const getNotes = async (userId: number) => {

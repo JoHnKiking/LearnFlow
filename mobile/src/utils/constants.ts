@@ -187,6 +187,14 @@ export const MONSTER_CONFIG = {
     TIME_OPTIONS: [25, 45, 60, 90, 120, 180] as const,
   } as const,
 
+  // 小游戏配置
+  // DAILY_LIMIT: 免费版每日游戏次数上限
+  // PRO_DAILY_LIMIT: PRO 版每日游戏次数上限（预留，后续根据用户等级读取不同值）
+  GAME: {
+    DAILY_LIMIT: 3,
+    PRO_DAILY_LIMIT: 10,
+  } as const,
+
   PERSONALITIES: {
     lively: {
       name: '活力小怪',

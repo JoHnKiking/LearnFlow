@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/contexts/ThemeContext';
-import { getCurrentUser } from '../../src/utils/auth';
+import { getCurrentUser, clearAuthData } from '../../src/utils/auth';
 import HelpModal from '../../src/components/HelpModal';
 
 const ProfileScreen = () => {
@@ -55,9 +55,16 @@ const ProfileScreen = () => {
     console.log('[Profile] 用户点击退出登录');
     Alert.alert('确认退出', '您确定要退出登录吗？', [
       { text: '取消', style: 'cancel' },
-      { 
-        text: '确定', 
-        onPress: () => {
+      {
+        text: '确定',
+        onPress: async () => {
+          // 清除内存中的认证信息（token + 用户数据）
+          // 业务数据（怪兽、笔记、进度等）保留不清除，重新登录后仍可访问
+          await clearAuthData();
+          // 重置组件状态，防止登录态残留
+          setUser(null);
+          setIsLoggedIn(false);
+          console.log('[Profile] 退出登录完成，已清除认证数据');
           router.replace('/login');
         }
       }

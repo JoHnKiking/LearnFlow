@@ -9,6 +9,12 @@ import { storage, STORAGE_KEYS } from '../../src/utils/storage';
 import { MONSTER_CONFIG } from '../../src/utils/constants';
 import { formatTimer } from '../../src/utils/helpers';
 import { useFocusEffect, router } from 'expo-router';
+// ============================================================
+// 服务端持久化接口（第1步已在 api.ts / skill.ts 中定义）
+// 本地优先 + 异步服务端同步，失败不阻断主流程
+// ============================================================
+import { noteService, rewardService } from '../../src/services/api';
+import { getCurrentUser } from '../../src/utils/auth';
 
 type ActiveTab = 'tasks' | 'notes' | 'chat';
 
@@ -126,18 +132,35 @@ const MonsterManageScreen = () => {
       date: new Date().toISOString(),
     };
 
+    // --- 本地存储（主流程，即时响应）---
     const updated = [newNote, ...savedNotes];
     setSavedNotes(updated);
     await storage.setItem(STORAGE_KEYS.NOTES, updated);
     console.log('[Monster] 笔记已保存，总数:', updated.length);
     setNotes('');
+
+    // --- 服务端异步同步（静默失败，不阻断 UI）---
+    try {
+      const user = await getCurrentUser();
+      if (user?.id) {
+        await noteService.createNote({
+          userId: user.id,
+          date: newNote.date,
+          content: newNote.content,
+        });
+        console.log('[Monster] 笔记已同步至服务端');
+      }
+    } catch (error) {
+      console.warn('[Monster] 笔记同步服务端失败，仅本地存储:', error);
+    }
   };
 
   const handlePlayGame = () => {
     if (!monsterData) return;
 
-    const maxPlays = 3;
-    if (dailyPlays >= maxPlays) {
+    // 读取每日游戏次数上限（免费版 3 次，PRO 版见 MONSTER_CONFIG.GAME.PRO_DAILY_LIMIT）
+    const dailyGameLimit = MONSTER_CONFIG.GAME.DAILY_LIMIT;
+    if (dailyPlays >= dailyGameLimit) {
       console.log('[Monster] 游戏次数已达上限:', dailyPlays);
       Alert.alert('提示', '今日体力补充已达上限，明天再来吧');
       return;
@@ -155,11 +178,39 @@ const MonsterManageScreen = () => {
     let staminaBonus = rewards.stamina;
     let energyBonus = rewards.energy;
 
+    // 获取当前登录用户（服务端同步需要 userId）
+    const user = await getCurrentUser();
+
     if (latestData.type === MONSTER_CONFIG.TYPES.REBEL) {
       staminaBonus *= 2;
       energyBonus *= 2;
       console.log('[Monster] 叛逆小怪双倍奖励 - 体力:', staminaBonus, '能量:', energyBonus);
     }
+
+    // --- 服务端奖励持久化（静默失败，不阻断主流程）---
+    try {
+      if (user?.id) {
+        // 记录体力奖励（叛逆双倍已在上面前置计算）
+        await rewardService.createReward({
+          userId: user.id,
+          type: 'stamina',
+          source: 'game_win',
+          amount: staminaBonus,
+        });
+        // 记录能量奖励
+        await rewardService.createReward({
+          userId: user.id,
+          type: 'energy',
+          source: 'game_win',
+          amount: energyBonus,
+        });
+        console.log('[Monster] 奖励已同步至服务端');
+      }
+    } catch (error) {
+      console.warn('[Monster] 奖励同步服务端失败，仅本地记录:', error);
+    }
+
+    // --- 本地存储（主流程不变）---
 
     const newStamina = Math.min(latestData.stamina + staminaBonus, latestData.maxStamina);
     const newPai = Math.min(latestData.paiEnergy + energyBonus, latestData.maxPaiEnergy);
@@ -445,15 +496,15 @@ const MonsterManageScreen = () => {
 
                 <View style={styles.monsterActionRow}>
                   <TouchableOpacity
-                    style={[styles.gameButton, dailyPlays >= 4 && styles.gameButtonDisabled]}
+                    style={[styles.gameButton, dailyPlays >= MONSTER_CONFIG.GAME.DAILY_LIMIT && styles.gameButtonDisabled]}
                     onPress={handlePlayGame}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="game-controller-outline" size={20} color={dailyPlays >= 4 ? '#555577' : '#FF7D00'} />
+                    <Ionicons name="game-controller-outline" size={20} color={dailyPlays >= MONSTER_CONFIG.GAME.DAILY_LIMIT ? '#555577' : '#FF7D00'} />
                     <View style={styles.gameButtonContent}>
-                      <Text style={[styles.gameButtonText, { color: dailyPlays >= 4 ? '#555577' : '#FF7D00' }]}>游戏</Text>
+                      <Text style={[styles.gameButtonText, { color: dailyPlays >= MONSTER_CONFIG.GAME.DAILY_LIMIT ? '#555577' : '#FF7D00' }]}>游戏</Text>
                       <Text style={styles.gameButtonSubText}>
-                        剩余: {4 - dailyPlays}次
+                        剩余: {MONSTER_CONFIG.GAME.DAILY_LIMIT - dailyPlays}次
                       </Text>
                     </View>
                   </TouchableOpacity>

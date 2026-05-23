@@ -1,13 +1,27 @@
 import axios from 'axios';
-import { 
-  SkillNode, 
+import {
+  SkillNode,
   SkillTreeRequest,
-  CreateUserRequest, 
-  LoginRequest, 
+  CreateUserRequest,
+  LoginRequest,
   UserResponse,
   AuthResponse,
   MonsterSetupRequest,
   MonsterResponse,
+  // 新增：笔记相关类型
+  CreateNoteRequest,
+  UpdateNoteRequest,
+  Note,
+  // 新增：奖励相关类型
+  CreateRewardRequest,
+  ClaimRewardRequest,
+  Reward,
+  // 新增：领域/学习域相关类型
+  CreateDomainRequest,
+  UpdateNodeProgressRequest,
+  StartLearningRequest,
+  FinishLearningRequest,
+  Domain,
 } from '../types/skill';
 import { API_BASE_URL } from '../utils/constants';
 
@@ -197,13 +211,121 @@ export const skillService = {
 };
 
 export const monsterService = {
+  // 用户创建/初始化自己的小怪兽
   createMonster: async (request: MonsterSetupRequest): Promise<MonsterResponse> => {
     const response = await api.post('/monster/create', request);
     return response.data.data;
   },
 
+  // 扣除体力（学习时调用）
   consumeStamina: async (userId: number, amount: number): Promise<{ success: boolean }> => {
     const response = await api.post('/monster/stamina/consume', { userId, amount });
     return response.data;
+  },
+};
+
+// ============================================================
+// 笔记服务
+// 对应服务端 POST/GET/PUT /api/notes/*
+// 用于怪兽页笔记的持久化存储，替代纯 AsyncStorage 方案
+// ============================================================
+export const noteService = {
+  /** 创建笔记 */
+  createNote: async (request: CreateNoteRequest): Promise<Note> => {
+    const response = await api.post('/notes/create', request);
+    return response.data.data;
+  },
+
+  /** 获取某用户的所有笔记列表 */
+  getNotes: async (userId: number): Promise<Note[]> => {
+    const response = await api.get(`/notes/list/${userId}`);
+    return response.data.data;
+  },
+
+  /** 按日期获取某用户的笔记 */
+  getNoteByDate: async (userId: number, date: string): Promise<Note | null> => {
+    const response = await api.get(`/notes/${userId}/${date}`);
+    return response.data.data;
+  },
+
+  /** 更新笔记内容 */
+  updateNote: async (request: UpdateNoteRequest): Promise<void> => {
+    await api.put('/notes/update', request);
+  },
+};
+
+// ============================================================
+// 奖励服务
+// 对应服务端 POST/GET /api/rewards/*
+//
+// 奖励类型仅支持 stamina（体力）和 energy（能量），不支持经验值
+// 奖励来源仅两种：
+//   - node_complete: 完成学习节点，时间长短对应不同奖励
+//   - game_win: 小游戏胜利获得奖励
+//
+// 叛逆型小怪双倍：调用方在传入 amount 时自行 *= 2，
+//   rewardService 只做如实记录，不再二次翻倍
+// ============================================================
+export const rewardService = {
+  /** 创建奖励记录（完成节点或小游戏胜利后发放体力/能量） */
+  createReward: async (request: CreateRewardRequest): Promise<{ success: boolean; rewardId: number }> => {
+    const response = await api.post('/rewards/create', request);
+    return response.data.data;
+  },
+
+  /** 获取某用户的奖励列表 */
+  getRewards: async (userId: number): Promise<{ rewards: Reward[] }> => {
+    const response = await api.get(`/rewards/list/${userId}`);
+    return response.data.data;
+  },
+
+  /** 领取/兑换奖励 */
+  claimReward: async (request: ClaimRewardRequest): Promise<{ success: boolean }> => {
+    const response = await api.post('/rewards/claim', request);
+    return response.data;
+  },
+};
+
+// ============================================================
+// 领域/学习域服务
+// 对应服务端 POST/GET/PUT /api/domains/*
+//
+// 领域包括预设模块（理财、AI 等）和用户自定义模块
+// 自定义模块同样支持添加阶段和节点，通过本服务持久化到服务端
+// 支持记录节点学习进度、开始/完成学习
+// ============================================================
+export const domainService = {
+  /** 创建学习领域（用户选择预设模块或自定义模块时调用） */
+  createDomain: async (request: CreateDomainRequest): Promise<Domain> => {
+    const response = await api.post('/domains/create', request);
+    return response.data.data;
+  },
+
+  /** 获取某用户的所有学习领域列表 */
+  getDomains: async (userId: number): Promise<Domain[]> => {
+    const response = await api.get(`/domains/list/${userId}`);
+    return response.data.data;
+  },
+
+  /** 根据 ID 获取单个学习领域详情 */
+  getDomainById: async (id: number): Promise<Domain> => {
+    const response = await api.get(`/domains/${id}`);
+    return response.data.data;
+  },
+
+  /** 更新节点学习进度（标记为待学习/进行中/已完成） */
+  updateNodeProgress: async (request: UpdateNodeProgressRequest): Promise<void> => {
+    await api.put('/domains/nodes/progress', request);
+  },
+
+  /** 开始学习（创建学习记录，返回 recordId 供 finishLearning 使用） */
+  startLearning: async (request: StartLearningRequest): Promise<{ success: boolean; recordId: number }> => {
+    const response = await api.post('/domains/learning/start', request);
+    return response.data.data;
+  },
+
+  /** 完成学习（更新学习记录的实际时长和进度） */
+  finishLearning: async (request: FinishLearningRequest): Promise<void> => {
+    await api.post('/domains/learning/finish', request);
   },
 };

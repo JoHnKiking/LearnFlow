@@ -227,7 +227,7 @@ CREATE TABLE IF NOT EXISTS notes (
 CREATE TABLE IF NOT EXISTS rewards (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    type ENUM('exp', 'energy', 'item', 'badge') NOT NULL COMMENT '奖励类型',
+    type ENUM('exp', 'stamina', 'energy', 'item', 'badge') NOT NULL COMMENT '奖励类型（exp已废弃，现仅用stamina/energy）',
     amount INT DEFAULT 0 COMMENT '奖励数量',
     source VARCHAR(200) COMMENT '奖励来源',
     claimed BOOLEAN DEFAULT FALSE COMMENT '是否已领取',
@@ -306,7 +306,7 @@ CREATE TABLE IF NOT EXISTS notes (
 CREATE TABLE IF NOT EXISTS rewards (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    type ENUM('exp', 'energy', 'item', 'badge') NOT NULL COMMENT '奖励类型',
+    type ENUM('exp', 'stamina', 'energy', 'item', 'badge') NOT NULL COMMENT '奖励类型（exp已废弃，现仅用stamina/energy）',
     amount INT DEFAULT 0 COMMENT '奖励数量',
     source VARCHAR(200) COMMENT '奖励来源',
     claimed BOOLEAN DEFAULT FALSE COMMENT '是否已领取',

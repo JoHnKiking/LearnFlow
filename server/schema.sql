@@ -217,7 +217,7 @@ CREATE TABLE `popular_domains` (
 CREATE TABLE `rewards` (
   `id` int NOT NULL AUTO_INCREMENT,
   `user_id` int NOT NULL,
-  `type` enum('exp','energy','item','badge') NOT NULL COMMENT '奖励类型',
+  `type` enum('exp','stamina','energy','item','badge') NOT NULL COMMENT '奖励类型（exp已废弃，现仅用stamina/energy）',
   `amount` int DEFAULT '0' COMMENT '奖励数量',
   `source` varchar(200) DEFAULT NULL COMMENT '奖励来源',
   `claimed` tinyint(1) DEFAULT '0' COMMENT '是否已领取',
