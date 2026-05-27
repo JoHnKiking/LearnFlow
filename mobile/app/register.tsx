@@ -1,12 +1,13 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, Alert, ScrollView, TouchableOpacity, TextInput, Dimensions } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, StyleSheet, Alert, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { authService } from '../src/services/api';
 import { saveAuthData } from '../src/utils/auth';
-import { showErrorAlert, toErrorMessage, createKeyboardPositioningListener, measureInputPosition, measureInputPositionByRef } from '../src/utils';
+import { showErrorAlert, toErrorMessage } from '../src/utils';
+import { FloatingInputBar, InputFieldConfig } from '../src/components/FloatingInputBar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '../src/utils/storage';
 
@@ -19,98 +20,45 @@ const RegisterScreen = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [activeInputY, setActiveInputY] = useState(0);
-  const [isKeyboardActive, setIsKeyboardActive] = useState(false);
-  
-  const scrollViewRef = useRef<ScrollView>(null);
-  const usernameInputRef = useRef<TextInput>(null);
-  const emailInputRef = useRef<TextInput>(null);
-  const passwordInputRef = useRef<TextInput>(null);
-  const confirmPasswordInputRef = useRef<TextInput>(null);
+  const [activeFieldId, setActiveFieldId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const cleanup = createKeyboardPositioningListener(
-      () => {
-        setIsKeyboardActive(true);
-      },
-      () => {
-        setIsKeyboardActive(false);
-        if (scrollViewRef.current) {
-          scrollViewRef.current.scrollTo({ y: 0, animated: true });
-        }
-      },
-      activeInputY
-    );
-
-    return cleanup;
-  }, [activeInputY]);
-
-  // 测量输入框位置
-  const handleInputLayout = (event: any) => {
-    measureInputPosition(event, (yPosition) => {
-      setActiveInputY(yPosition);
-    });
-  };
-
-  // 处理用户名输入框焦点事件
-  const handleUsernameInputFocus = () => {
-    // 延迟执行，确保键盘已经弹出
-    setTimeout(() => {
-      measureInputPositionByRef(usernameInputRef, (yPosition) => {
-        setActiveInputY(yPosition);
-        // 当键盘弹出时，滚动到输入框上方2cm位置
-        if (scrollViewRef.current) {
-          const scrollOffset = Math.max(0, yPosition - 40); // 进一步减少偏移量，上移约0.5cm
-          scrollViewRef.current.scrollTo({ y: scrollOffset, animated: true });
-        }
-      });
-    }, 100);
-  };
-
-  // 处理邮箱输入框焦点事件
-  const handleEmailInputFocus = () => {
-    // 延迟执行，确保键盘已经弹出
-    setTimeout(() => {
-      measureInputPositionByRef(emailInputRef, (yPosition) => {
-        setActiveInputY(yPosition);
-        // 当键盘弹出时，滚动到输入框上方2cm位置
-        if (scrollViewRef.current) {
-          const scrollOffset = Math.max(0, yPosition - 40); // 进一步减少偏移量，上移约0.5cm
-          scrollViewRef.current.scrollTo({ y: scrollOffset, animated: true });
-        }
-      });
-    }, 100);
-  };
-
-  // 处理密码输入框焦点事件
-  const handlePasswordInputFocus = () => {
-    // 延迟执行，确保键盘已经弹出
-    setTimeout(() => {
-      measureInputPositionByRef(passwordInputRef, (yPosition) => {
-        setActiveInputY(yPosition);
-        // 当键盘弹出时，滚动到输入框上方2cm位置
-        if (scrollViewRef.current) {
-          const scrollOffset = Math.max(0, yPosition - 40); // 进一步减少偏移量，上移约0.5cm
-          scrollViewRef.current.scrollTo({ y: scrollOffset, animated: true });
-        }
-      });
-    }, 100);
-  };
-
-  // 处理确认密码输入框焦点事件
-  const handleConfirmPasswordInputFocus = () => {
-    // 延迟执行，确保键盘已经弹出
-    setTimeout(() => {
-      measureInputPositionByRef(confirmPasswordInputRef, (yPosition) => {
-        setActiveInputY(yPosition);
-        // 当键盘弹出时，滚动到输入框上方2cm位置
-        if (scrollViewRef.current) {
-          const scrollOffset = Math.max(0, yPosition - 40); // 进一步减少偏移量，上移约0.5cm
-          scrollViewRef.current.scrollTo({ y: scrollOffset, animated: true });
-        }
-      });
-    }, 100);
-  };
+  const inputFields: InputFieldConfig[] = useMemo(() => [
+    {
+      id: 'username',
+      label: '用户名',
+      icon: 'person',
+      value: username,
+      onChangeText: setUsername,
+      placeholder: '请输入用户名',
+    },
+    {
+      id: 'email',
+      label: '邮箱',
+      icon: 'mail',
+      value: email,
+      onChangeText: setEmail,
+      keyboardType: 'email-address',
+      placeholder: '请输入邮箱',
+    },
+    {
+      id: 'password',
+      label: '密码',
+      icon: 'lock-closed',
+      value: password,
+      onChangeText: setPassword,
+      secureTextEntry: !showPassword,
+      placeholder: '请输入密码',
+    },
+    {
+      id: 'confirmPassword',
+      label: '确认密码',
+      icon: 'lock-closed',
+      value: confirmPassword,
+      onChangeText: setConfirmPassword,
+      secureTextEntry: !showConfirmPassword,
+      placeholder: '请再次输入密码',
+    },
+  ], [username, email, password, confirmPassword, showPassword, showConfirmPassword]);
 
   const handleRegister = async () => {
     console.log('[Register] 开始注册 - 用户名:', username, '邮箱:', email);
@@ -175,12 +123,8 @@ const RegisterScreen = () => {
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 20,
-    paddingBottom: 0, // 平时底部限制死
-    minHeight: Dimensions.get('window').height, // 平时内容高度刚好等于屏幕高度
-  },
-  scrollContentActive: {
-    paddingBottom: 100, // 键盘激活时增加底部内边距
-    minHeight: Dimensions.get('window').height + 200, // 键盘激活时确保内容高度超过屏幕高度
+    paddingBottom: 0,
+    minHeight: Dimensions.get('window').height,
   },
   backgroundDecorations: {
     position: 'absolute',
@@ -270,6 +214,11 @@ const RegisterScreen = () => {
     flex: 1,
     fontSize: 15,
     color: colors.textPrimary,
+    paddingVertical: 0,
+  },
+  displayText: {
+    flex: 1,
+    fontSize: 15,
     paddingVertical: 0,
   },
   passwordToggle: {
@@ -367,15 +316,10 @@ const RegisterScreen = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <ScrollView 
-          ref={scrollViewRef}
           style={styles.container}
-          contentContainerStyle={[
-            styles.scrollContent,
-            isKeyboardActive && styles.scrollContentActive
-          ]}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentInsetAdjustmentBehavior="automatic"
         >
           {/* 背景装饰 */}
           <View style={styles.backgroundDecorations}>
@@ -395,100 +339,75 @@ const RegisterScreen = () => {
 
           {/* 表单 */}
           <View style={styles.formContainer}>
-            <View 
-            style={styles.inputContainer}
-            onLayout={handleInputLayout}
-          >
-            <Ionicons name="person" size={20} color={colors.primary} style={styles.inputIcon} />
-            <TextInput
-              ref={usernameInputRef}
-              style={styles.textInput}
-              placeholder="用户名"
-              placeholderTextColor={colors.textSecondary}
-              value={username}
-              onChangeText={setUsername}
-              autoCapitalize="none"
-              autoCorrect={false}
-              onFocus={handleUsernameInputFocus}
-            />
-          </View>
-          
-          <View 
-            style={styles.inputContainer}
-            onLayout={handleInputLayout}
-          >
-            <Ionicons name="mail" size={20} color={colors.primary} style={styles.inputIcon} />
-            <TextInput
-              ref={emailInputRef}
-              style={styles.textInput}
-              placeholder="邮箱"
-              placeholderTextColor={colors.textSecondary}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              onFocus={handleEmailInputFocus}
-            />
-          </View>
-          
-          <View 
-            style={styles.inputContainer}
-            onLayout={handleInputLayout}
-          >
-            <Ionicons name="lock-closed" size={20} color={colors.primary} style={styles.inputIcon} />
-            <TextInput
-              ref={passwordInputRef}
-              style={styles.textInput}
-              placeholder="密码"
-              placeholderTextColor={colors.textSecondary}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              autoCorrect={false}
-              onFocus={handlePasswordInputFocus}
-            />
-            <TouchableOpacity
-              style={styles.passwordToggle}
-              onPress={() => setShowPassword(!showPassword)}
+            <TouchableOpacity 
+              style={styles.inputContainer}
+              activeOpacity={0.7}
+              onPress={() => setActiveFieldId('username')}
             >
-              <Ionicons 
-                name={showPassword ? "eye-off" : "eye"} 
-                size={20} 
-                color={colors.textSecondary} 
-              />
+              <Ionicons name="person" size={20} color={colors.primary} style={styles.inputIcon} />
+              <Text 
+                style={[styles.displayText, username ? { color: colors.textPrimary } : { color: colors.textSecondary }]}
+                numberOfLines={1}
+              >
+                {username || '用户名'}
+              </Text>
             </TouchableOpacity>
-          </View>
+          
+            <TouchableOpacity 
+              style={styles.inputContainer}
+              activeOpacity={0.7}
+              onPress={() => setActiveFieldId('email')}
+            >
+              <Ionicons name="mail" size={20} color={colors.primary} style={styles.inputIcon} />
+              <Text 
+                style={[styles.displayText, email ? { color: colors.textPrimary } : { color: colors.textSecondary }]}
+                numberOfLines={1}
+              >
+                {email || '邮箱'}
+              </Text>
+            </TouchableOpacity>
+          
+            <TouchableOpacity 
+              style={styles.inputContainer}
+              activeOpacity={0.7}
+              onPress={() => setActiveFieldId('password')}
+            >
+              <Ionicons name="lock-closed" size={20} color={colors.primary} style={styles.inputIcon} />
+              <Text 
+                style={[styles.displayText, password ? { color: colors.textPrimary } : { color: colors.textSecondary }]}
+                numberOfLines={1}
+              >
+                {password ? '●'.repeat(Math.min(password.length, 12)) : '密码'}
+              </Text>
+              <TouchableOpacity
+                style={styles.passwordToggle}
+                onPress={() => setShowPassword(!showPassword)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name={showPassword ? "eye-off" : "eye"} size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </TouchableOpacity>
 
-          <View 
-            style={styles.inputContainer}
-            onLayout={handleInputLayout}
-          >
-            <Ionicons name="lock-closed" size={20} color={colors.primary} style={styles.inputIcon} />
-            <TextInput
-              ref={confirmPasswordInputRef}
-              style={styles.textInput}
-              placeholder="确认密码"
-              placeholderTextColor={colors.textSecondary}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry={!showConfirmPassword}
-              autoCapitalize="none"
-              autoCorrect={false}
-              onFocus={handleConfirmPasswordInputFocus}
-            />
-            <TouchableOpacity
-              style={styles.passwordToggle}
-              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+            <TouchableOpacity 
+              style={styles.inputContainer}
+              activeOpacity={0.7}
+              onPress={() => setActiveFieldId('confirmPassword')}
             >
-              <Ionicons 
-                name={showConfirmPassword ? "eye-off" : "eye"} 
-                size={20} 
-                color={colors.textSecondary} 
-              />
+              <Ionicons name="lock-closed" size={20} color={colors.primary} style={styles.inputIcon} />
+              <Text 
+                style={[styles.displayText, confirmPassword ? { color: colors.textPrimary } : { color: colors.textSecondary }]}
+                numberOfLines={1}
+              >
+                {confirmPassword ? '●'.repeat(Math.min(confirmPassword.length, 12)) : '确认密码'}
+              </Text>
+              <TouchableOpacity
+                style={styles.passwordToggle}
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name={showConfirmPassword ? "eye-off" : "eye"} size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
             </TouchableOpacity>
-          </View>
 
             <TouchableOpacity
               style={[styles.registerButton, loading && styles.registerButtonDisabled]}
@@ -547,6 +466,14 @@ const RegisterScreen = () => {
             <Text style={styles.termsLink}>隐私政策</Text>
           </Text>
         </ScrollView>
+
+      {/* 键盘上方浮动输入栏 */}
+      <FloatingInputBar
+        fields={inputFields}
+        activeFieldId={activeFieldId}
+        onDismiss={() => setActiveFieldId(null)}
+        colors={colors}
+      />
       </SafeAreaView>
     );
 

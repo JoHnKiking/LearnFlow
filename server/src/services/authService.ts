@@ -36,13 +36,15 @@ export class AuthService {
       [email]
     );
 
-    const user = (rows as any[])[0];
-    if (!user) {
+    const rawUser = (rows as any[])[0];
+    if (!rawUser) {
       console.log(`[AuthService] 登录失败 - 用户不存在: ${email}`);
       throw new Error('用户不存在');
     }
 
-    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    const user = this.mapUserFromDB(rawUser);
+
+    const isValidPassword = await bcrypt.compare(password, user.passwordHash || '');
     if (!isValidPassword) {
       console.log(`[AuthService] 登录失败 - 密码错误: ${email}`);
       throw new Error('密码错误');
@@ -130,7 +132,7 @@ export class AuthService {
 
     // 生成认证响应
     console.log(`[AuthService] 生成认证令牌...`);
-    const authResponse = this.generateAuthResponse(mappedUser, 'default-device', 'web', '注册设备');
+    const authResponse = await this.generateAuthResponse(mappedUser, 'default-device', 'web', '注册设备');
     
     const duration = Date.now() - startTime;
     console.log(`[AuthService] 用户注册流程完成 - 用户名: ${username}, 总耗时: ${duration}ms`);
@@ -267,7 +269,7 @@ export class AuthService {
       user: this.mapToUserResponse(user),
       accessToken,
       refreshToken,
-      expiresIn: 7 * 24 * 60 * 60 // 7天（秒）
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
     };
   }
 
@@ -312,7 +314,7 @@ export class AuthService {
       user: this.mapToUserResponse(user),
       accessToken: newAccessToken,
       refreshToken, // 使用原来的刷新令牌
-      expiresIn: 7 * 24 * 60 * 60
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
     };
   }
 

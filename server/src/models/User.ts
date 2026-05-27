@@ -51,5 +51,5 @@ export interface AuthResponse {
   user: UserResponse;
   accessToken: string;
   refreshToken: string;
-  expiresIn: number;
+  expiresAt: string;
 }

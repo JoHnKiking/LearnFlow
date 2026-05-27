@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Animated, ScrollView,
-  TextInput, Alert, KeyboardAvoidingView, Platform,
+  TextInput, Alert, KeyboardAvoidingView, Platform, Modal, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../src/contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PlatformType } from '../src/types/skill';
+import { API_BASE_URL } from '../src/utils/constants';
 
 // ---- 平台选项（与 skill-tree 保持一致） ----
 const PLATFORM_OPTIONS: { key: PlatformType; label: string; icon: string; color: string }[] = [
@@ -84,6 +85,8 @@ const ModuleSelectionScreen = () => {
   const [nodeDrafts, setNodeDrafts] = useState<CustomNodeDraft[]>([]);
   // toast 提示
   const [toastMessage, setToastMessage] = useState('');
+  // AI 加载状态
+  const [aiLoading, setAiLoading] = useState(false);
 
   // ---- 初始化 ----
   useEffect(() => {
@@ -187,6 +190,86 @@ const ModuleSelectionScreen = () => {
       }
     }
     return null; // 验证通过
+  };
+
+  // ---- AI 一键填充接口响应类型 ----
+  interface AIFillNode {
+    nodeName: string;
+    subNodes: { subName: string; link: string }[];
+  }
+  interface AIFillResponse {
+    data: {
+      moduleDescription: string;
+      nodes: AIFillNode[];
+    };
+  }
+
+  /** AI 一键填充自定义模块内容 */
+  const handleAIFill = async () => {
+    if (!customName.trim()) {
+      Alert.alert('提示', '请先填写模块名称');
+      return;
+    }
+
+    setAiLoading(true);
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const response = await fetch(`${API_BASE_URL}/ai/fill-module`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ moduleName: customName.trim() }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error('AI生成失败，请重试');
+      }
+
+      const result: AIFillResponse = await response.json();
+
+      if (!result.data || !result.data.moduleDescription || !Array.isArray(result.data.nodes)) {
+        throw new Error('数据解析异常，请重试');
+      }
+
+      // 填充模块介绍
+      setCustomDescription(result.data.moduleDescription);
+
+      // 清空现有草稿并填充 AI 生成的大标题和小结点
+      const newStages: CustomStageDraft[] = [];
+      const newNodes: CustomNodeDraft[] = [];
+
+      result.data.nodes.forEach((node, si) => {
+        const stageId = `ai_stage_${Date.now()}_${si}`;
+        newStages.push({ localId: stageId, name: node.nodeName });
+
+        (node.subNodes || []).forEach((sub) => {
+          newNodes.push({
+            localId: `ai_node_${Date.now()}_${si}_${newNodes.length}`,
+            stageLocalId: stageId,
+            name: sub.subName || '',
+            url: sub.link || '',
+            platform: 'bilibili',
+          });
+        });
+      });
+
+      setStageDrafts(newStages);
+      setNodeDrafts(newNodes);
+
+      Alert.alert('生成成功', 'AI 已为你自动填充模块内容，请检查并修改后提交');
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        Alert.alert('生成失败', '网络异常，请稍后重试');
+      } else {
+        Alert.alert('生成失败', error.message || 'AI生成失败，请重试');
+      }
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   /** 提交自定义模块：保存 SkillTree 结构 + 自定义模块信息 + 更新 selectedModules */
@@ -403,6 +486,35 @@ const ModuleSelectionScreen = () => {
       position: 'absolute', top: -8, left: '50%', marginLeft: -8,
     },
     bubbleText: { color: colors.textPrimary, fontSize: 14, fontFamily: 'Courier' },
+
+    // ---- AI 填充 ----
+    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    nameInput: { flex: 1 },
+    aiFillBtn: {
+      backgroundColor: 'rgba(93,155,250,0.85)', borderRadius: 14, paddingHorizontal: 14,
+      paddingVertical: 14, justifyContent: 'center', alignItems: 'center',
+      shadowColor: '#5D9BFA', shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3, shadowRadius: 8, elevation: 4, minWidth: 110,
+    },
+    aiFillBtnDisabled: { backgroundColor: '#2A2A4A', shadowOpacity: 0 },
+    aiFillBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+
+    // ---- AI 加载 Modal ----
+    aiModalOverlay: {
+      flex: 1, backgroundColor: 'rgba(0,0,0,0.6)',
+      justifyContent: 'center', alignItems: 'center',
+    },
+    aiModalCard: {
+      backgroundColor: colors.backgroundDark, borderRadius: 20, padding: 40,
+      alignItems: 'center', borderWidth: 1, borderColor: 'rgba(93,155,250,0.2)',
+      marginHorizontal: 40,
+    },
+    aiModalTitle: {
+      color: colors.textPrimary, fontSize: 18, fontWeight: '700', marginTop: 20,
+    },
+    aiModalSubtitle: {
+      color: colors.textSecondary, fontSize: 14, marginTop: 8, textAlign: 'center',
+    },
   }), [colors]);
 
   // ---- 渲染：预设模块选择界面 ----
@@ -470,15 +582,29 @@ const ModuleSelectionScreen = () => {
     <>
       {/* ===== 第一步：输入模块名称 ===== */}
       <Text style={styles.sectionTitle}>模块名称</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="输入自定义模块名称，如「Swift 开发」"
-        placeholderTextColor={colors.textTertiary}
-        value={customName}
-        onChangeText={setCustomName}
-        maxLength={20}
-        returnKeyType="next"
-      />
+      <View style={styles.nameRow}>
+        <TextInput
+          style={[styles.input, styles.nameInput]}
+          placeholder="输入自定义模块名称，如「Swift 开发」"
+          placeholderTextColor={colors.textTertiary}
+          value={customName}
+          onChangeText={setCustomName}
+          maxLength={20}
+          returnKeyType="done"
+        />
+        <TouchableOpacity
+          style={[styles.aiFillBtn, aiLoading && styles.aiFillBtnDisabled]}
+          onPress={handleAIFill}
+          disabled={aiLoading}
+          activeOpacity={0.7}
+        >
+          {aiLoading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.aiFillBtnText}>✨ AI一键填充</Text>
+          )}
+        </TouchableOpacity>
+      </View>
 
       {/* ===== 第二步：输入模块介绍 ===== */}
       <Text style={styles.sectionTitle}>模块介绍</Text>
@@ -707,7 +833,7 @@ const ModuleSelectionScreen = () => {
                         </TouchableOpacity>
                       </>
                     )}
-                    <Text style={[styles.sectionTitle, { marginTop: 8 }]}>或创建自定义模块</Text>
+                    <Text style={[styles.sectionTitle, { marginTop: 8 }]}>或 创建自定义模块</Text>
                   </>
                 )}
                 {renderCustomForm()}
@@ -756,6 +882,19 @@ const ModuleSelectionScreen = () => {
           <Text style={styles.toastText}>{toastMessage}</Text>
         </View>
       )}
+
+      {/* ---- AI 生成进度弹窗（不可关闭） ---- */}
+      <Modal visible={aiLoading} transparent animationType="fade">
+        <View style={styles.aiModalOverlay}>
+          <View style={styles.aiModalCard}>
+            <ActivityIndicator size="large" color="#5D9BFA" />
+            <Text style={styles.aiModalTitle}>AI 正在生成</Text>
+            <Text style={styles.aiModalSubtitle}>
+              AI正在生成学习内容，请稍候...
+            </Text>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };

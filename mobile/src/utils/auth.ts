@@ -31,9 +31,6 @@ export const getAuthData = async (): Promise<AuthResponse | null> => {
       if (authData.user && authData.user.lastLoginAt) {
         authData.user.lastLoginAt = new Date(authData.user.lastLoginAt);
       }
-      if (authData.expiresAt) {
-        authData.expiresAt = new Date(authData.expiresAt);
-      }
       console.log('[Auth] 从内存获取认证信息成功');
       return authData;
     }
@@ -60,8 +57,8 @@ export const clearAuthData = async (): Promise<void> => {
 /**
  * 检查token是否过期
  */
-export const isTokenExpired = (expiresAt: Date): boolean => {
-  return new Date() > expiresAt;
+export const isTokenExpired = (expiresAt: string): boolean => {
+  return new Date() > new Date(expiresAt);
 };
 
 /**

@@ -76,7 +76,7 @@ export interface AuthResponse {
   user: UserResponse;
   accessToken: string;
   refreshToken: string;
-  expiresAt: Date;
+  expiresAt: string;
 }
 
 export interface MonsterSetupRequest {
