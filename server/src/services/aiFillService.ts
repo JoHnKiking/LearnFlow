@@ -3,10 +3,23 @@
 // 调用 DeepSeek API 为自定义模块自动生成学习内容
 // ================================================================
 
+import fs from 'fs';
+import path from 'path';
+
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
-const DEEPSEEK_API_KEY = 'sk-cfb939a85ed54490b299dfcbd262505f';
 const DEEPSEEK_MODEL = 'deepseek-chat';
 const REQUEST_TIMEOUT_MS = 15000;
+
+// 从 key.json 读取 API Key
+let DEEPSEEK_API_KEY: string | null = null;
+try {
+  const keyPath = path.join(__dirname, '../../key.json');
+  const keyFileContent = fs.readFileSync(keyPath, 'utf-8');
+  const keyData = JSON.parse(keyFileContent);
+  DEEPSEEK_API_KEY = keyData.DEEPSEEK_API_KEY;
+} catch (error) {
+  console.error('[AIFillService] 读取 key.json 失败:', error);
+}
 
 interface FillModuleResponse {
   moduleDescription: string;
@@ -62,6 +75,10 @@ function buildPrompt(moduleName: string): string {
 
 export async function fillModule(moduleName: string): Promise<FillModuleResponse> {
   console.log(`[AIFillService] 开始为模块「${moduleName}」生成内容...`);
+
+  if (!DEEPSEEK_API_KEY) {
+    throw new Error('未找到 DeepSeek API Key，请检查 key.json 文件');
+  }
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
