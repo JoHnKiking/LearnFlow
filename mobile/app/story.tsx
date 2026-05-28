@@ -439,76 +439,600 @@ const StoryScreen = () => {
       fontWeight: '700',
       color: '#FFFFFF',
     },
+    pixelStarField: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    pixelStar: {
+      position: 'absolute',
+      backgroundColor: '#FFFFFF',
+      borderRadius: 0,
+    },
+    pixelPlanetLarge: {
+      position: 'absolute',
+      top: 30,
+      left: 20,
+      width: 100,
+      height: 100,
+    },
+    pixelPlanetSurface: {
+      width: '100%',
+      height: '100%',
+      borderRadius: 50,
+      backgroundColor: '#6B5B95',
+      position: 'relative',
+      borderWidth: 3,
+      borderColor: '#8B7BB4',
+    },
+    pixelPlanetCrater: {
+      position: 'absolute',
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      backgroundColor: '#5B4B85',
+    },
+    pixelPlanetAtmosphere: {
+      position: 'absolute',
+      top: -5,
+      left: -5,
+      right: -5,
+      bottom: -5,
+      borderRadius: 55,
+      borderWidth: 3,
+      borderColor: 'rgba(255,255,255,0.2)',
+    },
+    pixelRingOrbit: {
+      position: 'absolute',
+      top: '35%',
+      left: '-20%',
+      width: '140%',
+      height: 16,
+    },
+    pixelRingSegment: {
+      position: 'absolute',
+      height: '100%',
+      backgroundColor: 'rgba(255,255,255,0.4)',
+      borderRadius: 8,
+    },
+    pixelSpaceship: {
+      position: 'absolute',
+      top: 50,
+      right: 10,
+      width: 40,
+      height: 30,
+    },
+    pixelShipBody: {
+      width: 28,
+      height: 20,
+      backgroundColor: '#8B8B8B',
+      borderRadius: 4,
+      position: 'absolute',
+      top: 5,
+      left: 6,
+    },
+    pixelShipWindow: {
+      position: 'absolute',
+      top: 9,
+      left: 12,
+      width: 10,
+      height: 8,
+      backgroundColor: '#4A8BF5',
+      borderRadius: 2,
+    },
+    pixelShipWingLeft: {
+      position: 'absolute',
+      top: 12,
+      left: 0,
+      width: 10,
+      height: 6,
+      backgroundColor: '#6B6B6B',
+      transform: [{ rotate: '-20deg' }],
+    },
+    pixelShipWingRight: {
+      position: 'absolute',
+      top: 12,
+      right: 0,
+      width: 10,
+      height: 6,
+      backgroundColor: '#6B6B6B',
+      transform: [{ rotate: '20deg' }],
+    },
+    pixelShipFlame: {
+      position: 'absolute',
+      bottom: -10,
+      left: '50%',
+      transform: [{ translateX: -6 }],
+      width: 12,
+      height: 12,
+    },
+    pixelFlamePart: {
+      position: 'absolute',
+      backgroundColor: '#FF6B35',
+      borderRadius: 2,
+    },
+    pixelEnergyOrb: {
+      position: 'absolute',
+      top: 100,
+      left: 60,
+      width: 36,
+      height: 36,
+    },
+    pixelEnergyText: {
+      position: 'absolute',
+      top: 5,
+      left: 8,
+      fontSize: 22,
+      fontWeight: 'bold',
+      color: '#FFD60A',
+      textShadowColor: '#FFD60A',
+      textShadowOffset: { width: 0, height: 0 },
+      textShadowRadius: 5,
+    },
+    pixelEnergyGlow: {
+      width: '100%',
+      height: '100%',
+      borderRadius: 18,
+      backgroundColor: 'rgba(255,214,10,0.3)',
+    },
+    pixelMonsterCute: {
+      position: 'absolute',
+      bottom: 10,
+      right: 30,
+      width: 50,
+      height: 50,
+    },
+    pixelMonsterBody: {
+      width: 40,
+      height: 40,
+      backgroundColor: '#7B5EA7',
+      borderRadius: 20,
+      position: 'absolute',
+      top: 5,
+      left: 5,
+    },
+    pixelMonsterEyeLeft: {
+      position: 'absolute',
+      top: 12,
+      left: 10,
+      width: 10,
+      height: 10,
+      backgroundColor: '#FFFFFF',
+      borderRadius: 5,
+    },
+    pixelMonsterEyeRight: {
+      position: 'absolute',
+      top: 12,
+      right: 10,
+      width: 10,
+      height: 10,
+      backgroundColor: '#FFFFFF',
+      borderRadius: 5,
+    },
+    pixelMonsterMouth: {
+      position: 'absolute',
+      bottom: 12,
+      left: 14,
+      width: 12,
+      height: 6,
+      backgroundColor: '#FFFFFF',
+      borderRadius: 3,
+    },
+    pixelMonsterEarLeft: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: 8,
+      height: 12,
+      backgroundColor: '#9B7EC3',
+      borderRadius: 4,
+    },
+    pixelMonsterEarRight: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      width: 8,
+      height: 12,
+      backgroundColor: '#9B7EC3',
+      borderRadius: 4,
+    },
+    pixelGridBg: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      flex: 1,
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      opacity: 0.1,
+    },
+    pixelGridLine: {
+      width: 20,
+      height: 20,
+      borderWidth: 1,
+      borderColor: '#4A8BF5',
+    },
+    pixelCentralNode: {
+      width: 70,
+      height: 70,
+      position: 'relative',
+      zIndex: 10,
+    },
+    pixelNodeGlow: {
+      position: 'absolute',
+      top: -5,
+      left: -5,
+      right: -5,
+      bottom: -5,
+      borderRadius: 40,
+      backgroundColor: 'rgba(74,139,245,0.3)',
+    },
+    pixelNodeText: {
+      width: '100%',
+      height: '100%',
+      backgroundColor: '#4A8BF5',
+      borderRadius: 35,
+      textAlign: 'center',
+      lineHeight: 70,
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: 'bold',
+      fontFamily: 'Courier',
+    },
+    pixelConnections: {
+      position: 'absolute',
+      top: '50%',
+      left: '50%',
+      width: '100%',
+      height: '100%',
+      transform: [{ translateX: -50 }, { translateY: -50 }],
+    },
+    pixelConnectionTop: {
+      position: 'absolute',
+      top: 0,
+      left: '50%',
+      width: 4,
+      height: 50,
+      backgroundColor: 'rgba(74,139,245,0.5)',
+      transform: [{ translateX: -2 }],
+    },
+    pixelConnectionBottom: {
+      position: 'absolute',
+      bottom: 0,
+      left: '50%',
+      width: 4,
+      height: 50,
+      backgroundColor: 'rgba(74,139,245,0.5)',
+      transform: [{ translateX: -2 }],
+    },
+    pixelConnectionLeft: {
+      position: 'absolute',
+      left: 0,
+      top: '50%',
+      width: 50,
+      height: 4,
+      backgroundColor: 'rgba(74,139,245,0.5)',
+      transform: [{ translateY: -2 }],
+    },
+    pixelConnectionRight: {
+      position: 'absolute',
+      right: 0,
+      top: '50%',
+      width: 50,
+      height: 4,
+      backgroundColor: 'rgba(74,139,245,0.5)',
+      transform: [{ translateY: -2 }],
+    },
+    pixelSatelliteNodeTop: {
+      position: 'absolute',
+      top: 0,
+      left: '50%',
+      transform: [{ translateX: -22 }],
+      alignItems: 'center',
+    },
+    pixelSatelliteNodeBottom: {
+      position: 'absolute',
+      bottom: 0,
+      left: '50%',
+      transform: [{ translateX: -22 }],
+      alignItems: 'center',
+    },
+    pixelSatelliteNodeLeft: {
+      position: 'absolute',
+      left: 0,
+      top: '50%',
+      transform: [{ translateY: -22 }],
+      alignItems: 'center',
+    },
+    pixelSatelliteNodeRight: {
+      position: 'absolute',
+      right: 0,
+      top: '50%',
+      transform: [{ translateY: -22 }],
+      alignItems: 'center',
+    },
+    pixelNodeSmall: {
+      width: 44,
+      height: 44,
+      backgroundColor: '#FAFCFF',
+      borderRadius: 22,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: '#4A8BF5',
+    },
+    pixelNodeIcon: {
+      fontSize: 20,
+    },
+    pixelNodeLabel: {
+      fontSize: 10,
+      color: colors.textSecondary,
+      marginTop: 4,
+      fontFamily: 'Courier',
+    },
+    pixelDataFlow: {
+      position: 'absolute',
+      top: '50%',
+      left: '50%',
+      width: 100,
+      height: 100,
+      transform: [{ translateX: -50 }, { translateY: -50 }],
+    },
+    pixelDataParticle: {
+      position: 'absolute',
+      width: 6,
+      height: 6,
+      backgroundColor: '#FFD60A',
+      borderRadius: 3,
+    },
+    pixelBatteryContainer: {
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    pixelBatteryOutline: {
+      width: 120,
+      height: 60,
+      backgroundColor: '#2A2A4A',
+      borderRadius: 8,
+      position: 'relative',
+      padding: 6,
+    },
+    pixelBatteryTopCap: {
+      position: 'absolute',
+      top: -8,
+      left: '50%',
+      transform: [{ translateX: -8 }],
+      width: 16,
+      height: 8,
+      backgroundColor: '#2A2A4A',
+      borderRadius: 2,
+    },
+    pixelBatteryCells: {
+      flexDirection: 'row',
+      gap: 4,
+      height: '100%',
+    },
+    pixelBatteryCell: {
+      flex: 1,
+      backgroundColor: '#3AE374',
+      borderRadius: 4,
+    },
+    pixelBatteryEnergyFlow: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    pixelEnergyParticle: {
+      position: 'absolute',
+      width: 4,
+      height: 4,
+      backgroundColor: '#FFD60A',
+      borderRadius: 2,
+    },
+    pixelBatteryLabel: {
+      marginTop: 8,
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: colors.textPrimary,
+      fontFamily: 'Courier',
+    },
+    pixelGameConsole: {
+      alignItems: 'center',
+    },
+    pixelConsoleScreen: {
+      width: 80,
+      height: 60,
+      backgroundColor: '#1A1A2E',
+      borderRadius: 4,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 4,
+      borderColor: '#3D3D5C',
+    },
+    pixelConsoleText: {
+      fontSize: 32,
+    },
+    pixelConsoleButtons: {
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 8,
+    },
+    pixelButtonA: {
+      width: 24,
+      height: 24,
+      backgroundColor: '#E94560',
+      borderRadius: 12,
+    },
+    pixelButtonB: {
+      width: 24,
+      height: 24,
+      backgroundColor: '#3AE374',
+      borderRadius: 12,
+    },
+    pixelConsoleLabel: {
+      marginTop: 8,
+      fontSize: 12,
+      color: colors.textSecondary,
+      fontFamily: 'Courier',
+    },
+    pixelZapEffect: {
+      position: 'absolute',
+      top: '30%',
+      right: 10,
+      width: 40,
+      height: 60,
+    },
+    pixelZapLine: {
+      position: 'absolute',
+      backgroundColor: '#FFD60A',
+    },
   }), [colors]);
 
   const WelcomeFrame = () => (
     <View style={styles.illustration}>
-      <View style={styles.planet}>
-        <View style={styles.planetSurface} />
-        <View style={styles.planetRing} />
+      <View style={styles.pixelStarField}>
+        {[...Array(20)].map((_, i) => (
+          <View
+            key={i}
+            style={[
+              styles.pixelStar,
+              {
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                width: Math.random() * 4 + 2,
+                height: Math.random() * 4 + 2,
+              },
+            ]}
+          />
+        ))}
       </View>
-      <View style={styles.monsterOverlay}>
-        <View style={styles.smallMonster}>
-          <View style={styles.smallMonsterHead}>
-            <View style={styles.smallMonsterEyes}>
-              <View style={styles.smallPupil} />
-              <View style={styles.smallPupil} />
-            </View>
-            <View style={styles.smallSmile} />
-          </View>
+      <View style={styles.pixelPlanetLarge}>
+        <View style={styles.pixelPlanetSurface}>
+          <View style={styles.pixelPlanetCrater} />
+          <View style={styles.pixelPlanetCrater} />
+          <View style={styles.pixelPlanetCrater} />
+        </View>
+        <View style={styles.pixelPlanetAtmosphere} />
+        <View style={styles.pixelRingOrbit}>
+          <View style={styles.pixelRingSegment} />
+          <View style={styles.pixelRingSegment} />
+          <View style={styles.pixelRingSegment} />
         </View>
       </View>
-      <View style={styles.piSymbol}>
-        <Text style={styles.piText}>Π</Text>
+      <View style={styles.pixelSpaceship}>
+        <View style={styles.pixelShipBody} />
+        <View style={styles.pixelShipWindow} />
+        <View style={styles.pixelShipWingLeft} />
+        <View style={styles.pixelShipWingRight} />
+        <View style={styles.pixelShipFlame}>
+          <View style={styles.pixelFlamePart} />
+          <View style={styles.pixelFlamePart} />
+          <View style={styles.pixelFlamePart} />
+        </View>
+      </View>
+      <View style={styles.pixelEnergyOrb}>
+        <Text style={styles.pixelEnergyText}>Π</Text>
+        <View style={styles.pixelEnergyGlow} />
+      </View>
+      <View style={styles.pixelMonsterCute}>
+        <View style={styles.pixelMonsterBody} />
+        <View style={styles.pixelMonsterEyeLeft} />
+        <View style={styles.pixelMonsterEyeRight} />
+        <View style={styles.pixelMonsterMouth} />
+        <View style={styles.pixelMonsterEarLeft} />
+        <View style={styles.pixelMonsterEarRight} />
       </View>
     </View>
   );
 
   const MindMapFrame = () => (
     <View style={styles.mindMapContainer}>
-      <View style={styles.mindMapCenter}>
-        <Text style={styles.mindMapCenterText}>知识节点</Text>
+      <View style={styles.pixelGridBg}>
+        {[...Array(9)].map((_, i) => (
+          <View key={i} style={styles.pixelGridLine} />
+        ))}
       </View>
-
-      <View style={styles.mindMapConnections}>
-        <View style={styles.connectionLineTop} />
-        <View style={styles.connectionLineBottom} />
-        <View style={styles.connectionLineLeft} />
-        <View style={styles.connectionLineRight} />
+      <View style={styles.pixelCentralNode}>
+        <View style={styles.pixelNodeGlow} />
+        <Text style={styles.pixelNodeText}>知识</Text>
       </View>
-
-      <View style={styles.mindMapNodeTop}>
-        <Text style={styles.mindMapNodeEmoji}>📚</Text>
-        <Text style={styles.mindMapNodeLabel}>学习资源</Text>
+      <View style={styles.pixelConnections}>
+        <View style={styles.pixelConnectionTop} />
+        <View style={styles.pixelConnectionBottom} />
+        <View style={styles.pixelConnectionLeft} />
+        <View style={styles.pixelConnectionRight} />
       </View>
-      <View style={styles.mindMapNodeBottom}>
-        <Text style={styles.mindMapNodeEmoji}>🎯</Text>
-        <Text style={styles.mindMapNodeLabel}>学习目标</Text>
+      <View style={styles.pixelSatelliteNodeTop}>
+        <View style={styles.pixelNodeSmall}>
+          <Text style={styles.pixelNodeIcon}>📚</Text>
+        </View>
+        <Text style={styles.pixelNodeLabel}>资源</Text>
       </View>
-      <View style={styles.mindMapNodeLeft}>
-        <Text style={styles.mindMapNodeEmoji}>🧠</Text>
-        <Text style={styles.mindMapNodeLabel}>技能树</Text>
+      <View style={styles.pixelSatelliteNodeBottom}>
+        <View style={styles.pixelNodeSmall}>
+          <Text style={styles.pixelNodeIcon}>🎯</Text>
+        </View>
+        <Text style={styles.pixelNodeLabel}>目标</Text>
       </View>
-      <View style={styles.mindMapNodeRight}>
-        <Text style={styles.mindMapNodeEmoji}>⭐</Text>
-        <Text style={styles.mindMapNodeLabel}>成就奖励</Text>
+      <View style={styles.pixelSatelliteNodeLeft}>
+        <View style={styles.pixelNodeSmall}>
+          <Text style={styles.pixelNodeIcon}>🧠</Text>
+        </View>
+        <Text style={styles.pixelNodeLabel}>技能</Text>
+      </View>
+      <View style={styles.pixelSatelliteNodeRight}>
+        <View style={styles.pixelNodeSmall}>
+          <Text style={styles.pixelNodeIcon}>⭐</Text>
+        </View>
+        <Text style={styles.pixelNodeLabel}>成就</Text>
+      </View>
+      <View style={styles.pixelDataFlow}>
+        <View style={styles.pixelDataParticle} />
+        <View style={styles.pixelDataParticle} />
+        <View style={styles.pixelDataParticle} />
       </View>
     </View>
   );
 
   const StaminaFrame = () => (
     <View style={styles.illustration}>
-      <View style={styles.staminaContainer}>
-        <Text style={styles.staminaLabel}>体力值</Text>
-        <View style={styles.staminaBarBg}>
-          <View style={styles.staminaBarFill}>
-            <Text style={styles.staminaValue}>100 / 100</Text>
+      <View style={styles.pixelBatteryContainer}>
+        <View style={styles.pixelBatteryOutline}>
+          <View style={styles.pixelBatteryTopCap} />
+          <View style={styles.pixelBatteryCells}>
+            <View style={styles.pixelBatteryCell} />
+            <View style={styles.pixelBatteryCell} />
+            <View style={styles.pixelBatteryCell} />
+            <View style={styles.pixelBatteryCell} />
+            <View style={styles.pixelBatteryCell} />
+          </View>
+          <View style={styles.pixelBatteryEnergyFlow}>
+            <View style={styles.pixelEnergyParticle} />
+            <View style={styles.pixelEnergyParticle} />
+            <View style={styles.pixelEnergyParticle} />
           </View>
         </View>
+        <Text style={styles.pixelBatteryLabel}>⚡ 体力</Text>
       </View>
-      <View style={styles.gameButtonNew}>
-        <Text style={styles.gameButtonIcon}>🎮</Text>
-        <Text style={styles.gameButtonText}>玩小游戏恢复体力</Text>
+      <View style={styles.pixelGameConsole}>
+        <View style={styles.pixelConsoleScreen}>
+          <Text style={styles.pixelConsoleText}>🎮</Text>
+        </View>
+        <View style={styles.pixelConsoleButtons}>
+          <View style={styles.pixelButtonA} />
+          <View style={styles.pixelButtonB} />
+        </View>
+        <Text style={styles.pixelConsoleLabel}>恢复体力</Text>
+      </View>
+      <View style={styles.pixelZapEffect}>
+        <View style={styles.pixelZapLine} />
+        <View style={styles.pixelZapLine} />
+        <View style={styles.pixelZapLine} />
       </View>
     </View>
   );

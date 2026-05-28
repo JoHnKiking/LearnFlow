@@ -1,10 +1,19 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../src/contexts/ThemeContext';
+
+interface Star {
+  id: number;
+  x: number;
+  y: number;
+  size: number;
+  opacity: Animated.Value;
+  delay: number;
+}
 
 interface Module {
   id: string;
@@ -51,8 +60,46 @@ const moduleConfigs: Record<string, Omit<Module, 'isLocked'>> = {
 };
 
 const MapScreen = () => {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [modules, setModules] = useState<Module[]>([]);
+  const [stars, setStars] = useState<Star[]>([]);
+
+  useEffect(() => {
+    const generateStars = () => {
+      const newStars: Star[] = [];
+      for (let i = 0; i < 50; i++) {
+        newStars.push({
+          id: i,
+          x: Math.random() * 100,
+          y: Math.random() * 100,
+          size: Math.random() * 3 + 1,
+          opacity: new Animated.Value(Math.random() * 0.5 + 0.3),
+          delay: Math.random() * 2000,
+        });
+      }
+      setStars(newStars);
+    };
+
+    generateStars();
+
+    stars.forEach((star) => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(star.opacity, {
+            toValue: 1,
+            duration: 1500,
+            delay: star.delay,
+            useNativeDriver: true,
+          }),
+          Animated.timing(star.opacity, {
+            toValue: 0.3,
+            duration: 1500,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    });
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -139,9 +186,71 @@ const MapScreen = () => {
     flex: 1,
     backgroundColor: colors.background,
   },
+  starBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    overflow: 'hidden',
+    pointerEvents: 'none',
+  },
+  star: {
+    position: 'absolute',
+    borderRadius: 0,
+    backgroundColor: isDark ? '#FFFFFF' : '#4A8BF5',
+  },
+  pixelPlanet: {
+    position: 'absolute',
+    top: 100,
+    right: -20,
+    width: 120,
+    height: 120,
+  },
+  pixelPlanetBody: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 60,
+    backgroundColor: isDark ? '#6B5B95' : '#8B9DC3',
+    borderWidth: 3,
+    borderColor: isDark ? '#8B7BB4' : '#5D7ABC',
+  },
+  pixelRing: {
+    position: 'absolute',
+    top: '40%',
+    left: '-15%',
+    width: '130%',
+    height: 20,
+    borderWidth: 4,
+    borderColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.5)',
+    borderRadius: 60,
+    transform: [{ rotate: '20deg' }],
+  },
+  pixelMeteor: {
+    position: 'absolute',
+    top: 200,
+    left: -50,
+    width: 40,
+    height: 8,
+    backgroundColor: isDark ? '#FFD700' : '#FFA500',
+    borderRadius: 2,
+    transform: [{ rotate: '-45deg' }],
+  },
+  pixelMeteorTail: {
+    position: 'absolute',
+    right: -30,
+    top: '50%',
+    width: 30,
+    height: 4,
+    backgroundColor: isDark ? 'rgba(255,215,0,0.6)' : 'rgba(255,165,0,0.6)',
+    borderRadius: 2,
+    transform: [{ translateY: -2 }],
+  },
   scrollContent: {
     flexGrow: 1,
     paddingBottom: 20,
+    position: 'relative',
+    zIndex: 1,
   },
   header: {
     paddingHorizontal: 24,
@@ -277,6 +386,30 @@ const MapScreen = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.starBackground}>
+        {stars.map((star) => (
+          <Animated.View
+            key={star.id}
+            style={[
+              styles.star,
+              {
+                left: `${star.x}%`,
+                top: `${star.y}%`,
+                width: star.size,
+                height: star.size,
+                opacity: star.opacity,
+              },
+            ]}
+          />
+        ))}
+        <View style={styles.pixelPlanet}>
+          <View style={styles.pixelPlanetBody} />
+          <View style={styles.pixelRing} />
+        </View>
+        <View style={styles.pixelMeteor}>
+          <View style={styles.pixelMeteorTail} />
+        </View>
+      </View>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <View>

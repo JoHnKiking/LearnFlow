@@ -8,6 +8,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../src/contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import MonsterIcon from '../src/components/MonsterIcon';
 import { PlatformType } from '../src/types/skill';
 
 // ---- 平台选项（与 skill-tree 保持一致） ----
@@ -84,6 +85,16 @@ const ModuleSelectionScreen = () => {
   const [nodeDrafts, setNodeDrafts] = useState<CustomNodeDraft[]>([]);
   // toast 提示
   const [toastMessage, setToastMessage] = useState('');
+  const [monsterType, setMonsterType] = useState<'lively' | 'calm' | 'rebel'>('calm');
+
+  useEffect(() => {
+    AsyncStorage.getItem('monster').then(data => {
+      if (data) {
+        const monster = JSON.parse(data);
+        if (monster.type) setMonsterType(monster.type);
+      }
+    });
+  }, []);
 
   // ---- 初始化 ----
   useEffect(() => {
@@ -626,20 +637,6 @@ const ModuleSelectionScreen = () => {
     </>
   );
 
-  // ---- 小怪兽头像（复用） ----
-  const MonsterAvatar = () => (
-    <View style={styles.monsterAvatar}>
-      <View style={styles.monsterHeadAvatar}>
-        <View style={styles.monsterEyesAvatar}>
-          <View style={styles.eyeAvatar}><View style={styles.pupilAvatar} /></View>
-          <View style={styles.eyeAvatar}><View style={styles.pupilAvatar} /></View>
-        </View>
-        <View style={styles.mouthAvatar} />
-      </View>
-      <View style={styles.bodyAvatar} />
-    </View>
-  );
-
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
@@ -657,7 +654,7 @@ const ModuleSelectionScreen = () => {
             {!isAddMode && (
               <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
                 <View style={styles.monsterAvatarContainer}>
-                  <MonsterAvatar />
+                  <MonsterIcon type={monsterType} size={80} />
                 </View>
                 <View style={styles.bubble}>
                   <View style={styles.bubbleTail} />

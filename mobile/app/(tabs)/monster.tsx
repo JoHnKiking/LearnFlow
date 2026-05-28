@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,7 @@ import { storage, STORAGE_KEYS } from '../../src/utils/storage';
 import { MONSTER_CONFIG } from '../../src/utils/constants';
 import { formatTimer } from '../../src/utils/helpers';
 import { useFocusEffect, router } from 'expo-router';
+import { useTheme } from '../../src/contexts/ThemeContext';
 // ============================================================
 // 服务端持久化接口（第1步已在 api.ts / skill.ts 中定义）
 // 本地优先 + 异步服务端同步，失败不阻断主流程
@@ -29,6 +30,527 @@ const MonsterManageScreen = () => {
   const [selectedTime, setSelectedTime] = useState<typeof MONSTER_CONFIG.POMODORO.TIME_OPTIONS[number]>(MONSTER_CONFIG.POMODORO.TIME_OPTIONS[0]);
   const [showGameModal, setShowGameModal] = useState(false);
   const [dailyPlays, setDailyPlays] = useState(0);
+  const { colors } = useTheme();
+
+  const styles = useMemo(() => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    color: colors.textSecondary,
+    fontFamily: 'Courier',
+  },
+  header: {
+    position: 'relative',
+    paddingTop: 48,
+    paddingBottom: 24,
+    overflow: 'hidden',
+  },
+  pixelBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.backgroundDark,
+    opacity: 0.95,
+  },
+  headerContent: {
+    paddingHorizontal: 20,
+    position: 'relative',
+    zIndex: 1,
+  },
+  title: {
+    color: colors.textPrimary,
+    fontWeight: '800',
+    fontSize: 24,
+    fontFamily: 'Courier',
+    marginBottom: 24,
+  },
+  monsterCard: {
+    borderRadius: 24,
+    padding: 24,
+    position: 'relative',
+    overflow: 'hidden',
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(93,155,250,0.25)',
+  },
+  monsterPixelPattern: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 0.05,
+  },
+  monsterCardContent: {
+    position: 'relative',
+    zIndex: 1,
+  },
+  monsterTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginBottom: 16,
+  },
+  monsterActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 16,
+  },
+  monsterIconContainer: {
+    width: 108,
+    height: 108,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(93,155,250,0.2)',
+    flexShrink: 0,
+  },
+  monsterInfo: {
+    flex: 1,
+    justifyContent: 'center',
+    gap: 8,
+  },
+  rightButtons: {
+    width: 92,
+    gap: 8,
+    alignItems: 'stretch',
+  },
+  gameButton: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,125,0,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,125,0,0.3)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 52,
+  },
+  gameButtonDisabled: {
+    backgroundColor: 'rgba(85,85,119,0.15)',
+    borderColor: 'rgba(85,85,119,0.3)',
+  },
+  gameButtonContent: {
+    flexDirection: 'column',
+    gap: 2,
+    alignItems: 'flex-start',
+    flex: 1,
+  },
+  gameButtonText: {
+    color: '#FF7D00',
+    fontSize: 12,
+    fontWeight: '600',
+    fontFamily: 'Courier',
+  },
+  gameButtonSubText: {
+    color: colors.textSecondary,
+    fontSize: 10,
+    fontFamily: 'Courier',
+  },
+  infoButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    flexShrink: 0,
+  },
+  infoCard: {
+    marginBottom: 16,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(93,155,250,0.2)',
+  },
+  infoItem: {
+    marginBottom: 12,
+  },
+  infoTitle: {
+    color: colors.textPrimary,
+    fontSize: 13,
+    fontWeight: '700',
+    fontFamily: 'Courier',
+    marginBottom: 6,
+  },
+  infoText: {
+    color: colors.textSecondary,
+    fontSize: 11,
+    fontFamily: 'Courier',
+    lineHeight: 16,
+  },
+  monsterNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+    flexWrap: 'wrap',
+  },
+  monsterName: {
+    color: colors.textPrimary,
+    fontSize: 24,
+    fontWeight: '800',
+    fontFamily: 'Courier',
+    flexShrink: 1,
+  },
+  monsterPersonality: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    fontFamily: 'Courier',
+    lineHeight: 20,
+  },
+  statsRow: {
+    gap: 12,
+  },
+  statContainer: {
+    gap: 6,
+  },
+  statHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  statLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statLabel: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontFamily: 'Courier',
+  },
+  statValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    fontFamily: 'Courier',
+  },
+  statBar: {
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    overflow: 'hidden',
+  },
+  statBarFill: {
+    height: '100%',
+    borderRadius: 999,
+  },
+  tabsContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  tabs: {
+    flexDirection: 'row',
+    gap: 8,
+    padding: 4,
+    borderRadius: 16,
+    backgroundColor: colors.backgroundDark,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  tabText: {
+    fontSize: 13,
+    fontFamily: 'Courier',
+  },
+  tabContent: {
+    paddingHorizontal: 20,
+    gap: 16,
+  },
+  taskCard: {
+    borderRadius: 16,
+    padding: 20,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: 'rgba(93,155,250,0.2)',
+  },
+  taskHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  taskTitle: {
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '700',
+    fontFamily: 'Courier',
+  },
+  addTaskContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  addTaskInput: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: colors.backgroundDark,
+    borderWidth: 1,
+    borderColor: 'rgba(93,155,250,0.2)',
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontFamily: 'Courier',
+  },
+  addTaskButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  taskList: {
+    gap: 8,
+  },
+  emptyTasks: {
+    paddingVertical: 24,
+    alignItems: 'center',
+  },
+  emptyTasksText: {
+    color: colors.textTertiary,
+    fontSize: 13,
+    fontFamily: 'Courier',
+  },
+  taskItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(93,155,250,0.08)',
+  },
+  taskCheckbox: {
+    flexShrink: 0,
+  },
+  taskName: {
+    flex: 1,
+    color: colors.textPrimary,
+    fontSize: 13,
+    fontFamily: 'Courier',
+  },
+  deleteTaskButton: {
+    flexShrink: 0,
+    padding: 4,
+  },
+  timeOptionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 20,
+  },
+  timeOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  timeOptionText: {
+    fontSize: 12,
+    fontWeight: '600',
+    fontFamily: 'Courier',
+  },
+  pomodoroContainer: {
+    alignItems: 'center',
+    gap: 16,
+  },
+  pomodoroTimer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 3,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pomodoroTime: {
+    color: colors.textPrimary,
+    fontSize: 28,
+    fontWeight: '800',
+    fontFamily: 'Courier',
+  },
+  pomodoroButtons: {
+    width: '100%',
+  },
+  pomodoroButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+  },
+  pomodoroButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+    fontFamily: 'Courier',
+  },
+  noteCard: {
+    borderRadius: 16,
+    padding: 16,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: 'rgba(93,155,250,0.2)',
+  },
+  noteHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  noteTitle: {
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '700',
+    fontFamily: 'Courier',
+  },
+  noteInput: {
+    width: '100%',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: colors.backgroundDark,
+    borderWidth: 1,
+    borderColor: 'rgba(93,155,250,0.2)',
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontFamily: 'Courier',
+    minHeight: 100,
+  },
+  saveNoteButton: {
+    width: '100%',
+    marginTop: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+  },
+  saveNoteText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+    fontFamily: 'Courier',
+    textAlign: 'center',
+  },
+  notesHistory: {
+    marginTop: 16,
+  },
+  historyTitle: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontFamily: 'Courier',
+    marginBottom: 12,
+  },
+  emptyNotes: {
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  emptyNotesText: {
+    color: colors.textTertiary,
+    fontSize: 13,
+    fontFamily: 'Courier',
+  },
+  notesList: {
+    gap: 12,
+  },
+  savedNote: {
+    borderRadius: 16,
+    padding: 16,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  savedNoteContent: {
+    color: colors.textPrimary,
+    fontSize: 13,
+    fontFamily: 'Courier',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  savedNoteDate: {
+    color: colors.textSecondary,
+    fontSize: 11,
+    fontFamily: 'Courier',
+  },
+  chatCard: {
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: 'rgba(93,155,250,0.2)',
+  },
+  chatMonsterIcon: {
+    marginBottom: 16,
+  },
+  chatTitle: {
+    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '700',
+    fontFamily: 'Courier',
+    marginBottom: 8,
+  },
+  chatDescription: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontFamily: 'Courier',
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  proBadge: {
+    marginTop: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,215,0,0.15)',
+  },
+  proText: {
+    color: '#FFD700',
+    fontSize: 11,
+    fontWeight: '600',
+    fontFamily: 'Courier',
+  },
+  bottomPadding: {
+    height: 100,
+  },
+  modalFullScreen: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+}), [colors]);
+
 
   useFocusEffect(
     useCallback(() => {
@@ -273,7 +795,7 @@ const MonsterManageScreen = () => {
 
   if (!monsterData) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>加载中...</Text>
         </View>
@@ -370,7 +892,7 @@ const MonsterManageScreen = () => {
               <Text
                 style={[
                   styles.timeOptionText,
-                  { color: selectedTime === time ? '#FFFFFF' : '#8888AA' },
+                  { color: selectedTime === time ? '#FFFFFF' : colors.textSecondary },
                 ]}
               >
                 {time}分钟
@@ -385,7 +907,7 @@ const MonsterManageScreen = () => {
           </View>
           <View style={styles.pomodoroButtons}>
             <TouchableOpacity
-              style={[styles.pomodoroButton, { backgroundColor: '#5D9BFA' }]}
+              style={[styles.pomodoroButton, { backgroundColor: colors.primary }]}
               onPress={() => {
                 console.log('[Monster] 番茄钟开始专注, duration:', selectedTime);
                 router.push({ pathname: '/pomodoro', params: { duration: String(selectedTime) } });
@@ -467,7 +989,7 @@ const MonsterManageScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <View style={styles.pixelBackground} />
@@ -556,7 +1078,7 @@ const MonsterManageScreen = () => {
                           styles.statBarFill,
                           {
                             width: `${staminaPercent}%`,
-                            backgroundColor: '#FF7D00',
+                            backgroundColor: colors.orange,
                           },
                         ]}
                       />
@@ -579,7 +1101,7 @@ const MonsterManageScreen = () => {
                           styles.statBarFill,
                           {
                             width: `${paiPercent}%`,
-                            backgroundColor: '#7B5EA7',
+                            backgroundColor: colors.purple,
                           },
                         ]}
                       />
@@ -649,525 +1171,8 @@ const MonsterManageScreen = () => {
       </Modal>
     </SafeAreaView>
   );
-};
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1A1A2E',
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    color: '#8888AA',
-    fontFamily: 'Courier',
-  },
-  header: {
-    position: 'relative',
-    paddingTop: 48,
-    paddingBottom: 24,
-    overflow: 'hidden',
-  },
-  pixelBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#0F1030',
-    opacity: 0.95,
-  },
-  headerContent: {
-    paddingHorizontal: 20,
-    position: 'relative',
-    zIndex: 1,
-  },
-  title: {
-    color: '#E8E8F0',
-    fontWeight: '800',
-    fontSize: 24,
-    fontFamily: 'Courier',
-    marginBottom: 24,
-  },
-  monsterCard: {
-    borderRadius: 24,
-    padding: 24,
-    position: 'relative',
-    overflow: 'hidden',
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.25)',
-  },
-  monsterPixelPattern: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    opacity: 0.05,
-  },
-  monsterCardContent: {
-    position: 'relative',
-    zIndex: 1,
-  },
-  monsterTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    marginBottom: 16,
-  },
-  monsterActionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 16,
-  },
-  monsterIconContainer: {
-    width: 108,
-    height: 108,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.2)',
-    flexShrink: 0,
-  },
-  monsterInfo: {
-    flex: 1,
-    justifyContent: 'center',
-    gap: 8,
-  },
-  rightButtons: {
-    width: 92,
-    gap: 8,
-    alignItems: 'stretch',
-  },
-  gameButton: {
-    flex: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,125,0,0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,125,0,0.3)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    minHeight: 52,
-  },
-  gameButtonDisabled: {
-    backgroundColor: 'rgba(85,85,119,0.15)',
-    borderColor: 'rgba(85,85,119,0.3)',
-  },
-  gameButtonContent: {
-    flexDirection: 'column',
-    gap: 2,
-    alignItems: 'flex-start',
-    flex: 1,
-  },
-  gameButtonText: {
-    color: '#FF7D00',
-    fontSize: 12,
-    fontWeight: '600',
-    fontFamily: 'Courier',
-  },
-  gameButtonSubText: {
-    color: '#8888AA',
-    fontSize: 10,
-    fontFamily: 'Courier',
-  },
-  infoButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    flexShrink: 0,
-  },
-  infoCard: {
-    marginBottom: 16,
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.2)',
-  },
-  infoItem: {
-    marginBottom: 12,
-  },
-  infoTitle: {
-    color: '#E8E8F0',
-    fontSize: 13,
-    fontWeight: '700',
-    fontFamily: 'Courier',
-    marginBottom: 6,
-  },
-  infoText: {
-    color: '#8888AA',
-    fontSize: 11,
-    fontFamily: 'Courier',
-    lineHeight: 16,
-  },
-  monsterNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-    flexWrap: 'wrap',
-  },
-  monsterName: {
-    color: '#FFFFFF',
-    fontSize: 24,
-    fontWeight: '800',
-    fontFamily: 'Courier',
-    flexShrink: 1,
-  },
-  monsterPersonality: {
-    color: '#8888AA',
-    fontSize: 14,
-    fontFamily: 'Courier',
-    lineHeight: 20,
-  },
-  statsRow: {
-    gap: 12,
-  },
-  statContainer: {
-    gap: 6,
-  },
-  statHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  statLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  statLabel: {
-    color: '#8888AA',
-    fontSize: 12,
-    fontFamily: 'Courier',
-  },
-  statValue: {
-    fontSize: 12,
-    fontWeight: '700',
-    fontFamily: 'Courier',
-  },
-  statBar: {
-    height: 8,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    overflow: 'hidden',
-  },
-  statBarFill: {
-    height: '100%',
-    borderRadius: 999,
-  },
-  tabsContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  tabs: {
-    flexDirection: 'row',
-    gap: 8,
-    padding: 4,
-    borderRadius: 16,
-    backgroundColor: '#0F1030',
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  tabText: {
-    fontSize: 13,
-    fontFamily: 'Courier',
-  },
-  tabContent: {
-    paddingHorizontal: 20,
-    gap: 16,
-  },
-  taskCard: {
-    borderRadius: 16,
-    padding: 20,
-    backgroundColor: '#16213E',
-    borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.2)',
-  },
-  taskHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
-  },
-  taskTitle: {
-    color: '#E8E8F0',
-    fontSize: 14,
-    fontWeight: '700',
-    fontFamily: 'Courier',
-  },
-  addTaskContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-  },
-  addTaskInput: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: '#0F1030',
-    borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.2)',
-    color: '#E8E8F0',
-    fontSize: 14,
-    fontFamily: 'Courier',
-  },
-  addTaskButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#5D9BFA',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  taskList: {
-    gap: 8,
-  },
-  emptyTasks: {
-    paddingVertical: 24,
-    alignItems: 'center',
-  },
-  emptyTasksText: {
-    color: '#555577',
-    fontSize: 13,
-    fontFamily: 'Courier',
-  },
-  taskItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: 'rgba(93,155,250,0.08)',
-  },
-  taskCheckbox: {
-    flexShrink: 0,
-  },
-  taskName: {
-    flex: 1,
-    color: '#E8E8F0',
-    fontSize: 13,
-    fontFamily: 'Courier',
-  },
-  deleteTaskButton: {
-    flexShrink: 0,
-    padding: 4,
-  },
-  timeOptionsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 20,
-  },
-  timeOption: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  timeOptionText: {
-    fontSize: 12,
-    fontWeight: '600',
-    fontFamily: 'Courier',
-  },
-  pomodoroContainer: {
-    alignItems: 'center',
-    gap: 16,
-  },
-  pomodoroTimer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 3,
-    borderColor: '#5D9BFA',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pomodoroTime: {
-    color: '#FFFFFF',
-    fontSize: 28,
-    fontWeight: '800',
-    fontFamily: 'Courier',
-  },
-  pomodoroButtons: {
-    width: '100%',
-  },
-  pomodoroButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    backgroundColor: '#5D9BFA',
-  },
-  pomodoroButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-    fontFamily: 'Courier',
-  },
-  noteCard: {
-    borderRadius: 16,
-    padding: 16,
-    backgroundColor: '#16213E',
-    borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.2)',
-  },
-  noteHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  noteTitle: {
-    color: '#E8E8F0',
-    fontSize: 14,
-    fontWeight: '700',
-    fontFamily: 'Courier',
-  },
-  noteInput: {
-    width: '100%',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: '#0F1030',
-    borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.2)',
-    color: '#E8E8F0',
-    fontSize: 14,
-    fontFamily: 'Courier',
-    minHeight: 100,
-  },
-  saveNoteButton: {
-    width: '100%',
-    marginTop: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: '#5D9BFA',
-  },
-  saveNoteText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-    fontFamily: 'Courier',
-    textAlign: 'center',
-  },
-  notesHistory: {
-    marginTop: 16,
-  },
-  historyTitle: {
-    color: '#8888AA',
-    fontSize: 12,
-    fontFamily: 'Courier',
-    marginBottom: 12,
-  },
-  emptyNotes: {
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  emptyNotesText: {
-    color: '#555577',
-    fontSize: 13,
-    fontFamily: 'Courier',
-  },
-  notesList: {
-    gap: 12,
-  },
-  savedNote: {
-    borderRadius: 16,
-    padding: 16,
-    backgroundColor: '#16213E',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
-  },
-  savedNoteContent: {
-    color: '#E8E8F0',
-    fontSize: 13,
-    fontFamily: 'Courier',
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  savedNoteDate: {
-    color: '#8888AA',
-    fontSize: 11,
-    fontFamily: 'Courier',
-  },
-  chatCard: {
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-    backgroundColor: '#16213E',
-    borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.2)',
-  },
-  chatMonsterIcon: {
-    marginBottom: 16,
-  },
-  chatTitle: {
-    color: '#E8E8F0',
-    fontSize: 16,
-    fontWeight: '700',
-    fontFamily: 'Courier',
-    marginBottom: 8,
-  },
-  chatDescription: {
-    color: '#8888AA',
-    fontSize: 13,
-    fontFamily: 'Courier',
-    lineHeight: 20,
-    textAlign: 'center',
-  },
-  proBadge: {
-    marginTop: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,215,0,0.15)',
-  },
-  proText: {
-    color: '#FFD700',
-    fontSize: 11,
-    fontWeight: '600',
-    fontFamily: 'Courier',
-  },
-  bottomPadding: {
-    height: 100,
-  },
-  modalFullScreen: {
-    flex: 1,
-    backgroundColor: '#1A1A2E',
-  },
-});
+
+};
 
 export default MonsterManageScreen;

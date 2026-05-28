@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -138,6 +138,20 @@ const SplashScreen = () => {
   },
 }), [colors]);
 
+  const PixelPlanet = () => (
+    <View style={styles.planet}>
+      <View style={styles.planetBody}>
+        <View style={[styles.planetLayer, { top: 0, left: 8, width: 56, height: 8 }]} />
+        <View style={[styles.planetLayer, { top: 8, left: 0, width: 72, height: 56 }]} />
+        <View style={[styles.planetLayer, { top: 64, left: 8, width: 56, height: 8 }]} />
+        <View style={[styles.continent, { top: 16, left: 16, width: 16, height: 8 }]} />
+        <View style={[styles.continent, { top: 24, left: 12, width: 20, height: 12 }]} />
+        <View style={[styles.continent, { top: 28, left: 44, width: 12, height: 12 }]} />
+        <View style={[styles.continent, { top: 40, left: 40, width: 20, height: 8 }]} />
+      </View>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.content}>
@@ -205,22 +219,5 @@ const SplashScreen = () => {
     </SafeAreaView>
   );
 };
-
-const PixelPlanet = () => (
-  <View style={styles.planet}>
-    <View style={styles.planetBody}>
-      <View style={[styles.planetLayer, { top: 0, left: 8, width: 56, height: 8 }]} />
-      <View style={[styles.planetLayer, { top: 8, left: 0, width: 72, height: 56 }]} />
-      <View style={[styles.planetLayer, { top: 64, left: 8, width: 56, height: 8 }]} />
-      
-      <View style={[styles.continent, { top: 16, left: 16, width: 16, height: 8 }]} />
-      <View style={[styles.continent, { top: 24, left: 12, width: 20, height: 12 }]} />
-      <View style={[styles.continent, { top: 28, left: 44, width: 12, height: 12 }]} />
-      <View style={[styles.continent, { top: 40, left: 40, width: 20, height: 8 }]} />
-    </View>
-  </View>
-);
-
-
 
 export default SplashScreen;

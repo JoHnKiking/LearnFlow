@@ -7,6 +7,7 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { monsterService } from '../src/services/api';
 import { getCurrentUser } from '../src/utils/auth';
+import MonsterIcon from '../src/components/MonsterIcon';
 
 type MonsterType = 'lively' | 'calm' | 'rebel';
 
@@ -285,45 +286,6 @@ const MonsterSelectionScreen = () => {
       fontFamily: 'Courier',
     },
   }), [colors]);
-
-  const MonsterIcon = ({ type, size }: { type: MonsterType; size: number }) => {
-    const iconColors: Record<MonsterType, { primary: string; secondary: string }> = {
-      lively: { primary: '#FF7D00', secondary: '#E66900' },
-      calm: { primary: '#5D9BFA', secondary: '#4A7FD4' },
-      rebel: { primary: '#7B5EA7', secondary: '#5A4280' },
-    };
-
-    const color = iconColors[type];
-    const scale = size / 100;
-
-    return (
-      <View style={[styles.monsterIcon, { width: size, height: size }]}>
-        <View style={[styles.monsterHeadIcon, { width: 44 * scale, height: 36 * scale, backgroundColor: color.primary, left: 14 * scale, top: 20 * scale }]}>
-          <View style={[styles.earIcon, { width: 8 * scale, height: 12 * scale, backgroundColor: color.secondary, left: -4 * scale, top: 4 * scale }]} />
-          <View style={[styles.earIcon, { width: 8 * scale, height: 12 * scale, backgroundColor: color.secondary, right: -4 * scale, top: 4 * scale }]} />
-          <View style={[styles.eyeIcon, { width: 12 * scale, height: 12 * scale, backgroundColor: '#FFFFFF', left: 4 * scale, top: 8 * scale }]}>
-            <View style={[styles.pupilIcon, { width: 4 * scale, height: 6 * scale, backgroundColor: colors.background, left: 4 * scale, top: 2 * scale }]} />
-          </View>
-          <View style={[styles.eyeIcon, { width: 12 * scale, height: 12 * scale, backgroundColor: '#FFFFFF', right: 4 * scale, top: 8 * scale }]}>
-            <View style={[styles.pupilIcon, { width: 4 * scale, height: 6 * scale, backgroundColor: colors.background, left: 4 * scale, top: 2 * scale }]} />
-          </View>
-          <View style={[styles.mouthIcon, { width: 20 * scale, height: 4 * scale, backgroundColor: colors.background, left: 12 * scale, top: 24 * scale }]} />
-        </View>
-        <View style={[styles.bodyIcon, { width: 36 * scale, height: 20 * scale, backgroundColor: color.primary, left: 18 * scale, top: 56 * scale }]} />
-        {type === 'lively' && (
-          <>
-            <View style={[styles.sparkleIcon, { width: 4 * scale, height: 4 * scale, backgroundColor: '#FFD60A', left: 2 * scale, top: 8 * scale }]} />
-            <View style={[styles.sparkleIcon, { width: 4 * scale, height: 4 * scale, backgroundColor: '#FFD60A', right: 2 * scale, top: 16 * scale }]} />
-          </>
-        )}
-        {type === 'rebel' && (
-          <>
-            <View style={[styles.lightningIcon, { width: 4 * scale, height: 10 * scale, backgroundColor: '#FFD60A', left: 4 * scale, top: 10 * scale }]} />
-          </>
-        )}
-      </View>
-    );
-  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
