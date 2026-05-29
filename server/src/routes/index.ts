@@ -1,0 +1,7 @@
+export { default as skillRoutes } from './skillRoutes';
+export { default as authRoutes } from './authRoutes';
+export { default as monsterRoutes } from './monsterRoutes';
+export { default as noteRoutes } from './noteRoutes';
+export { default as rewardRoutes } from './rewardRoutes';
+export { default as domainRoutes } from './domainRoutes';
+export { default as aiRoutes } from './aiRoutes';

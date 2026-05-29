@@ -1,0 +1,89 @@
+# React Native/Expo 项目忽略规则
+
+# 依赖包
+node_modules/
+
+# Expo 相关
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# 原生构建文件
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro 构建系统
+.metro-health-check*
+
+# 调试文件
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# 操作系统文件
+.DS_Store
+*.pem
+
+# 环境变量文件
+.env*.local
+mobile/.env
+
+# TypeScript 构建信息
+*.tsbuildinfo
+
+# 生成的本地文件夹
+/ios
+/android
+
+# 日志文件
+*.log
+
+# 缓存目录
+.cache/
+
+# 临时文件
+*.tmp
+*.temp
+
+# IDE 配置文件
+.vscode/
+.idea/
+
+# 包管理锁文件（可选，根据团队规范决定）
+# package-lock.json
+# yarn.lock
+
+# Xcode 相关（保留部分）
+xcuserdata/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# 其他构建系统
+.build/
+Carthage/Build/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+#
+.workbuddy/
+
+# key json
+key.json
+
+# design
+design.md
+
+# image
+image/

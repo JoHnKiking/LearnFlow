@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "LearnFlow",
+    "slug": "learnflow",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "learnflow",
+    "plugins": [
+      "expo-router",
+      "expo-splash-screen",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+    ],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.johnkiwu.learnflow"
+    },
+    "web": {},
+    "extra": {
+      "apiBaseUrl": "http://192.168.1.110:3001/api",
+      "eas": {
+        "projectId": "a4114c63-9fd5-43d7-9771-accfb461b82c"
+      }
+    }
+  }
+}
