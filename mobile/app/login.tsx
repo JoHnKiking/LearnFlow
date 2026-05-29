@@ -213,7 +213,7 @@ const LoginScreen = () => {
     alignItems: 'center',
   },
   activeTabButton: {
-    backgroundColor: 'rgba(93,155,250,0.8)',
+    backgroundColor: 'rgba(123,117,216,0.8)',
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -238,7 +238,7 @@ const LoginScreen = () => {
     alignItems: 'center',
     backgroundColor: colors.backgroundDark,
     borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.2)',
+    borderColor: 'rgba(123,117,216,0.2)',
     borderRadius: 16,
     paddingHorizontal: 16,
   },
@@ -269,7 +269,7 @@ const LoginScreen = () => {
   loginButton: {
     height: 56,
     borderRadius: 16,
-    backgroundColor: 'rgba(93,155,250,0.8)',
+    backgroundColor: 'rgba(123,117,216,0.8)',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: colors.primary,
@@ -279,7 +279,7 @@ const LoginScreen = () => {
     elevation: 5,
   },
   loginButtonDisabled: {
-    backgroundColor: '#2A2A4A',
+    backgroundColor: colors.border,
     shadowOpacity: 0,
   },
   loginButtonText: {
@@ -311,7 +311,7 @@ const LoginScreen = () => {
     elevation: 5,
   },
   wechatButtonDisabled: {
-    backgroundColor: '#2A2A4A',
+    backgroundColor: colors.border,
     shadowOpacity: 0,
   },
   wechatButtonText: {

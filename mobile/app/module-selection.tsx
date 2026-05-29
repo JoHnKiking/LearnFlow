@@ -50,15 +50,15 @@ interface CustomNodeDraft {
 const predefinedModules: Module[] = [
   {
     id: 'ai-product-manager', name: 'AI产品经理', icon: 'hardware-chip',
-    color: '#5D9BFA', description: '掌握AI产品设计与落地', difficulty: '中级',
+    color: '#7B75D8', description: '掌握AI产品设计与落地', difficulty: '中级',
   },
   {
     id: 'personal-finance', name: '个人理财', icon: 'trending-up',
-    color: '#3AE374', description: '建立科学理财观念', difficulty: '初级',
+    color: '#4A9840', description: '建立科学理财观念', difficulty: '初级',
   },
   {
     id: 'english-communication', name: '英语沟通', icon: 'language',
-    color: '#FF7D00', description: '提升英语听说能力', difficulty: '初级',
+    color: '#D4A058', description: '提升英语听说能力', difficulty: '初级',
   },
 ];
 
@@ -423,12 +423,12 @@ const ModuleSelectionScreen = () => {
     addStageBtnText: { color: colors.primary, fontSize: 14, fontWeight: '700', fontFamily: 'Courier' },
     // 确认按钮
     confirmBtn: {
-      backgroundColor: 'rgba(93,155,250,0.85)', borderRadius: 16, paddingVertical: 16,
+      backgroundColor: 'rgba(123,117,216,0.85)', borderRadius: 16, paddingVertical: 16,
       alignItems: 'center', marginTop: 4, marginBottom: 32,
       shadowColor: colors.primary, shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.3, shadowRadius: 16, elevation: 5,
     },
-    confirmBtnDisabled: { backgroundColor: '#2A2A4A', opacity: 0.5, shadowOpacity: 0 },
+    confirmBtnDisabled: { backgroundColor: colors.border, opacity: 0.5, shadowOpacity: 0 },
     confirmBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', fontFamily: 'Courier' },
     // Toast
     toast: {
@@ -491,12 +491,12 @@ const ModuleSelectionScreen = () => {
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     nameInput: { flex: 1 },
     aiFillBtn: {
-      backgroundColor: 'rgba(93,155,250,0.85)', borderRadius: 14, paddingHorizontal: 14,
+      backgroundColor: 'rgba(123,117,216,0.85)', borderRadius: 14, paddingHorizontal: 14,
       paddingVertical: 14, justifyContent: 'center', alignItems: 'center',
       shadowColor: '#5D9BFA', shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3, shadowRadius: 8, elevation: 4, minWidth: 110,
     },
-    aiFillBtnDisabled: { backgroundColor: '#2A2A4A', shadowOpacity: 0 },
+    aiFillBtnDisabled: { backgroundColor: colors.border, shadowOpacity: 0 },
     aiFillBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
 
     // ---- AI 加载 Modal ----
@@ -506,7 +506,7 @@ const ModuleSelectionScreen = () => {
     },
     aiModalCard: {
       backgroundColor: colors.backgroundDark, borderRadius: 20, padding: 40,
-      alignItems: 'center', borderWidth: 1, borderColor: 'rgba(93,155,250,0.2)',
+      alignItems: 'center', borderWidth: 1, borderColor: 'rgba(123,117,216,0.2)',
       marginHorizontal: 40,
     },
     aiModalTitle: {
@@ -556,7 +556,7 @@ const ModuleSelectionScreen = () => {
                       {module.description}
                     </Text>
                     <View style={[styles.difficultyBadge, {
-                      backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : 'rgba(93,155,250,0.15)',
+                      backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : 'rgba(123,117,216,0.15)',
                     }]}>
                       <Text style={[styles.difficultyText, { color: isSelected ? '#FFFFFF' : module.color }]}>
                         {module.difficulty}
@@ -817,7 +817,7 @@ const ModuleSelectionScreen = () => {
                           style={[
                             styles.startButton,
                             {
-                              backgroundColor: 'rgba(93,155,250,0.8)',
+                              backgroundColor: 'rgba(123,117,216,0.8)',
                               shadowColor: colors.primary,
                               shadowOffset: { width: 0, height: 8 },
                               shadowOpacity: 0.35,
@@ -854,7 +854,7 @@ const ModuleSelectionScreen = () => {
                   style={[
                     styles.startButton,
                     {
-                      backgroundColor: selectedModules.length === 0 ? '#2A2A4A' : 'rgba(93,155,250,0.8)',
+                      backgroundColor: selectedModules.length === 0 ? colors.border : 'rgba(123,117,216,0.8)',
                       opacity: selectedModules.length === 0 ? 0.5 : 1,
                       shadowColor: selectedModules.length === 0 ? 'transparent' : colors.primary,
                       shadowOffset: { width: 0, height: 8 },

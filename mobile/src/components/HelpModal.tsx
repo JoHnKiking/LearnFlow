@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../contexts/ThemeContext';
 
 /**
  * 帮助与反馈弹窗组件属性
@@ -29,6 +30,7 @@ const feedbackExamples = [
  * 包含使用说明、问题反馈示例和联系信息
  */
 const HelpModal = ({ visible, onClose }: HelpModalProps) => {
+  const { colors } = useTheme();
   /** 当前选中的问题示例 */
   const [selectedExample, setSelectedExample] = useState<number | null>(null);
   /** 输入的反馈内容 */
@@ -55,13 +57,182 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
     );
   };
 
+  const styles = useMemo(() => StyleSheet.create({
+    modalContainer: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      zIndex: 1000,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    modalVisible: { opacity: 1 },
+    modalHidden: { opacity: 0, pointerEvents: 'none' },
+    modalContent: {
+      width: '90%',
+      maxHeight: '85%',
+      backgroundColor: colors.background,
+      borderRadius: 24,
+      overflow: 'hidden',
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 16,
+      paddingTop: 32,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderDark,
+    },
+    closeBtn: { padding: 8 },
+    title: {
+      color: colors.textPrimary,
+      fontSize: 20,
+      fontWeight: '700',
+      fontFamily: 'Courier',
+    },
+    placeholder: { width: 44 },
+    content: {
+      paddingHorizontal: 20,
+      paddingTop: 8,
+      paddingBottom: 40,
+    },
+    section: { marginBottom: 28 },
+    sectionTitle: {
+      color: colors.primary,
+      fontSize: 16,
+      fontWeight: '700',
+      marginBottom: 14,
+    },
+    sectionDivider: {
+      height: 1,
+      backgroundColor: colors.borderDark,
+      marginBottom: 14,
+    },
+    sectionDesc: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      marginBottom: 14,
+      lineHeight: 1.5,
+    },
+    helpItem: {
+      backgroundColor: colors.borderLight,
+      borderRadius: 12,
+      padding: 14,
+      marginBottom: 10,
+    },
+    helpTitle: {
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontWeight: '600',
+      marginBottom: 6,
+    },
+    helpText: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      lineHeight: 1.7,
+    },
+    examplesList: { marginBottom: 18 },
+    exampleItem: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      padding: 14,
+      backgroundColor: colors.borderLight,
+      borderRadius: 12,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: 'transparent',
+    },
+    exampleItemSelected: {
+      backgroundColor: colors.borderDark,
+      borderColor: colors.borderDark,
+    },
+    exampleRadio: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      borderWidth: 2,
+      borderColor: colors.textTertiary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 2,
+      marginRight: 12,
+    },
+    exampleRadioInner: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: colors.primary,
+    },
+    exampleContent: { flex: 1 },
+    exampleTitle: {
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontWeight: '600',
+      marginBottom: 4,
+    },
+    exampleDesc: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      lineHeight: 1.6,
+    },
+    feedbackInputContainer: { marginBottom: 18 },
+    feedbackLabel: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      marginBottom: 10,
+    },
+    feedbackInput: {
+      backgroundColor: colors.borderLight,
+      borderRadius: 12,
+      padding: 14,
+      color: colors.textPrimary,
+      fontSize: 14,
+      minHeight: 100,
+      textAlignVertical: 'top',
+      lineHeight: 1.6,
+    },
+    submitBtn: {
+      backgroundColor: colors.primary,
+      borderRadius: 12,
+      padding: 14,
+      alignItems: 'center',
+    },
+    submitBtnText: {
+      color: '#FFFFFF',
+      fontSize: 15,
+      fontWeight: '600',
+    },
+    contactText: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      lineHeight: 1.7,
+      marginBottom: 14,
+    },
+    contactCard: {
+      backgroundColor: colors.borderLight,
+      borderRadius: 12,
+      padding: 14,
+    },
+    contactItem: {
+      color: colors.textPrimary,
+      fontSize: 13,
+      lineHeight: 1.7,
+      marginBottom: 8,
+    },
+    contactItemLast: { marginBottom: 0 },
+  }), [colors]);
+
   return (
     <View style={[styles.modalContainer, visible ? styles.modalVisible : styles.modalHidden]}>
       <View style={styles.modalContent}>
         {/* 头部 */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <Ionicons name="close" size={28} color="#8888AA" />
+            <Ionicons name="close" size={28} color={colors.textSecondary} />
           </TouchableOpacity>
           <Text style={styles.title}>帮助与反馈</Text>
           <View style={styles.placeholder} />
@@ -134,7 +305,7 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
               <TextInput
                 style={styles.feedbackInput}
                 placeholder="请详细描述您遇到的问题..."
-                placeholderTextColor="#555577"
+                placeholderTextColor={colors.textTertiary}
                 value={feedbackText}
                 onChangeText={setFeedbackText}
                 multiline
@@ -165,201 +336,5 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  /** 弹窗容器 */
-  modalContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    zIndex: 1000,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  /** 弹窗显示样式 */
-  modalVisible: {
-    opacity: 1,
-  },
-  /** 弹窗隐藏样式 */
-  modalHidden: {
-    opacity: 0,
-    pointerEvents: 'none',
-  },
-  /** 弹窗内容容器 */
-  modalContent: {
-    width: '90%',
-    maxHeight: '85%',
-    backgroundColor: '#1A1A2E',
-    borderRadius: 24,
-    overflow: 'hidden',
-  },
-  /** 头部栏 */
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    paddingTop: 32,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(93,155,250,0.2)',
-  },
-  /** 关闭按钮 */
-  closeBtn: {
-    padding: 8,
-  },
-  /** 标题样式 */
-  title: {
-    color: '#E8E8F0',
-    fontSize: 20,
-    fontWeight: '700',
-    fontFamily: 'Courier',
-  },
-  /** 占位元素，用于保持头部居中 */
-  placeholder: {
-    width: 44,
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 40,
-  },
-  section: {
-    marginBottom: 28,
-  },
-  sectionTitle: {
-    color: '#5D9BFA',
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 14,
-  },
-  sectionDivider: {
-    height: 1,
-    backgroundColor: 'rgba(93, 155, 250, 0.12)',
-    marginBottom: 14,
-  },
-  sectionDesc: {
-    color: '#8888AA',
-    fontSize: 13,
-    marginBottom: 14,
-    lineHeight: 1.5,
-  },
-  helpItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
-  },
-  helpTitle: {
-    color: '#E8E8F0',
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 6,
-  },
-  helpText: {
-    color: '#8888AA',
-    fontSize: 13,
-    lineHeight: 1.7,
-  },
-  examplesList: {
-    marginBottom: 18,
-  },
-  exampleItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  exampleItemSelected: {
-    backgroundColor: 'rgba(93, 155, 250, 0.1)',
-    borderColor: 'rgba(93, 155, 250, 0.3)',
-  },
-  exampleRadio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#555577',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-    marginRight: 12,
-  },
-  exampleRadioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#5D9BFA',
-  },
-  exampleContent: {
-    flex: 1,
-  },
-  exampleTitle: {
-    color: '#E8E8F0',
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  exampleDesc: {
-    color: '#8888AA',
-    fontSize: 12,
-    lineHeight: 1.6,
-  },
-  feedbackInputContainer: {
-    marginBottom: 18,
-  },
-  feedbackLabel: {
-    color: '#8888AA',
-    fontSize: 13,
-    marginBottom: 10,
-  },
-  feedbackInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    padding: 14,
-    color: '#E8E8F0',
-    fontSize: 14,
-    minHeight: 100,
-    textAlignVertical: 'top',
-    lineHeight: 1.6,
-  },
-  submitBtn: {
-    backgroundColor: '#5D9BFA',
-    borderRadius: 12,
-    padding: 14,
-    alignItems: 'center',
-  },
-  submitBtnText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  contactText: {
-    color: '#8888AA',
-    fontSize: 13,
-    lineHeight: 1.7,
-    marginBottom: 14,
-  },
-  contactCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    padding: 14,
-  },
-  contactItem: {
-    color: '#E8E8F0',
-    fontSize: 13,
-    lineHeight: 1.7,
-    marginBottom: 8,
-  },
-  contactItemLast: {
-    marginBottom: 0,
-  },
-});
 
 export default HelpModal;

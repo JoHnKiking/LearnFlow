@@ -18,6 +18,8 @@ export default function TabLayout() {
           paddingTop: 8,
           paddingBottom: 8,
           height: 64,
+          elevation: 0,
+          shadowColor: 'transparent',
         },
         tabBarLabelStyle: {
           fontSize: 11,

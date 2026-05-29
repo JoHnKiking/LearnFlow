@@ -60,7 +60,7 @@ const MonsterIcon = ({ type, size }: MonsterIconProps) => {
             {
               width: 4 * scale,
               height: 6 * scale,
-              backgroundColor: '#1A1A2E',
+              backgroundColor: '#0D0D1A',
               left: 4 * scale,
               top: 2 * scale,
             },
@@ -81,7 +81,7 @@ const MonsterIcon = ({ type, size }: MonsterIconProps) => {
             {
               width: 4 * scale,
               height: 6 * scale,
-              backgroundColor: '#1A1A2E',
+              backgroundColor: '#0D0D1A',
               left: 4 * scale,
               top: 2 * scale,
             },
@@ -92,7 +92,7 @@ const MonsterIcon = ({ type, size }: MonsterIconProps) => {
           {
             width: 20 * scale,
             height: 4 * scale,
-            backgroundColor: '#1A1A2E',
+            backgroundColor: '#0D0D1A',
             left: 12 * scale,
             top: 24 * scale,
           },

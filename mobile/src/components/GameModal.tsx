@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../contexts/ThemeContext';
 import {
   sokobanLevels,
   getLevelByIndex,
@@ -40,7 +41,7 @@ type GameType = 'sudoku' | 'sokoban';
 /**
  * 数独游戏组件
  */
-const SudokuGame = ({ onWin }: { onWin: () => void }) => {
+const SudokuGame = ({ onWin, colors }: { onWin: () => void; colors: any }) => {
   /** 游戏面板，0表示空 */
   const [board, setBoard] = useState<number[][]>([]);
   /** 答案面板 */
@@ -177,15 +178,15 @@ const SudokuGame = ({ onWin }: { onWin: () => void }) => {
    * 获取格子背景色
    */
   const getCellColor = (row: number, col: number): string => {
-    if (!selected) return '#1A1A2E';
-    if (selected.row === row && selected.col === col) return 'rgba(93,155,250,0.3)';
-    if (selected.row === row || selected.col === col) return 'rgba(93,155,250,0.1)';
+    if (!selected) return colors.background;
+    if (selected.row === row && selected.col === col) return colors.borderDark;
+    if (selected.row === row || selected.col === col) return colors.borderLight;
     const boxRow = Math.floor(selected.row / 3) * 3;
     const boxCol = Math.floor(selected.col / 3) * 3;
     if (row >= boxRow && row < boxRow + 3 && col >= boxCol && col < boxCol + 3) {
-      return 'rgba(93,155,250,0.1)';
+      return colors.borderLight;
     }
-    return '#1A1A2E';
+    return colors.background;
   };
 
   return (
@@ -194,7 +195,7 @@ const SudokuGame = ({ onWin }: { onWin: () => void }) => {
       <View style={styles.sudokuHeader}>
         <Text style={styles.sudokuTitle}>🧩 数独</Text>
         <TouchableOpacity style={styles.newGameBtn} onPress={initGame}>
-          <Ionicons name="refresh" size={16} color="#5D9BFA" />
+          <Ionicons name="refresh" size={16} color={colors.primary} />
           <Text style={styles.newGameText}>新游戏</Text>
         </TouchableOpacity>
       </View>
@@ -249,7 +250,7 @@ const SudokuGame = ({ onWin }: { onWin: () => void }) => {
 /**
  * 推箱子游戏组件
  */
-const SokobanGame = ({ onWin, monsterType }: { onWin: (level: number) => void; monsterType?: string }) => {
+const SokobanGame = ({ onWin, monsterType, colors }: { onWin: (level: number) => void; monsterType?: string; colors: any }) => {
   /** 当前关卡索引 */
   const [currentLevel, setCurrentLevel] = useState(0);
   /** 玩家位置 */
@@ -373,7 +374,7 @@ const SokobanGame = ({ onWin, monsterType }: { onWin: (level: number) => void; m
       <View style={styles.sokobanHeader}>
         <Text style={styles.levelName}>{level.name} / {sokobanLevels.length}</Text>
         <TouchableOpacity style={styles.newGameBtn} onPress={() => initLevel(0)}>
-          <Ionicons name="refresh" size={16} color="#5D9BFA" />
+          <Ionicons name="refresh" size={16} color={colors.primary} />
           <Text style={styles.newGameText}>重新开始</Text>
         </TouchableOpacity>
       </View>
@@ -432,6 +433,464 @@ const SokobanGame = ({ onWin, monsterType }: { onWin: (level: number) => void; m
  * 包含游戏选择、教程和游戏界面
  */
 const GameModal = ({ visible, onClose, onGameComplete, monsterType }: GameModalProps) => {
+  const { colors } = useTheme();
+
+// ==================== 样式 ====================
+
+const styles = useMemo(() => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    paddingTop: 40,
+    borderBottomWidth: 1,
+    borderBottomColor: 'colors.borderDark',
+  },
+  closeBtn: {
+    padding: 8,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+  },
+  placeholder: {
+    width: 44,
+  },
+  welcomeContent: {
+    flex: 1,
+    padding: 16,
+  },
+  welcomeSection: {
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  welcomeTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginBottom: 8,
+  },
+  welcomeSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.warning,
+    marginBottom: 12,
+  },
+  rewardsSection: {
+    backgroundColor: 'rgba(255,215,0,0.08)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  rewardsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 40,
+  },
+  rewardBox: {
+    alignItems: 'center',
+  },
+  rewardIcon: {
+    fontSize: 32,
+    marginBottom: 4,
+  },
+  rewardAmount: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.warning,
+  },
+  rewardName: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  rewardNote: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 12,
+  },
+  gamesSection: {
+    marginBottom: 16,
+  },
+  gameCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'colors.borderDark',
+  },
+  gameCardIcon: {
+    fontSize: 36,
+    marginRight: 12,
+  },
+  gameCardInfo: {
+    flex: 1,
+  },
+  gameCardTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  gameCardDesc: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  gameCardArrow: {
+    fontSize: 20,
+    color: colors.primary,
+  },
+  tipsSection: {
+    backgroundColor: 'rgba(123,117,216,0.08)',
+    borderRadius: 12,
+    padding: 16,
+  },
+  tipsText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 1.6,
+  },
+  tipsList: {
+    gap: 6,
+  },
+  tipItem: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 1.6,
+  },
+  tutorialContent: {
+    flex: 1,
+    padding: 16,
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 16,
+    zIndex: 200,
+    position: 'relative',
+  },
+  backBtnText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  tutorialHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 20,
+  },
+  tutorialIcon: {
+    fontSize: 40,
+  },
+  tutorialTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+  },
+  tutorialSection: {
+    marginBottom: 24,
+    paddingBottom: 8,
+  },
+  tutorialSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.warning,
+    marginBottom: 8,
+  },
+  tutorialText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 1.6,
+  },
+  tutorialSteps: {
+    gap: 6,
+  },
+  tutorialStep: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 1.6,
+  },
+  startBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 32,
+    marginBottom: 32,
+  },
+  startBtnText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  gameScreen: {
+    flex: 1,
+    padding: 16,
+    paddingTop: 40,
+  },
+  gameContent: {
+    flex: 1,
+  },
+  gameContainer: {
+    flex: 1,
+  },
+  // 数独样式
+  sudokuHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sudokuTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+  },
+  newGameBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    padding: 8,
+    backgroundColor: 'colors.borderLight',
+    borderRadius: 8,
+  },
+  newGameText: {
+    fontSize: 12,
+    color: colors.primary,
+  },
+  sudokuGrid: {
+    backgroundColor: colors.backgroundDark,
+    borderRadius: 8,
+    padding: 4,
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  sudokuRow: {
+    flexDirection: 'row',
+  },
+  sudokuCell: {
+    flex: 1,
+    aspectRatio: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'colors.borderDark',
+  },
+  sudokuCellText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  sudokuGiven: {
+    color: colors.primary,
+  },
+  sudokuInput: {
+    color: colors.warning,
+  },
+  sudokuSolution: {
+    color: colors.success,
+  },
+  numberPad: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 16,
+  },
+  numberBtn: {
+    width: '18%',
+    aspectRatio: 1,
+    backgroundColor: 'colors.borderDark',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  numberBtnText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+  clearBtn: {
+    width: '18%',
+    aspectRatio: 1,
+    backgroundColor: 'rgba(255,107,107,0.2)',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearBtnText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#FF6B6B',
+  },
+  hintBtn: {
+    backgroundColor: 'rgba(255,215,0,0.15)',
+    borderRadius: 10,
+    padding: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.4)',
+  },
+  hintBtnText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: colors.warning,
+  },
+  // 推箱子样式
+  sokobanHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  levelName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.warning,
+  },
+  sokobanGrid: {
+    backgroundColor: colors.backgroundDark,
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: colors.orange,
+  },
+  sokobanRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  sokobanCell: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 4,
+    margin: 1,
+  },
+  sokobanCellWall: {
+    backgroundColor: '#3A3A5C',
+  },
+  sokobanCellFloor: {
+    backgroundColor: colors.background,
+  },
+  sokobanCellTarget: {
+    backgroundColor: 'rgba(255,215,0,0.2)',
+  },
+  sokobanCellPlayer: {
+    backgroundColor: 'colors.borderDark',
+  },
+  sokobanCellBox: {
+    backgroundColor: 'rgba(255,125,0,0.4)',
+  },
+  sokobanCellBoxOnTarget: {
+    backgroundColor: 'rgba(58,227,116,0.4)',
+  },
+  sokobanCellText: {
+    fontSize: 20,
+  },
+  sokobanControls: {
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 16,
+  },
+  sokobanBtnRow: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  sokobanBtn: {
+    width: 55,
+    height: 55,
+    backgroundColor: 'colors.borderDark',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'colors.borderDark',
+  },
+  sokobanBtnText: {
+    fontSize: 22,
+  },
+  answerContainer: {
+    backgroundColor: 'rgba(255,215,0,0.08)',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.25)',
+  },
+  answerTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: colors.warning,
+    marginBottom: 8,
+  },
+  answerSteps: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+  stepPending: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  stepDone: {
+    fontSize: 14,
+    color: colors.success,
+  },
+  answerButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  smallBtn: {
+    flex: 1,
+    padding: 8,
+    backgroundColor: 'colors.borderDark',
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  smallBtnText: {
+    fontSize: 11,
+    color: colors.primary,
+    fontWeight: 'bold',
+  },
+  winOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 100,
+    pointerEvents: 'none',
+  },
+  winText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: colors.warning,
+  },
+  submittingText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 16,
+  },
+}), [colors]);
   /** 当前显示的屏幕 */
   const [currentScreen, setCurrentScreen] = useState<Screen>('welcome');
   /** 当前选中的游戏类型 */
@@ -541,7 +1000,7 @@ const GameModal = ({ visible, onClose, onGameComplete, monsterType }: GameModalP
         {/* 头部栏 */}
         <View style={styles.header}>
           <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
-            <Ionicons name="close" size={28} color="#8888AA" />
+            <Ionicons name="close" size={28} color={colors.textSecondary} />
           </TouchableOpacity>
           <Text style={styles.title}>游戏恢复</Text>
           <View style={styles.placeholder} />
@@ -624,7 +1083,7 @@ const GameModal = ({ visible, onClose, onGameComplete, monsterType }: GameModalP
         {currentScreen === 'tutorial' && (
           <ScrollView style={styles.tutorialContent} showsVerticalScrollIndicator={false}>
             <TouchableOpacity onPress={goBack} style={styles.backBtn}>
-              <Ionicons name="arrow-back" size={20} color="#8888AA" />
+              <Ionicons name="arrow-back" size={20} color={colors.textSecondary} />
               <Text style={styles.backBtnText}>返回</Text>
             </TouchableOpacity>
 
@@ -695,7 +1154,7 @@ const GameModal = ({ visible, onClose, onGameComplete, monsterType }: GameModalP
         {currentScreen === 'game' && (
           <View style={styles.gameScreen}>
             <TouchableOpacity onPress={goBack} style={styles.backBtn}>
-              <Ionicons name="arrow-back" size={20} color="#8888AA" />
+              <Ionicons name="arrow-back" size={20} color={colors.textSecondary} />
               <Text style={styles.backBtnText}>返回</Text>
             </TouchableOpacity>
 
@@ -712,8 +1171,8 @@ const GameModal = ({ visible, onClose, onGameComplete, monsterType }: GameModalP
               )}
 
               {/* 根据游戏类型显示对应游戏 */}
-              {currentGame === 'sudoku' && <SudokuGame onWin={() => handleWin(1)} />}
-              {currentGame === 'sokoban' && <SokobanGame onWin={handleWin} monsterType={monsterType} />}
+              {currentGame === 'sudoku' && <SudokuGame onWin={() => handleWin(1)} colors={colors} />}
+              {currentGame === 'sokoban' && <SokobanGame onWin={handleWin} monsterType={monsterType} colors={colors} />}
             </View>
           </View>
         )}
@@ -722,461 +1181,5 @@ const GameModal = ({ visible, onClose, onGameComplete, monsterType }: GameModalP
   );
 };
 
-// ==================== 样式 ====================
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1A1A2E',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    paddingTop: 40,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(93,155,250,0.2)',
-  },
-  closeBtn: {
-    padding: 8,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#E8E8F0',
-  },
-  placeholder: {
-    width: 44,
-  },
-  welcomeContent: {
-    flex: 1,
-    padding: 16,
-  },
-  welcomeSection: {
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  welcomeTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#5D9BFA',
-    marginBottom: 8,
-  },
-  welcomeSubtitle: {
-    fontSize: 14,
-    color: '#8888AA',
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFD700',
-    marginBottom: 12,
-  },
-  rewardsSection: {
-    backgroundColor: 'rgba(255,215,0,0.08)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-  rewardsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 40,
-  },
-  rewardBox: {
-    alignItems: 'center',
-  },
-  rewardIcon: {
-    fontSize: 32,
-    marginBottom: 4,
-  },
-  rewardAmount: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFD700',
-  },
-  rewardName: {
-    fontSize: 12,
-    color: '#8888AA',
-  },
-  rewardNote: {
-    fontSize: 12,
-    color: '#8888AA',
-    textAlign: 'center',
-    marginTop: 12,
-  },
-  gamesSection: {
-    marginBottom: 16,
-  },
-  gameCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#16213E',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.2)',
-  },
-  gameCardIcon: {
-    fontSize: 36,
-    marginRight: 12,
-  },
-  gameCardInfo: {
-    flex: 1,
-  },
-  gameCardTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#E8E8F0',
-    marginBottom: 4,
-  },
-  gameCardDesc: {
-    fontSize: 12,
-    color: '#8888AA',
-  },
-  gameCardArrow: {
-    fontSize: 20,
-    color: '#5D9BFA',
-  },
-  tipsSection: {
-    backgroundColor: 'rgba(93,155,250,0.08)',
-    borderRadius: 12,
-    padding: 16,
-  },
-  tipsText: {
-    fontSize: 12,
-    color: '#8888AA',
-    lineHeight: 1.6,
-  },
-  tipsList: {
-    gap: 6,
-  },
-  tipItem: {
-    fontSize: 12,
-    color: '#8888AA',
-    lineHeight: 1.6,
-  },
-  tutorialContent: {
-    flex: 1,
-    padding: 16,
-  },
-  backBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 16,
-    zIndex: 200,
-    position: 'relative',
-  },
-  backBtnText: {
-    color: '#8888AA',
-    fontSize: 14,
-  },
-  tutorialHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 20,
-  },
-  tutorialIcon: {
-    fontSize: 40,
-  },
-  tutorialTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#E8E8F0',
-  },
-  tutorialSection: {
-    marginBottom: 24,
-    paddingBottom: 8,
-  },
-  tutorialSectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFD700',
-    marginBottom: 8,
-  },
-  tutorialText: {
-    fontSize: 14,
-    color: '#8888AA',
-    lineHeight: 1.6,
-  },
-  tutorialSteps: {
-    gap: 6,
-  },
-  tutorialStep: {
-    fontSize: 14,
-    color: '#8888AA',
-    lineHeight: 1.6,
-  },
-  startBtn: {
-    backgroundColor: '#5D9BFA',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 32,
-    marginBottom: 32,
-  },
-  startBtnText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  gameScreen: {
-    flex: 1,
-    padding: 16,
-    paddingTop: 40,
-  },
-  gameContent: {
-    flex: 1,
-  },
-  gameContainer: {
-    flex: 1,
-  },
-  // 数独样式
-  sudokuHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sudokuTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#E8E8F0',
-  },
-  newGameBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    padding: 8,
-    backgroundColor: 'rgba(93,155,250,0.15)',
-    borderRadius: 8,
-  },
-  newGameText: {
-    fontSize: 12,
-    color: '#5D9BFA',
-  },
-  sudokuGrid: {
-    backgroundColor: '#0F103E',
-    borderRadius: 8,
-    padding: 4,
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: '#5D9BFA',
-  },
-  sudokuRow: {
-    flexDirection: 'row',
-  },
-  sudokuCell: {
-    flex: 1,
-    aspectRatio: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.2)',
-  },
-  sudokuCellText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  sudokuGiven: {
-    color: '#5D9BFA',
-  },
-  sudokuInput: {
-    color: '#FFD700',
-  },
-  sudokuSolution: {
-    color: '#3AE374',
-  },
-  numberPad: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 16,
-  },
-  numberBtn: {
-    width: '18%',
-    aspectRatio: 1,
-    backgroundColor: 'rgba(93,155,250,0.2)',
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  numberBtnText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#5D9BFA',
-  },
-  clearBtn: {
-    width: '18%',
-    aspectRatio: 1,
-    backgroundColor: 'rgba(255,107,107,0.2)',
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  clearBtnText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#FF6B6B',
-  },
-  hintBtn: {
-    backgroundColor: 'rgba(255,215,0,0.15)',
-    borderRadius: 10,
-    padding: 14,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,215,0,0.4)',
-  },
-  hintBtnText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#FFD700',
-  },
-  // 推箱子样式
-  sokobanHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  levelName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFD700',
-  },
-  sokobanGrid: {
-    backgroundColor: '#0F103E',
-    borderRadius: 8,
-    padding: 8,
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: '#FF7D00',
-  },
-  sokobanRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  sokobanCell: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 4,
-    margin: 1,
-  },
-  sokobanCellWall: {
-    backgroundColor: '#3A3A5C',
-  },
-  sokobanCellFloor: {
-    backgroundColor: '#1A1A2E',
-  },
-  sokobanCellTarget: {
-    backgroundColor: 'rgba(255,215,0,0.2)',
-  },
-  sokobanCellPlayer: {
-    backgroundColor: 'rgba(93,155,250,0.3)',
-  },
-  sokobanCellBox: {
-    backgroundColor: 'rgba(255,125,0,0.4)',
-  },
-  sokobanCellBoxOnTarget: {
-    backgroundColor: 'rgba(58,227,116,0.4)',
-  },
-  sokobanCellText: {
-    fontSize: 20,
-  },
-  sokobanControls: {
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 16,
-  },
-  sokobanBtnRow: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  sokobanBtn: {
-    width: 55,
-    height: 55,
-    backgroundColor: 'rgba(93,155,250,0.2)',
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.3)',
-  },
-  sokobanBtnText: {
-    fontSize: 22,
-  },
-  answerContainer: {
-    backgroundColor: 'rgba(255,215,0,0.08)',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,215,0,0.25)',
-  },
-  answerTitle: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#FFD700',
-    marginBottom: 8,
-  },
-  answerSteps: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 8,
-  },
-  stepPending: {
-    fontSize: 14,
-    color: '#8888AA',
-  },
-  stepDone: {
-    fontSize: 14,
-    color: '#3AE374',
-  },
-  answerButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  smallBtn: {
-    flex: 1,
-    padding: 8,
-    backgroundColor: 'rgba(93,155,250,0.2)',
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  smallBtnText: {
-    fontSize: 11,
-    color: '#5D9BFA',
-    fontWeight: 'bold',
-  },
-  winOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 100,
-    pointerEvents: 'none',
-  },
-  winText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#FFD700',
-  },
-  submittingText: {
-    fontSize: 14,
-    color: '#8888AA',
-    marginTop: 16,
-  },
-});
 
 export default GameModal;

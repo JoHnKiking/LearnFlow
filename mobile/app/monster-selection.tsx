@@ -10,39 +10,39 @@ import { getCurrentUser } from '../src/utils/auth';
 
 type MonsterType = 'lively' | 'calm' | 'rebel';
 
-const monsters = [
-  {
-    id: 'lively' as MonsterType,
-    name: '活力小怪',
-    personality: '元气满满',
-    color: '#FF7D00',
-    description: '适合快节奏碎片化学习',
-    trait: '专属特权：单次学习任务时长直接减少 5 分钟',
-  },
-  {
-    id: 'calm' as MonsterType,
-    name: '沉稳小怪',
-    personality: '冷静沉着',
-    color: '#5D9BFA',
-    description: '擅长深度思考',
-    trait: '专属特权：每日额外赠送 20 点体力，可多 2 次知识节点跳转（原有基础 10 次，叠加后 12 次）',
-  },
-  {
-    id: 'rebel' as MonsterType,
-    name: '叛逆小怪',
-    personality: '个性独立',
-    color: '#7B5EA7',
-    description: '有主见爱探索、敢于挑战',
-    trait: '专属特权：小游戏获得的体力、能量全部双倍',
-  },
-];
-
 const MonsterSelectionScreen = () => {
   const { colors } = useTheme();
   const [selectedType, setSelectedType] = useState<MonsterType>('calm');
   const [monsterName, setMonsterName] = useState('');
   const [step, setStep] = useState<'select' | 'name'>('select');
   const [fadeAnim] = useState(new Animated.Value(1));
+
+  const monsters = useMemo(() => [
+    {
+      id: 'lively' as MonsterType,
+      name: '活力小怪',
+      personality: '元气满满',
+      color: colors.orange,
+      description: '适合快节奏碎片化学习',
+      trait: '专属特权：单次学习任务时长直接减少 5 分钟',
+    },
+    {
+      id: 'calm' as MonsterType,
+      name: '沉稳小怪',
+      personality: '冷静沉着',
+      color: colors.primary,
+      description: '擅长深度思考',
+      trait: '专属特权：每日额外赠送 20 点体力，可多 2 次知识节点跳转（原有基础 10 次，叠加后 12 次）',
+    },
+    {
+      id: 'rebel' as MonsterType,
+      name: '叛逆小怪',
+      personality: '个性独立',
+      color: colors.purple,
+      description: '有主见爱探索、敢于挑战',
+      trait: '专属特权：小游戏获得的体力、能量全部双倍',
+    },
+  ], [colors]);
 
   const handleSelectMonster = (type: MonsterType) => {
     console.log('[MonsterSelection] 选择怪物类型:', type);
@@ -288,9 +288,9 @@ const MonsterSelectionScreen = () => {
 
   const MonsterIcon = ({ type, size }: { type: MonsterType; size: number }) => {
     const iconColors: Record<MonsterType, { primary: string; secondary: string }> = {
-      lively: { primary: '#FF7D00', secondary: '#E66900' },
-      calm: { primary: '#5D9BFA', secondary: '#4A7FD4' },
-      rebel: { primary: '#7B5EA7', secondary: '#5A4280' },
+      lively: { primary: colors.orange, secondary: '#B08040' },
+      calm: { primary: colors.primary, secondary: '#5A54B0' },
+      rebel: { primary: colors.purple, secondary: '#A05068' },
     };
 
     const color = iconColors[type];
@@ -375,7 +375,7 @@ const MonsterSelectionScreen = () => {
                             style={[
                               styles.traitBadge,
                               {
-                                backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : 'rgba(93,155,250,0.15)',
+                                backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : colors.borderLight,
                               },
                             ]}
                           >
@@ -433,7 +433,7 @@ const MonsterSelectionScreen = () => {
               {
                 backgroundColor: step === 'name' && !monsterName.trim()
                   ? colors.surface
-                  : 'rgba(93,155,250,0.8)',
+                  : colors.primary,
                 opacity: step === 'name' && !monsterName.trim() ? 0.5 : 1,
                 shadowColor: step === 'name' && !monsterName.trim() ? 'transparent' : colors.primary,
                 shadowOffset: { width: 0, height: 8 },

@@ -47,35 +47,7 @@ interface CustomNode {
   duration: number; // 预估学习时长（小时）
 }
 
-// ---- 平台选项常量 ----
-
-const PLATFORM_OPTIONS: { key: PlatformType; label: string; icon: string; color: string }[] = [
-  { key: 'bilibili', label: 'B站', icon: 'play-circle', color: '#FB7299' },
-  { key: 'xiaohongshu', label: '小红书', icon: 'book', color: '#FF2442' },
-  { key: 'mooc', label: '中国大学MOOC', icon: 'school', color: '#5D9BFA' },
-];
-
-// ---- 工具函数 ----
-
-/** 获取平台对应的图标和颜色 */
-const getPlatformIcon = (platform: PlatformType) => {
-  switch (platform) {
-    case 'bilibili': return { icon: 'play-circle', color: '#FB7299' };
-    case 'xiaohongshu': return { icon: 'book', color: '#FF2442' };
-    case 'mooc': return { icon: 'school', color: '#5D9BFA' };
-    default: return { icon: 'link', color: '#888' };
-  }
-};
-
-/** 获取阶段对应的颜色配置 */
-const getStageColor = (stage: StageType | string) => {
-  switch (stage) {
-    case 'beginner': return { bg: 'rgba(93,155,250,0.15)', border: 'rgba(93,155,250,0.3)', text: '#5D9BFA' };
-    case 'intermediate': return { bg: 'rgba(72,209,176,0.15)', border: 'rgba(72,209,176,0.3)', text: '#48D1B0' };
-    case 'advanced': return { bg: 'rgba(255,152,0,0.15)', border: 'rgba(255,152,0,0.3)', text: '#FF9800' };
-    default: return { bg: 'rgba(93,155,250,0.15)', border: 'rgba(93,155,250,0.3)', text: '#5D9BFA' };
-  }
-};
+// ---- 工具函数（模块级，不依赖主题） ----
 
 // ===================== 子组件：大标题结点 =====================
 
@@ -85,7 +57,7 @@ const getStageColor = (stage: StageType | string) => {
  */
 const StageNode: React.FC<{
   name: string; duration: number;
-  stageColor: ReturnType<typeof getStageColor>;
+  stageColor: { bg: string; border: string; text: string };
   onLongPress?: () => void; onEdit?: () => void;
   isCustom?: boolean;
 }> = ({ name, duration, stageColor, onLongPress, onEdit, isCustom }) => (
@@ -114,13 +86,12 @@ const StageNode: React.FC<{
  */
 const SkillNodeItem: React.FC<{
   name: string; platform: PlatformType; duration: number; url: string;
-  index: number; stageColor: ReturnType<typeof getStageColor>;
+  index: number; stageColor: { bg: string; border: string; text: string };
+  platformIcon: string; platformColor: string;
   onSelect: (name: string, url: string, suggestedDuration: number) => void;
   onLongPress?: () => void; onEdit?: () => void;
   isCustom?: boolean;
-}> = ({ name, platform, duration, url, index, stageColor, onSelect, onLongPress, onEdit, isCustom }) => {
-  const platformInfo = getPlatformIcon(platform);
-  return (
+}> = ({ name, platform, duration, url, index, stageColor, platformIcon, platformColor, onSelect, onLongPress, onEdit, isCustom }) => (
     <TouchableOpacity
       style={[s.skillNode, { borderColor: stageColor.border }]}
       onPress={() => onSelect(name, url, duration)}
@@ -128,36 +99,36 @@ const SkillNodeItem: React.FC<{
       activeOpacity={0.7}
     >
       <View style={s.skillNodeHeader}>
-        <View style={s.nodeBadge}>
-          <Text style={s.nodeBadgeText}>{index + 1}</Text>
+        <View style={[s.nodeBadge, { backgroundColor: stageColor.border }]}>
+          <Text style={[s.nodeBadgeText, { color: stageColor.text }]}>{index + 1}</Text>
         </View>
-        <Ionicons name={platformInfo.icon as any} size={14} color={platformInfo.color} />
+        <Ionicons name={platformIcon as any} size={14} color={platformColor} />
         {isCustom && (
           <TouchableOpacity onPress={onEdit} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="create-outline" size={12} color="#888" />
           </TouchableOpacity>
         )}
       </View>
-      <Text style={s.skillNodeName}>{name}</Text>
+      <Text style={[s.skillNodeName, { color: stageColor.text }]}>{name}</Text>
       <View style={s.skillNodeFooter}>
-        <Text style={[s.platformText, { color: platformInfo.color }]}>
+        <Text style={[s.platformText, { color: platformColor }]}>
           {PLATFORM_NAME_MAP[platform] ?? platform}
         </Text>
         <Text style={s.durationText}>{duration}h</Text>
       </View>
       <View style={s.arrowIcon}>
-        <Ionicons name="chevron-forward" size={14} color="#5D9BFA" />
+        <Ionicons name="chevron-forward" size={14} color={stageColor.text} />
       </View>
     </TouchableOpacity>
   );
-};
 
 // ===================== 模态框：选择学习时长 =====================
 
 const DurationModal: React.FC<{
   visible: boolean; onClose: () => void;
   nodeName: string; url: string; suggestedDuration: number;
-}> = ({ visible, onClose, nodeName, url, suggestedDuration }) => {
+  colors: any;
+}> = ({ visible, onClose, nodeName, url, suggestedDuration, colors }) => {
   const [selectedDuration, setSelectedDuration] = useState(25);
   const [monsterStamina, setMonsterStamina] = useState(100);
   const [maxStamina, setMaxStamina] = useState(100);
@@ -209,19 +180,19 @@ const DurationModal: React.FC<{
   return (
     <Modal visible transparent onRequestClose={onClose} animationType="fade">
       <TouchableOpacity style={s.overlayLight} onPress={onClose} activeOpacity={1}>
-        <View style={s.modalCard} onStartShouldSetResponder={() => true}>
+        <View style={[s.modalCard, { backgroundColor: colors.backgroundDark || colors.background, borderColor: colors.borderDark }]} onStartShouldSetResponder={() => true}>
           <View style={s.modalHeader}>
             <Text style={s.modalTitle}>开始学习</Text>
-            <TouchableOpacity style={s.modalClose} onPress={onClose}>
+            <TouchableOpacity style={[s.modalClose, { backgroundColor: colors.border }]} onPress={onClose}>
               <Ionicons name="close" size={20} color="#888" />
             </TouchableOpacity>
           </View>
           <Text style={s.modalNodeName}>{nodeName}</Text>
           <View style={s.staminaInfo}>
             <View style={s.staminaBar}>
-              <View style={[s.staminaFill, { width: `${Math.min(100, (monsterStamina / maxStamina) * 100)}%` }]} />
+              <View style={[s.staminaFill, { width: `${Math.min(100, (monsterStamina / maxStamina) * 100)}%`, backgroundColor: colors.success }]} />
             </View>
-            <Text style={s.staminaText}>体力: {monsterStamina}/{maxStamina}</Text>
+            <Text style={[s.staminaText, { color: colors.textSecondary }]}>体力: {monsterStamina}/{maxStamina}</Text>
           </View>
           <Text style={s.modalSubtitle}>选择学习时长</Text>
           <View style={s.durationOptions}>
@@ -229,8 +200,8 @@ const DurationModal: React.FC<{
               <TouchableOpacity
                 key={d}
                 onPress={() => setSelectedDuration(d)}
-                style={[s.durationButton, selectedDuration === d && s.durationButtonActive,
-                  { backgroundColor: selectedDuration === d ? '#5D9BFA' : '#0F1030' },
+                style={[s.durationButton, selectedDuration === d && { borderColor: colors.primary },
+                  { backgroundColor: selectedDuration === d ? colors.primary : colors.backgroundDark || colors.background },
                 ]}>
                 <Text style={[s.durationTextSmall, selectedDuration === d && s.durationTextActive]}>{d}分钟</Text>
               </TouchableOpacity>
@@ -238,9 +209,9 @@ const DurationModal: React.FC<{
           </View>
           <View style={s.costInfo}>
             <Text style={s.costText}>预计消耗体力: {staminaCost} 点</Text>
-            <Text style={s.suggestedText}>建议学习时长: {suggestedDuration}小时</Text>
+            <Text style={[s.suggestedText, { color: colors.textSecondary }]}>建议学习时长: {suggestedDuration}小时</Text>
           </View>
-          <TouchableOpacity style={s.modalConfirmBtn} onPress={handleConfirm}>
+          <TouchableOpacity style={[s.modalConfirmBtn, { backgroundColor: colors.primary }]} onPress={handleConfirm}>
             <Text style={s.modalConfirmText}>开始学习</Text>
           </TouchableOpacity>
         </View>
@@ -254,6 +225,33 @@ const DurationModal: React.FC<{
 const SkillTreeScreen = () => {
   const { domain } = useLocalSearchParams();
   const { colors } = useTheme();
+
+  // ---- 平台选项常量（使用主题颜色） ----
+  const PLATFORM_OPTIONS: { key: PlatformType; label: string; icon: string; color: string }[] = useMemo(() => [
+    { key: 'bilibili' as PlatformType, label: 'B站', icon: 'play-circle', color: '#FB7299' },
+    { key: 'xiaohongshu' as PlatformType, label: '小红书', icon: 'book', color: '#FF2442' },
+    { key: 'mooc' as PlatformType, label: '中国大学MOOC', icon: 'school', color: colors.primary },
+  ], [colors.primary]);
+
+  /** 获取平台对应的图标和颜色 */
+  const getPlatformIcon = (platform: PlatformType) => {
+    switch (platform) {
+      case 'bilibili': return { icon: 'play-circle', color: '#FB7299' };
+      case 'xiaohongshu': return { icon: 'book', color: '#FF2442' };
+      case 'mooc': return { icon: 'school', color: colors.primary };
+      default: return { icon: 'link', color: '#888' };
+    }
+  };
+
+  /** 获取阶段对应的颜色配置 */
+  const getStageColor = (stage: StageType | string) => {
+    switch (stage) {
+      case 'beginner': return { bg: colors.borderLight, border: colors.borderDark, text: colors.primary };
+      case 'intermediate': return { bg: 'rgba(72,209,176,0.15)', border: 'rgba(72,209,176,0.3)', text: '#48D1B0' };
+      case 'advanced': return { bg: 'rgba(255,152,0,0.15)', border: 'rgba(255,152,0,0.3)', text: '#FF9800' };
+      default: return { bg: colors.borderLight, border: colors.borderDark, text: colors.primary };
+    }
+  };
 
   // ---- 技能树数据 ----
   const [skillTree, setSkillTree] = useState<SkillTree | null>(null);
@@ -557,11 +555,11 @@ const SkillTreeScreen = () => {
             暂无学习内容，请添加大标题和结点
           </Text>
           <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
-            <TouchableOpacity style={s.emptyBtn} onPress={() => setAddStageVisible(true)}>
+            <TouchableOpacity style={[s.emptyBtn, { borderColor: colors.borderDark }]} onPress={() => setAddStageVisible(true)}>
               <Text style={[s.emptyBtnText, { color: colors.primary }]}>添加大标题</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={s.backBtn} onPress={handleGoBack}>
+          <TouchableOpacity style={[s.backBtn, { backgroundColor: colors.borderDark }]} onPress={handleGoBack}>
             <Text style={s.backArrow}>← 返回</Text>
           </TouchableOpacity>
         </View>
@@ -576,7 +574,7 @@ const SkillTreeScreen = () => {
       <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
         {/* ---- 顶部导航栏 ---- */}
         <View style={[s.header, { backgroundColor: colors.background }]}>
-          <TouchableOpacity style={s.backBtnRect} onPress={handleGoBack}>
+          <TouchableOpacity style={[s.backBtnRect, { backgroundColor: colors.borderDark }]} onPress={handleGoBack}>
             <Text style={s.backArrow}>←</Text>
           </TouchableOpacity>
           <Text style={[s.headerTitle, { color: colors.textPrimary }]}>
@@ -613,7 +611,7 @@ const SkillTreeScreen = () => {
         </View>
 
         {/* ---- 总时长徽章 ---- */}
-        <View style={s.totalDurationBadge}>
+        <View style={[s.totalDurationBadge, { backgroundColor: colors.borderLight }]}>
           <Ionicons name="time" size={14} color={colors.primary} />
           <Text style={[s.totalDurationText, { color: colors.primary }]}>总时长 {totalDuration}小时</Text>
         </View>
@@ -644,6 +642,7 @@ const SkillTreeScreen = () => {
                     const displayName = customNodeObj?.name ?? node.name;
                     const displayPlatform = customNodeObj?.platform ?? node.platform;
                     const displayUrl = customNodeObj?.url ?? node.url;
+                    const platformInfo = getPlatformIcon(displayPlatform);
                     return (
                       <SkillNodeItem
                         key={node.id}
@@ -653,6 +652,8 @@ const SkillTreeScreen = () => {
                         url={displayUrl}
                         index={nodeIndex}
                         stageColor={stageColor}
+                        platformIcon={platformInfo.icon}
+                        platformColor={platformInfo.color}
                         onSelect={handleNodeSelect}
                         isCustom={isCustomNode}
                         onLongPress={isCustomNode
@@ -666,7 +667,7 @@ const SkillTreeScreen = () => {
 
                   {/* 为当前大标题添加结点 */}
                   <TouchableOpacity
-                    style={s.addNodeBtn}
+                    style={[s.addNodeBtn, { borderColor: colors.borderDark }]}
                     onPress={() => openAddNodeForStage(stage.id)}
                     activeOpacity={0.7}
                   >
@@ -699,6 +700,7 @@ const SkillTreeScreen = () => {
         nodeName={selectedNode.name}
         url={selectedNode.url}
         suggestedDuration={selectedNode.suggestedDuration}
+        colors={colors}
       />
 
       {/* 添加大标题 */}
@@ -707,7 +709,7 @@ const SkillTreeScreen = () => {
           <View style={[s.modalContent, { backgroundColor: colors.surface }]} onStartShouldSetResponder={() => true}>
             <View style={s.modalHeader}>
               <Text style={[s.modalTitle, { color: colors.textPrimary }]}>添加大标题</Text>
-              <TouchableOpacity style={s.modalClose} onPress={() => setAddStageVisible(false)}>
+              <TouchableOpacity style={[s.modalClose, { backgroundColor: colors.border }]} onPress={() => setAddStageVisible(false)}>
                 <Ionicons name="close" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
@@ -734,7 +736,7 @@ const SkillTreeScreen = () => {
           <View style={[s.modalContent, { backgroundColor: colors.surface }]} onStartShouldSetResponder={() => true}>
             <View style={s.modalHeader}>
               <Text style={[s.modalTitle, { color: colors.textPrimary }]}>添加结点</Text>
-              <TouchableOpacity style={s.modalClose} onPress={() => setAddNodeVisible(false)}>
+              <TouchableOpacity style={[s.modalClose, { backgroundColor: colors.border }]} onPress={() => setAddNodeVisible(false)}>
                 <Ionicons name="close" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
@@ -755,7 +757,7 @@ const SkillTreeScreen = () => {
             <View style={s.platformSelector}>
               {PLATFORM_OPTIONS.map(opt => (
                 <TouchableOpacity key={opt.key}
-                  style={[s.platformOption, newNodePlatform === opt.key && { backgroundColor: opt.color + '20', borderColor: opt.color }]}
+                  style={[s.platformOption, { borderColor: colors.border }, newNodePlatform === opt.key && { backgroundColor: opt.color + '20', borderColor: opt.color }]}
                   onPress={() => setNewNodePlatform(opt.key)}
                 >
                   <Ionicons name={opt.icon as any} size={16} color={opt.color} />
@@ -781,7 +783,7 @@ const SkillTreeScreen = () => {
           <View style={[s.modalContent, { backgroundColor: colors.surface }]} onStartShouldSetResponder={() => true}>
             <View style={s.modalHeader}>
               <Text style={[s.modalTitle, { color: colors.textPrimary }]}>编辑大标题</Text>
-              <TouchableOpacity style={s.modalClose} onPress={() => setEditStageVisible(false)}>
+              <TouchableOpacity style={[s.modalClose, { backgroundColor: colors.border }]} onPress={() => setEditStageVisible(false)}>
                 <Ionicons name="close" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
@@ -807,7 +809,7 @@ const SkillTreeScreen = () => {
           <View style={[s.modalContent, { backgroundColor: colors.surface }]} onStartShouldSetResponder={() => true}>
             <View style={s.modalHeader}>
               <Text style={[s.modalTitle, { color: colors.textPrimary }]}>编辑结点</Text>
-              <TouchableOpacity style={s.modalClose} onPress={() => setEditNodeVisible(false)}>
+              <TouchableOpacity style={[s.modalClose, { backgroundColor: colors.border }]} onPress={() => setEditNodeVisible(false)}>
                 <Ionicons name="close" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
@@ -828,7 +830,7 @@ const SkillTreeScreen = () => {
             <View style={s.platformSelector}>
               {PLATFORM_OPTIONS.map(opt => (
                 <TouchableOpacity key={opt.key}
-                  style={[s.platformOption, editNodePlatform === opt.key && { backgroundColor: opt.color + '20', borderColor: opt.color }]}
+                  style={[s.platformOption, { borderColor: colors.border }, editNodePlatform === opt.key && { backgroundColor: opt.color + '20', borderColor: opt.color }]}
                   onPress={() => setEditNodePlatform(opt.key)}
                 >
                   <Ionicons name={opt.icon as any} size={16} color={opt.color} />
@@ -851,7 +853,7 @@ const SkillTreeScreen = () => {
       {/* Toast */}
       {toastMessage !== '' && (
         <View style={s.toast}>
-          <Ionicons name="checkmark-circle" size={18} color="#3AE374" />
+          <Ionicons name="checkmark-circle" size={18} color={colors.success} />
           <Text style={s.toastText}>{toastMessage}</Text>
         </View>
       )}
@@ -868,7 +870,7 @@ const s = StyleSheet.create({
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
   emptyBtn: {
     paddingVertical: 10, paddingHorizontal: 20, borderRadius: 10,
-    borderWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(93,155,250,0.4)',
+    borderWidth: 1.5, borderStyle: 'dashed',
   },
   emptyBtnText: { fontSize: 13, fontWeight: '600' },
   scrollContent: { flexGrow: 1, paddingBottom: 20 },
@@ -879,7 +881,7 @@ const s = StyleSheet.create({
   },
   backBtnRect: {
     width: 40, height: 40, borderRadius: 12,
-    backgroundColor: 'rgba(93,155,250,0.2)', alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
   backArrow: { fontSize: 24, color: '#FFFFFF', fontWeight: 'bold' },
   headerTitle: { fontSize: 18, fontWeight: '700' },
@@ -891,7 +893,7 @@ const s = StyleSheet.create({
   // 时长徽章
   totalDurationBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 8,
-    borderRadius: 20, backgroundColor: 'rgba(93,155,250,0.15)', marginHorizontal: 20, marginBottom: 20, alignSelf: 'center',
+    borderRadius: 20, marginHorizontal: 20, marginBottom: 20, alignSelf: 'center',
   },
   totalDurationText: { fontSize: 12, fontWeight: '600' },
   // 技能树容器
@@ -915,10 +917,10 @@ const s = StyleSheet.create({
   skillNodeHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   nodeBadge: {
     width: 20, height: 20, borderRadius: 6,
-    backgroundColor: 'rgba(93,155,250,0.2)', alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
-  nodeBadgeText: { fontSize: 10, color: '#5D9BFA', fontWeight: '700' },
-  skillNodeName: { fontSize: 13, color: '#fff', fontWeight: '600', marginBottom: 8, lineHeight: 16 },
+  nodeBadgeText: { fontSize: 10, fontWeight: '700' },
+  skillNodeName: { fontSize: 13, fontWeight: '600', marginBottom: 8, lineHeight: 16 },
   skillNodeFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   platformText: { fontSize: 10, fontWeight: '500' },
   durationText: { fontSize: 10, color: '#888', fontWeight: '500' },
@@ -926,8 +928,7 @@ const s = StyleSheet.create({
   // 添加结点按钮
   addNodeBtn: {
     alignItems: 'center', justifyContent: 'center', paddingVertical: 10,
-    borderRadius: 10, borderWidth: 1, borderStyle: 'dashed',
-    borderColor: 'rgba(93,155,250,0.3)', marginTop: 4,
+    borderRadius: 10, borderWidth: 1, borderStyle: 'dashed', marginTop: 4,
   },
   addNodeText: { fontSize: 12, fontWeight: '600' },
   // 添加大标题按钮
@@ -939,7 +940,7 @@ const s = StyleSheet.create({
   // 返回按钮（空状态用）
   backBtn: {
     marginTop: 24, paddingVertical: 10, paddingHorizontal: 24,
-    borderRadius: 10, backgroundColor: 'rgba(93,155,250,0.2)',
+    borderRadius: 10,
   },
   // 输入框通用
   addInput: {
@@ -951,7 +952,7 @@ const s = StyleSheet.create({
   platformSelector: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   platformOption: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 4, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    gap: 4, paddingVertical: 10, borderRadius: 8, borderWidth: 1,
   },
   platformOptionText: { fontSize: 11, fontWeight: '600' },
   bottomPadding: { height: 40 },
@@ -962,22 +963,21 @@ const s = StyleSheet.create({
   overlayLight: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center', padding: 24 },
   modalCard: {
     width: '100%', maxWidth: 380, borderRadius: 20, padding: 24,
-    backgroundColor: '#1A1A3E', borderWidth: 1, borderColor: 'rgba(93,155,250,0.3)',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 20,
+    borderWidth: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 20,
     elevation: 10,
   },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   modalTitle: { fontSize: 20, fontWeight: '700' },
   modalClose: {
     width: 32, height: 32, borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
   modalNodeName: { fontSize: 16, fontWeight: '600', color: '#FFFFFF', marginBottom: 16 },
   // 体力信息
   staminaInfo: { marginBottom: 16 },
   staminaBar: { height: 8, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 4, overflow: 'hidden', marginBottom: 8 },
-  staminaFill: { height: '100%', backgroundColor: '#3AE374', borderRadius: 4 },
-  staminaText: { fontSize: 12, color: '#8888AA' },
+  staminaFill: { height: '100%', borderRadius: 4 },
+  staminaText: { fontSize: 12 },
   modalSubtitle: { fontSize: 14, fontWeight: '600', color: '#FFFFFF', marginBottom: 12 },
   // 时长选项
   durationOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
@@ -985,13 +985,13 @@ const s = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
   },
-  durationButtonActive: { borderColor: '#5D9BFA' },
+  durationButtonActive: {},
   durationTextSmall: { fontSize: 12, color: '#888' },
   durationTextActive: { color: '#FFFFFF' },
   costInfo: { marginBottom: 20 },
   costText: { fontSize: 12, color: '#FF9800', marginBottom: 4 },
-  suggestedText: { fontSize: 12, color: '#8888AA' },
-  modalConfirmBtn: { backgroundColor: '#5D9BFA', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  suggestedText: { fontSize: 12 },
+  modalConfirmBtn: { paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
   modalConfirmText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
   // Toast
   toast: {

@@ -80,13 +80,13 @@ const OnboardingScreen = () => {
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: SPACING.SMALL,
   },
   subtitle: {
     fontSize: 16,
-    color: '#8888AA',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 40,
   },
@@ -108,7 +108,7 @@ const OnboardingScreen = () => {
   },
   featureText: {
     fontSize: 16,
-    color: '#E8E8F0',
+    color: colors.textPrimary,
     fontWeight: '500',
   },
   startButton: {

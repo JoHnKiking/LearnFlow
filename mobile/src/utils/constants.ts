@@ -23,36 +23,36 @@ export const ROUTES = {
   SKILL_TREE: '/skill-tree',
 } as const;
 
-// 像素风格颜色常量
+// 像素风格颜色常量 — 对齐新 ThemeContext 深色模式默认值
 export const PIXEL_COLORS = {
-  PRIMARY: '#5D9BFA',
-  SUCCESS: '#3AE374',
-  WARNING: '#FFD700',
-  ERROR: '#E94560',
-  BACKGROUND: '#1A1A2E',
-  BACKGROUND_LIGHT: '#16213E',
-  BACKGROUND_DARK: '#0F1030',
-  WHITE: '#E8E8F0',
-  TEXT_PRIMARY: '#E8E8F0',
-  TEXT_SECONDARY: '#8888AA',
-  TEXT_TERTIARY: '#555577',
-  BORDER: 'rgba(255, 255, 255, 0.1)',
-  BORDER_LIGHT: 'rgba(255, 255, 255, 0.06)',
-  BORDER_DARK: 'rgba(93, 155, 250, 0.2)',
+  PRIMARY: '#7B75D8',
+  SUCCESS: '#4A9840',
+  WARNING: '#D4A058',
+  ERROR: '#D05858',
+  BACKGROUND: '#0D0D1A',
+  BACKGROUND_LIGHT: '#141428',
+  BACKGROUND_DARK: '#0A0A14',
+  WHITE: '#E8E8F8',
+  TEXT_PRIMARY: '#E8E8F8',
+  TEXT_SECONDARY: '#8A8AA8',
+  TEXT_TERTIARY: '#5A5A78',
+  BORDER: 'rgba(255, 255, 255, 0.08)',
+  BORDER_LIGHT: 'rgba(255, 255, 255, 0.04)',
+  BORDER_DARK: 'rgba(120, 100, 220, 0.18)',
   
-  PIXEL_DARK_BLUE: '#1E2A5E',
-  PIXEL_PURPLE: '#7B5EA7',
-  PIXEL_PINK: '#E94560',
-  PIXEL_ORANGE: '#FF7D00',
-  PIXEL_YELLOW: '#FFB100',
-  PIXEL_GREEN: '#3AE374',
-  PIXEL_CYAN: '#00D9FF',
-  PIXEL_GRAY: '#3A3A5C',
-  PIXEL_LIGHT_GRAY: '#5C5C7A',
+  PIXEL_DARK_BLUE: '#1A1A35',
+  PIXEL_PURPLE: '#7B75D8',
+  PIXEL_PINK: '#D07090',
+  PIXEL_ORANGE: '#D4A058',
+  PIXEL_YELLOW: '#E0C068',
+  PIXEL_GREEN: '#4A9840',
+  PIXEL_CYAN: '#50B8D8',
+  PIXEL_GRAY: '#2A2A48',
+  PIXEL_LIGHT_GRAY: '#4A4A68',
   
-  NODE_PENDING: '#3A3A5C',
-  NODE_DOING: '#FFD700',
-  NODE_DONE: '#3AE374',
+  NODE_PENDING: '#2A2A48',
+  NODE_DOING: '#D4A058',
+  NODE_DONE: '#4A9840',
 } as const;
 
 // 颜色常量
@@ -106,12 +106,12 @@ export const SPACING = {
   XLARGE: 32,
 } as const;
 
-// 边框圆角常量
+// 边框圆角常量 — 更柔和的现代圆角
 export const BORDER_RADIUS = {
-  SMALL: 4,
-  MEDIUM: 8,
+  SMALL: 8,
+  MEDIUM: 12,
   LARGE: 16,
-  XLARGE: 24,
+  XLARGE: 20,
 } as const;
 
 // 阴影样式常量
@@ -211,8 +211,8 @@ export const MONSTER_CONFIG = {
   } as const,
 
   COLORS: {
-    lively: { primary: '#FF7D00', secondary: '#E66900' },
-    calm: { primary: '#5D9BFA', secondary: '#4A7FD4' },
-    rebel: { primary: '#7B5EA7', secondary: '#5A4280' },
+    lively: { primary: '#D4A058', secondary: '#B08040' },
+    calm: { primary: '#7B75D8', secondary: '#5A54B0' },
+    rebel: { primary: '#D07090', secondary: '#A05068' },
   } as const,
 };

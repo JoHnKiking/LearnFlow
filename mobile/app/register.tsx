@@ -203,7 +203,7 @@ const RegisterScreen = () => {
     alignItems: 'center',
     backgroundColor: colors.backgroundDark,
     borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.2)',
+    borderColor: 'rgba(123,117,216,0.2)',
     borderRadius: 16,
     paddingHorizontal: 16,
   },
@@ -227,7 +227,7 @@ const RegisterScreen = () => {
   registerButton: {
     height: 56,
     borderRadius: 16,
-    backgroundColor: 'rgba(93,155,250,0.8)',
+    backgroundColor: 'rgba(123,117,216,0.8)',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: colors.primary,
@@ -237,7 +237,7 @@ const RegisterScreen = () => {
     elevation: 5,
   },
   registerButtonDisabled: {
-    backgroundColor: '#2A2A4A',
+    backgroundColor: colors.border,
     shadowOpacity: 0,
   },
   registerButtonText: {

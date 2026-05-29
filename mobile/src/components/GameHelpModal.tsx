@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface GameHelpModalProps {
   visible: boolean;
@@ -8,6 +9,57 @@ interface GameHelpModalProps {
 }
 
 const GameHelpModal: React.FC<GameHelpModalProps> = ({ visible, onClose }) => {
+  const { colors } = useTheme();
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 16,
+      paddingTop: 48,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderDark,
+    },
+    closeBtn: { padding: 8 },
+    title: {
+      color: colors.textPrimary,
+      fontSize: 20,
+      fontWeight: '700',
+    },
+    placeholder: { width: 44 },
+    content: { padding: 16 },
+    section: {
+      marginBottom: 24,
+      backgroundColor: colors.borderLight,
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    sectionTitle: {
+      color: colors.warning,
+      fontSize: 16,
+      fontWeight: '700',
+      marginBottom: 8,
+    },
+    sectionDesc: {
+      color: colors.textSecondary,
+      fontSize: 14,
+      lineHeight: 1.6,
+    },
+    rulesList: { gap: 6 },
+    ruleItem: {
+      color: colors.textSecondary,
+      fontSize: 14,
+      lineHeight: 1.6,
+    },
+  }), [colors]);
+
   return (
     <Modal
       visible={visible}
@@ -17,7 +69,7 @@ const GameHelpModal: React.FC<GameHelpModalProps> = ({ visible, onClose }) => {
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <Ionicons name="close" size={28} color="#8888AA" />
+            <Ionicons name="close" size={28} color={colors.textSecondary} />
           </TouchableOpacity>
           <Text style={styles.title}>游戏说明</Text>
           <View style={styles.placeholder} />
@@ -60,62 +112,5 @@ const GameHelpModal: React.FC<GameHelpModalProps> = ({ visible, onClose }) => {
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1A1A2E',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    paddingTop: 48,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(93,155,250,0.2)',
-  },
-  closeBtn: {
-    padding: 8,
-  },
-  title: {
-    color: '#E8E8F0',
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  placeholder: {
-    width: 44,
-  },
-  content: {
-    padding: 16,
-  },
-  section: {
-    marginBottom: 24,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
-  },
-  sectionTitle: {
-    color: '#FFD700',
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  sectionDesc: {
-    color: '#8888AA',
-    fontSize: 14,
-    lineHeight: 1.6,
-  },
-  rulesList: {
-    gap: 6,
-  },
-  ruleItem: {
-    color: '#8888AA',
-    fontSize: 14,
-    lineHeight: 1.6,
-  },
-});
 
 export default GameHelpModal;

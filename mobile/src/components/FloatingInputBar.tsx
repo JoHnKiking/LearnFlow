@@ -43,6 +43,8 @@ interface FloatingInputBarProps {
     primary: string;
     textPrimary: string;
     textSecondary: string;
+    borderLight: string;
+    border: string;
   };
 }
 
@@ -132,7 +134,7 @@ export const FloatingInputBar: React.FC<FloatingInputBarProps> = ({
         styles.container,
         {
           backgroundColor: colors.backgroundDark,
-          borderTopColor: 'rgba(93,155,250,0.15)',
+          borderTopColor: colors.borderLight,
         },
         {
           transform: [{ translateY }],
@@ -146,7 +148,7 @@ export const FloatingInputBar: React.FC<FloatingInputBarProps> = ({
           styles.inputRow,
           {
             backgroundColor: colors.background,
-            borderColor: 'rgba(93,155,250,0.25)',
+            borderColor: colors.borderLight,
           },
         ]}
       >
@@ -223,7 +225,7 @@ const styles = StyleSheet.create({
   doneDivider: {
     width: 1,
     height: 20,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(128,128,128,0.25)',
     marginHorizontal: 10,
   },
   doneButton: {

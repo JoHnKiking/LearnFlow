@@ -55,7 +55,7 @@ const SplashScreen = () => {
     });
 
     const timer = setTimeout(() => {
-      router.replace('/story');
+      router.replace('/login');
     }, 2000);
 
     return () => clearTimeout(timer);
@@ -64,7 +64,7 @@ const SplashScreen = () => {
   const styles = useMemo(() => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0D0D1A',
+    backgroundColor: colors.background,
   },
   content: {
     flex: 1,
@@ -102,17 +102,17 @@ const SplashScreen = () => {
   },
   planetLayer: {
     position: 'absolute',
-    backgroundColor: '#5D9BFA',
+    backgroundColor: colors.primary,
   },
   continent: {
     position: 'absolute',
-    backgroundColor: '#3AE374',
+    backgroundColor: colors.success,
   },
   titleContainer: {
     alignItems: 'center',
   },
   title: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 32,
     fontWeight: '800',
     letterSpacing: -0.5,
@@ -120,7 +120,7 @@ const SplashScreen = () => {
     marginBottom: 8,
   },
   subtitle: {
-    color: '#5D9BFA',
+    color: colors.primary,
     fontSize: 16,
     fontFamily: 'Courier',
     letterSpacing: 2,
@@ -134,7 +134,7 @@ const SplashScreen = () => {
   dot: {
     width: 8,
     height: 8,
-    backgroundColor: '#5D9BFA',
+    backgroundColor: colors.primary,
   },
 }), [colors]);
 

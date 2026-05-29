@@ -96,7 +96,7 @@ const MiniGames = ({ onGameComplete, onClose }: MiniGamesProps) => {
     borderColor: colors.borderDark,
   },
   gameTabActive: {
-    backgroundColor: 'rgba(93,155,250,0.3)',
+    backgroundColor: 'rgba(123,117,216,0.3)',
     borderColor: colors.primary,
   },
   gameTabText: {
@@ -158,7 +158,7 @@ const MiniGames = ({ onGameComplete, onClose }: MiniGamesProps) => {
     justifyContent: 'center',
     backgroundColor: colors.background,
     borderWidth: 0.5,
-    borderColor: 'rgba(93,155,250,0.3)',
+    borderColor: 'rgba(123,117,216,0.3)',
   },
   sudokuCellSelected: {
     backgroundColor: colors.borderDark,
@@ -196,7 +196,7 @@ const MiniGames = ({ onGameComplete, onClose }: MiniGamesProps) => {
     backgroundColor: colors.borderDark,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.3)',
+    borderColor: 'rgba(123,117,216,0.3)',
   },
   numberBtnText: {
     color: colors.primary,
@@ -254,7 +254,7 @@ const MiniGames = ({ onGameComplete, onClose }: MiniGamesProps) => {
     backgroundColor: 'rgba(255,215,0,0.2)',
   },
   sokobanCellPlayer: {
-    backgroundColor: 'rgba(93,155,250,0.3)',
+    backgroundColor: 'rgba(123,117,216,0.3)',
   },
   sokobanCellBox: {
     backgroundColor: 'rgba(255,125,0,0.4)',
@@ -280,7 +280,7 @@ const MiniGames = ({ onGameComplete, onClose }: MiniGamesProps) => {
     justifyContent: 'center',
     backgroundColor: colors.borderDark,
     borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.3)',
+    borderColor: 'rgba(123,117,216,0.3)',
     borderRadius: 12,
   },
   resetBtn: {
@@ -424,7 +424,7 @@ const MiniGames = ({ onGameComplete, onClose }: MiniGamesProps) => {
     flexDirection: 'row',
     gap: 16,
     borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.15)',
+    borderColor: 'rgba(123,117,216,0.15)',
   },
   gameCardIcon: {
     width: 50,
@@ -515,7 +515,7 @@ const MiniGames = ({ onGameComplete, onClose }: MiniGamesProps) => {
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.15)',
+    borderColor: 'rgba(123,117,216,0.15)',
   },
   tutorialSectionTitle: {
     fontSize: 16,
@@ -553,7 +553,7 @@ const MiniGames = ({ onGameComplete, onClose }: MiniGamesProps) => {
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 0.5,
-    borderColor: 'rgba(93,155,250,0.3)',
+    borderColor: 'rgba(123,117,216,0.3)',
   },
   smallCellText: {
     fontSize: 12,

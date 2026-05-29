@@ -72,7 +72,7 @@ const ProfileScreen = () => {
   };
 
   const handleLogin = () => {
-    router.push('/login');
+    router.replace('/login');
   };
 
   const renderSettings = () => (
@@ -104,7 +104,7 @@ const ProfileScreen = () => {
       <View style={styles.settingsGroup}>
         {[
           { label: '关于 LearnFlow', icon: 'star' as const, onPress: undefined },
-          { label: '使用帮助', icon: 'settings' as const, onPress: () => setShowHelpModal(true) },
+          { label: '使用帮助', icon: 'help-circle' as const, onPress: () => setShowHelpModal(true) },
         ].map((item, i) => (
           <TouchableOpacity 
             key={item.label} 
@@ -180,126 +180,72 @@ const ProfileScreen = () => {
     justifyContent: 'center',
   },
   profileCard: {
-    position: 'relative',
-    borderRadius: 24,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.2)',
+    borderRadius: 20,
+    backgroundColor: colors.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
   },
-  profileCardGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: colors.backgroundDark,
+  profileCardDark: {
+    backgroundColor: 'rgba(100,100,160,0.08)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.06)',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   profileCardContent: {
     padding: 20,
   },
   profileInfo: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 16,
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  avatarContainer: {
-    position: 'relative',
-  },
+  avatarContainer: { position: 'relative' },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 24,
+    width: 64, height: 64, borderRadius: 20,
+    backgroundColor: '#EAE8F6', alignItems: 'center', justifyContent: 'center',
   },
-  avatarEmoji: {
-    fontSize: 28,
+  avatarDark: {
+    backgroundColor: '#6B65C0',
+    shadowColor: '#7B75D8', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 16, elevation: 6,
   },
-  streakBadge: {
-    position: 'absolute',
-    bottom: -4,
-    right: -4,
-    width: 20,
-    height: 20,
-    borderRadius: 8,
-    backgroundColor: colors.orange,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.orange,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
+  avatarEmoji: { fontSize: 32 },
+  levelBadge: {
+    position: 'absolute', bottom: -4, right: -4,
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: '#FFFFFF',
   },
-  streakEmoji: {
-    fontSize: 10,
+  levelBadgeDark: {
+    borderColor: '#0D0D1A',
+    shadowColor: colors.primary, shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4, shadowRadius: 8, elevation: 4,
   },
-  userInfo: {
-    flex: 1,
+  levelBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700', fontFamily: 'Courier' },
+  userInfo: { flex: 1, paddingTop: 4 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  userName: { color: colors.textPrimary, fontSize: 22, fontWeight: '700', fontFamily: 'Courier' },
+  titleBadge: { backgroundColor: '#EAE8F6', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20 },
+  titleBadgeDark: {
+    backgroundColor: 'rgba(120,100,220,0.2)', borderWidth: 0.5, borderColor: 'rgba(160,140,240,0.15)',
   },
-  userName: {
-    color: colors.textPrimary,
-    fontWeight: '800',
-    fontSize: 18,
-    marginBottom: 2,
-  },
-  userTitle: {
-    color: colors.primary,
-    fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  userMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  streakText: {
-    color: colors.orange,
-    fontSize: 12,
-  },
-  metaSeparator: {
-    color: colors.textTertiary,
-  },
-  levelText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-  },
+  titleBadgeText: { color: colors.primary, fontSize: 11, fontWeight: '500', fontFamily: 'Courier' },
+  userMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  streakText: { color: colors.textSecondary, fontSize: 12, fontFamily: 'Courier' },
+  metaSeparator: { color: colors.textTertiary, fontSize: 12, marginHorizontal: 4 },
+  levelText: { color: colors.textSecondary, fontSize: 12, fontFamily: 'Courier' },
   xpSection: {},
-  xpHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  xpText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-  },
-  xpPercent: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  xpBar: {
-    height: 8,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    overflow: 'hidden',
-  },
-  xpProgress: {
-    height: '100%',
-    borderRadius: 999,
-    backgroundColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-  },
+  xpHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  xpText: { color: colors.textSecondary, fontSize: 12, fontFamily: 'Courier' },
+  xpPercent: { color: colors.primary, fontSize: 12, fontWeight: '600', fontFamily: 'Courier' },
+  xpBar: { height: 8, backgroundColor: '#EAE8F6', borderRadius: 4, overflow: 'hidden' },
+  xpBarDark: { backgroundColor: 'rgba(255,255,255,0.06)' },
+  xpProgress: { height: '100%', backgroundColor: colors.primary, borderRadius: 4 },
   statsRow: {
     paddingHorizontal: 20,
     marginBottom: 20,
@@ -346,9 +292,9 @@ const ProfileScreen = () => {
     alignItems: 'center',
   },
   tabButtonActive: {
-    backgroundColor: 'rgba(93,155,250,0.2)',
+    backgroundColor: 'rgba(123,117,216,0.2)',
     borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.3)',
+    borderColor: 'rgba(123,117,216,0.3)',
     flex: 1,
     paddingVertical: 8,
     borderRadius: 12,
@@ -389,7 +335,7 @@ const ProfileScreen = () => {
     width: 32,
     height: 32,
     borderRadius: 12,
-    backgroundColor: 'rgba(93,155,250,0.12)',
+    backgroundColor: 'rgba(123,117,216,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -415,9 +361,9 @@ const ProfileScreen = () => {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: 'rgba(93,155,250,0.12)',
+    backgroundColor: 'rgba(123,117,216,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(93,155,250,0.25)',
+    borderColor: 'rgba(123,117,216,0.25)',
     marginTop: 12,
   },
   loginText: {
@@ -490,25 +436,29 @@ const ProfileScreen = () => {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.profileCard}>
-              <View style={styles.profileCardGradient} />
+            <View style={[styles.profileCard, isDark && styles.profileCardDark]}>
               <View style={styles.profileCardContent}>
                 {isLoggedIn ? (
                   <>
                     <View style={styles.profileInfo}>
                       <View style={styles.avatarContainer}>
-                        <View style={styles.avatar}>
+                        <View style={[styles.avatar, isDark && styles.avatarDark]}>
                           <Text style={styles.avatarEmoji}>🧑</Text>
                         </View>
-                        <View style={styles.streakBadge}>
-                          <Text style={styles.streakEmoji}>🔥</Text>
+                        <View style={[styles.levelBadge, isDark && styles.levelBadgeDark]}>
+                          <Text style={styles.levelBadgeText}>{userData.level}</Text>
                         </View>
                       </View>
                       <View style={styles.userInfo}>
-                        <Text style={styles.userName}>{userData.name}</Text>
-                        <Text style={styles.userTitle}>{userData.title}</Text>
+                        <View style={styles.nameRow}>
+                          <Text style={styles.userName}>{userData.name}</Text>
+                          <View style={[styles.titleBadge, isDark && styles.titleBadgeDark]}>
+                            <Text style={styles.titleBadgeText}>{userData.title}</Text>
+                          </View>
+                        </View>
                         <View style={styles.userMeta}>
-                          <Text style={styles.streakText}>🔥 {userData.streak}天连续</Text>
+                          <Ionicons name="flame" size={14} color={colors.warning} />
+                          <Text style={styles.streakText}> {userData.streak}天连续</Text>
                           <Text style={styles.metaSeparator}>·</Text>
                           <Text style={styles.levelText}>Lv.{userData.level}</Text>
                         </View>
@@ -520,7 +470,7 @@ const ProfileScreen = () => {
                         <Text style={styles.xpText}>{userData.xp.toLocaleString()} / {userData.xpToNextLevel.toLocaleString()} XP</Text>
                         <Text style={styles.xpPercent}>{xpPercent}%</Text>
                       </View>
-                      <View style={styles.xpBar}>
+                      <View style={[styles.xpBar, isDark && styles.xpBarDark]}>
                         <View style={[styles.xpProgress, { width: `${xpPercent}%` }]} />
                       </View>
                     </View>
@@ -543,12 +493,12 @@ const ProfileScreen = () => {
         {isLoggedIn && (
           <View style={styles.statsRow}>
             {[
-              { label: '技能', value: userData.completedSkills, icon: '🎯', color: colors.primary },
-              { label: '小时', value: userData.studyHours, icon: '⏱️', color: colors.success },
-              { label: '等级', value: userData.level, icon: '⚡', color: colors.orange },
+              { label: '技能', value: userData.completedSkills, icon: 'diamond', color: colors.primary },
+              { label: '小时', value: userData.studyHours, icon: 'flame', color: colors.warning },
+              { label: '等级', value: userData.level, icon: 'ribbon', color: colors.success },
             ].map((stat) => (
               <View key={stat.label} style={styles.statCard}>
-                <Text style={styles.statIcon}>{stat.icon}</Text>
+                <Ionicons name={stat.icon as any} size={20} color={stat.color} />
                 <Text style={[styles.statValue, { color: stat.color }]}>{stat.value}</Text>
                 <Text style={styles.statLabel}>{stat.label}</Text>
               </View>

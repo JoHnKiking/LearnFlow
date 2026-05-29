@@ -480,7 +480,7 @@ const PomodoroScreen = () => {
     },
     confirmPrimary: {
       flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center',
-      backgroundColor: 'rgba(93,155,250,0.2)',
+      backgroundColor: 'rgba(123,117,216,0.2)',
     },
     confirmPrimaryText: {
       fontSize: 15, color: colors.primary, fontWeight: '600', fontFamily: 'Courier',
