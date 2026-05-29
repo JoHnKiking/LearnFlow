@@ -22,8 +22,8 @@ export const createMessage = async (messageData: {
 
 export const getMessagesByUserId = async (userId: number, limit: number = 50): Promise<MonsterMessage[]> => {
   const [rows] = await pool.execute(
-    'SELECT * FROM monster_messages WHERE user_id = ? ORDER BY created_at DESC LIMIT ?',
-    [userId, limit]
+    'SELECT * FROM monster_messages WHERE user_id = ? ORDER BY created_at DESC LIMIT ' + limit,
+    [userId]
   );
   return rows as MonsterMessage[];
 };

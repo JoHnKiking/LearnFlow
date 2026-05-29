@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal, KeyboardAvoidingView, Platform, FlatList, ActivityIndicator, Keyboard } from 'react-native';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,8 +14,9 @@ import { useFocusEffect, router } from 'expo-router';
 // 服务端持久化接口（第1步已在 api.ts / skill.ts 中定义）
 // 本地优先 + 异步服务端同步，失败不阻断主流程
 // ============================================================
-import { noteService, rewardService } from '../../src/services/api';
+import { noteService, rewardService, monsterService } from '../../src/services/api';
 import { getCurrentUser } from '../../src/utils/auth';
+import type { MonsterMessageItem } from '../../src/types/skill';
 
 type ActiveTab = 'tasks' | 'notes' | 'chat';
 
@@ -521,6 +522,103 @@ const MonsterManageScreen = () => {
     lineHeight: 20,
     textAlign: 'center',
   },
+  // 聊天列表
+  chatList: {
+    flex: 1,
+  },
+  chatListContent: {
+    padding: 16,
+    flexGrow: 1,
+  },
+  chatEmpty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  chatEmptyText: {
+    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '700',
+    fontFamily: 'Courier',
+    marginTop: 16,
+  },
+  chatEmptyHint: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontFamily: 'Courier',
+    marginTop: 8,
+  },
+  // 消息气泡
+  messageBubble: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    maxWidth: '80%',
+  },
+  messageUser: {
+    alignSelf: 'flex-end',
+    justifyContent: 'flex-end',
+  },
+  messageMonster: {
+    alignSelf: 'flex-start',
+  },
+  messageAvatar: {
+    marginRight: 8,
+    alignSelf: 'flex-end',
+  },
+  messageContent: {
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  messageContentUser: {
+    backgroundColor: colors.primary,
+    borderBottomRightRadius: 4,
+  },
+  messageContentMonster: {
+    backgroundColor: colors.surfaceLight,
+    borderBottomLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  messageText: {
+    fontSize: 14,
+    fontFamily: 'Courier',
+    lineHeight: 20,
+  },
+  // 输入栏
+  chatInputBar: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    padding: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
+    backgroundColor: colors.surface,
+  },
+  chatTextInput: {
+    flex: 1,
+    backgroundColor: colors.inputBg,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 10,
+    maxHeight: 100,
+    fontSize: 14,
+    fontFamily: 'Courier',
+    color: colors.textPrimary,
+  },
+  sendButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  sendButtonDisabled: {
+    backgroundColor: colors.textTertiary,
+  },
   proBadge: {
     marginTop: 16,
     paddingHorizontal: 12,
@@ -543,7 +641,17 @@ const MonsterManageScreen = () => {
   },
 }), [colors]);
 
-  const [monsterData, setMonsterData] = useState<any>(null);
+  const [monsterData, setMonsterData] = useState<any>({
+    name: '小怪兽',
+    type: MONSTER_CONFIG.TYPES.CALM,
+    level: 1,
+    exp: 0,
+    stamina: MONSTER_CONFIG.STAMINA.BASE_MAX + MONSTER_CONFIG.STAMINA.CALM_BONUS,
+    maxStamina: MONSTER_CONFIG.STAMINA.BASE_MAX + MONSTER_CONFIG.STAMINA.CALM_BONUS,
+    paiEnergy: MONSTER_CONFIG.ENERGY.BASE_MAX,
+    maxPaiEnergy: MONSTER_CONFIG.ENERGY.BASE_MAX,
+    knowledgePoints: 0,
+  });
   const [activeTab, setActiveTab] = useState<ActiveTab>('tasks');
   const [notes, setNotes] = useState('');
   const [savedNotes, setSavedNotes] = useState<any[]>([]);
@@ -553,12 +661,11 @@ const MonsterManageScreen = () => {
   const [selectedTime, setSelectedTime] = useState<typeof MONSTER_CONFIG.POMODORO.TIME_OPTIONS[number]>(MONSTER_CONFIG.POMODORO.TIME_OPTIONS[0]);
   const [showGameModal, setShowGameModal] = useState(false);
   const [dailyPlays, setDailyPlays] = useState(0);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [])
-  );
+  // 聊天状态
+  const [chatMessages, setChatMessages] = useState<MonsterMessageItem[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const flatListRef = useRef<FlatList>(null);
 
   const pomodoroTimeLeft = selectedTime * 60;
 
@@ -680,8 +787,6 @@ const MonsterManageScreen = () => {
   };
 
   const handlePlayGame = () => {
-    if (!monsterData) return;
-
     // 读取每日游戏次数上限（免费版 3 次，PRO 版见 MONSTER_CONFIG.GAME.PRO_DAILY_LIMIT）
     const dailyGameLimit = MONSTER_CONFIG.GAME.DAILY_LIMIT;
     if (dailyPlays >= dailyGameLimit) {
@@ -795,18 +900,8 @@ const MonsterManageScreen = () => {
     ]);
   };
 
-  if (!monsterData) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>加载中...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  const staminaPercent = (monsterData.stamina / monsterData.maxStamina) * 100;
-  const paiPercent = (monsterData.paiEnergy / monsterData.maxPaiEnergy) * 100;
+  const staminaPercent = monsterData ? (monsterData.stamina / monsterData.maxStamina) * 100 : 0;
+  const paiPercent = monsterData ? (monsterData.paiEnergy / monsterData.maxPaiEnergy) * 100 : 0;
 
   const renderTasksTab = () => (
     <View style={styles.tabContent}>
@@ -973,195 +1068,277 @@ const MonsterManageScreen = () => {
     </View>
   );
 
+  // ============================================================
+  // 聊天功能
+  // ============================================================
+  const loadChatMessages = async () => {
+    try {
+      const user = await getCurrentUser();
+      if (!user?.id) return;
+      const res = await monsterService.getMessages(user.id);
+      if (res.success) {
+        setChatMessages(res.data.messages);
+      }
+    } catch (error) {
+      console.log('[Monster] 加载聊天记录失败:', error);
+    }
+  };
+
+  const sendMessage = async () => {
+    const text = chatInput.trim();
+    if (!text || isSending) return;
+
+    const user = await getCurrentUser();
+    if (!user?.id) {
+      Alert.alert('提示', '请先登录后再与小怪兽聊天');
+      return;
+    }
+
+    setChatInput('');
+    setIsSending(true);
+
+    // 先显示用户消息（乐观更新）
+    const tempUserMsg: MonsterMessageItem = {
+      id: Date.now(),
+      userId: user.id,
+      message: text,
+      isUser: true,
+      createdAt: new Date().toISOString(),
+    };
+    setChatMessages(prev => [...prev, tempUserMsg]);
+
+    try {
+      const res = await monsterService.chat({ userId: user.id, message: text });
+      if (res.success && res.data) {
+        const monsterMsg: MonsterMessageItem = {
+          id: Date.now() + 1,
+          userId: user.id,
+          message: res.data.message,
+          isUser: false,
+          createdAt: new Date().toISOString(),
+        };
+        setChatMessages(prev => [...prev, monsterMsg]);
+      }
+    } catch (error) {
+      console.error('[Monster] 发送消息失败:', error);
+      Alert.alert('发送失败', '网络似乎不太好，请稍后重试～');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // 首次挂载时加载数据（useEffect 比 useFocusEffect 更可靠保证初始渲染）
+  useEffect(() => {
+    loadData();
+    loadChatMessages();
+  }, []);
+
+  // 后续每次聚焦时刷新
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+      loadChatMessages();
+    }, [])
+  );
+
   const renderChatTab = () => (
-    <View style={styles.tabContent}>
-      <View style={styles.chatCard}>
-        <View style={styles.chatMonsterIcon}>
-          <MonsterIcon type={monsterData.type} size={80} />
-        </View>
-        <Text style={styles.chatTitle}>对话功能即将开放</Text>
-        <Text style={styles.chatDescription}>
-          与 {monsterData.name} 聊天，获得学习建议和鼓励
-        </Text>
-        <View style={styles.proBadge}>
-          <Text style={styles.proText}>🚀 PRO 功能</Text>
-        </View>
+    <View style={{ flex: 1 }}>
+      <FlatList
+        ref={flatListRef}
+        data={chatMessages}
+        keyExtractor={(item) => item.id.toString()}
+        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        style={styles.chatList}
+        contentContainerStyle={styles.chatListContent}
+        ListEmptyComponent={
+          <View style={styles.chatEmpty}>
+            <MonsterIcon type={monsterData.type} size={60} />
+            <Text style={styles.chatEmptyText}>
+              和 {monsterData.name} 打个招呼吧～
+            </Text>
+            <Text style={styles.chatEmptyHint}>
+              聊聊学习、吐槽烦恼、求安慰都行
+            </Text>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <View style={[
+            styles.messageBubble,
+            item.isUser ? styles.messageUser : styles.messageMonster,
+          ]}>
+            {!item.isUser && (
+              <View style={styles.messageAvatar}>
+                <MonsterIcon type={monsterData.type} size={28} />
+              </View>
+            )}
+            <View style={[
+              styles.messageContent,
+              item.isUser ? styles.messageContentUser : styles.messageContentMonster,
+            ]}>
+              <Text style={[
+                styles.messageText,
+                { color: item.isUser ? '#FFFFFF' : colors.textPrimary },
+              ]}>
+                {item.message}
+              </Text>
+            </View>
+          </View>
+        )}
+      />
+      <View style={styles.chatInputBar}>
+        <TextInput
+          style={styles.chatTextInput}
+          value={chatInput}
+          onChangeText={setChatInput}
+          placeholder={`和 ${monsterData.name} 说点什么...`}
+          placeholderTextColor={colors.textTertiary}
+          multiline
+          maxLength={500}
+          returnKeyType="send"
+          onSubmitEditing={sendMessage}
+          editable={!isSending}
+        />
+        <TouchableOpacity
+          style={[styles.sendButton, (!chatInput.trim() || isSending) && styles.sendButtonDisabled]}
+          onPress={sendMessage}
+          disabled={!chatInput.trim() || isSending}
+        >
+          {isSending ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Ionicons name="send" size={18} color="#FFFFFF" />
+          )}
+        </TouchableOpacity>
       </View>
     </View>
   );
 
-  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <View style={styles.pixelBackground} />
-
-          <View style={styles.headerContent}>
-            <Text style={styles.title}>我的怪兽</Text>
-
-            <View style={styles.monsterCard}>
-              <View style={styles.monsterPixelPattern} />
-
-              <View style={styles.monsterCardContent}>
-                <View style={styles.monsterTopRow}>
-                  <View style={styles.monsterIconContainer}>
-                    <MonsterIcon type={monsterData.type} size={80} />
-                  </View>
-
-                  <View style={styles.monsterInfo}>
-                    <Text style={styles.monsterName} numberOfLines={1}>{monsterData.name}</Text>
-                    <Text style={styles.monsterPersonality}>
-                      {monsterData.type === MONSTER_CONFIG.TYPES.LIVELY ? '活力型怪兽 ⚡'
-                        : monsterData.type === MONSTER_CONFIG.TYPES.CALM ? '沉稳型怪兽 🌟'
-                          : '叛逆型怪兽 💫'}
-                    </Text>
+  // 提取 header + tab bar，聊天模式下不包 ScrollView（避免 FlatList 嵌套警告）
+  const renderHeaderAndTabs = () => (
+    <>
+      <View style={styles.header}>
+        <View style={styles.pixelBackground} />
+        <View style={styles.headerContent}>
+          <Text style={styles.title}>我的怪兽</Text>
+          <View style={styles.monsterCard}>
+            <View style={styles.monsterPixelPattern} />
+            <View style={styles.monsterCardContent}>
+              <View style={styles.monsterTopRow}>
+                <View style={styles.monsterIconContainer}>
+                  <MonsterIcon type={monsterData.type} size={80} />
+                </View>
+                <View style={styles.monsterNameContainer}>
+                  <Text style={styles.monsterName} numberOfLines={1}>{monsterData.name}</Text>
+                  <Text style={styles.monsterType}>
+                    {monsterData.type === MONSTER_CONFIG.TYPES.LIVELY ? '活力型怪兽 ⚡'
+                      : monsterData.type === MONSTER_CONFIG.TYPES.CALM ? '沉稳型怪兽 🌟'
+                      : '叛逆型怪兽 🔥'}
+                  </Text>
+                  <View style={styles.monsterLevelBadge}>
+                    <Text style={styles.monsterLevelText}>Lv.{monsterData.level}</Text>
                   </View>
                 </View>
-
-                <View style={styles.monsterActionRow}>
-                  <TouchableOpacity
-                    style={[styles.gameButton, dailyPlays >= MONSTER_CONFIG.GAME.DAILY_LIMIT && styles.gameButtonDisabled]}
-                    onPress={handlePlayGame}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="game-controller-outline" size={20} color={dailyPlays >= MONSTER_CONFIG.GAME.DAILY_LIMIT ? colors.textTertiary : colors.orange} />
-                    <View style={styles.gameButtonContent}>
-                      <Text style={[styles.gameButtonText, { color: dailyPlays >= MONSTER_CONFIG.GAME.DAILY_LIMIT ? colors.textTertiary : colors.orange }]}>游戏</Text>
-                      <Text style={styles.gameButtonSubText}>
-                        剩余: {MONSTER_CONFIG.GAME.DAILY_LIMIT - dailyPlays}次
-                      </Text>
+                <TouchableOpacity onPress={() => setShowInfo(true)} style={styles.infoButton}>
+                  <Ionicons name="information-circle" size={20} color={colors.primary} />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.monsterStats}>
+                <View style={styles.statItem}>
+                  <View style={styles.statLabelRow}>
+                    <Ionicons name="flash" size={12} color={colors.warning} />
+                    <Text style={styles.statLabel}>体力</Text>
+                  </View>
+                  <View style={styles.statBarContainer}>
+                    <View style={[styles.statBar, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
+                      <View style={[styles.statBarFill, { width: `${staminaPercent}%`, backgroundColor: colors.warning }]} />
                     </View>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.infoButton}
-                    onPress={() => setShowInfo(!showInfo)}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="information" size={18} color={colors.textSecondary} />
-                  </TouchableOpacity>
+                  </View>
+                  <Text style={styles.statValue}>
+                    {monsterData.stamina}/{monsterData.maxStamina}
+                  </Text>
                 </View>
-
-                {showInfo && (
-                  <View style={styles.infoCard}>
-                    <View style={styles.infoItem}>
-                      <Text style={styles.infoTitle}>💪 体力值</Text>
-                      <Text style={styles.infoText}>
-                        • 单次知识节点跳转消耗 10 体力{'\n'}
-                        • 每日凌晨 5:00 自动恢复至上限{'\n'}
-                        • 小游戏可额外补充体力
-                      </Text>
-                    </View>
-                    <View style={styles.infoItem}>
-                      <Text style={styles.infoTitle}>Π 能量</Text>
-                      <Text style={styles.infoText}>
-                        • AI对话消耗 = 对话Token数 × 0.05{'\n'}
-                        • 每日凌晨 5:00 自动恢复至上限{'\n'}
-                        • 小游戏可额外补充能量
-                      </Text>
+                <View style={styles.statItem}>
+                  <View style={styles.statLabelRow}>
+                    <Ionicons name="diamond" size={12} color={colors.purple} />
+                    <Text style={styles.statLabel}>Π能量</Text>
+                  </View>
+                  <View style={styles.statBarContainer}>
+                    <View style={[styles.statBar, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
+                      <View style={[styles.statBarFill, { width: `${paiPercent}%`, backgroundColor: colors.purple }]} />
                     </View>
                   </View>
-                )}
-
-                <View style={styles.statsRow}>
-                  <View style={styles.statContainer}>
-                    <View style={styles.statHeader}>
-                      <View style={styles.statLabelRow}>
-                        <Ionicons name="flash" size={14} color={colors.orange} />
-                        <Text style={styles.statLabel}>体力值</Text>
-                      </View>
-                      <Text style={[styles.statValue, { color: colors.orange }]}>
-                        {monsterData.stamina}/{monsterData.maxStamina}
-                      </Text>
-                    </View>
-                    <View style={styles.statBar}>
-                      <View
-                        style={[
-                          styles.statBarFill,
-                          {
-                            width: `${staminaPercent}%`,
-                            backgroundColor: colors.orange,
-                          },
-                        ]}
-                      />
-                    </View>
-                  </View>
-
-                  <View style={styles.statContainer}>
-                    <View style={styles.statHeader}>
-                      <View style={styles.statLabelRow}>
-                        <Text style={[styles.statLabel, { color: colors.purple }]}>Π</Text>
-                        <Text style={styles.statLabel}>能量</Text>
-                      </View>
-                      <Text style={[styles.statValue, { color: colors.purple }]}>
-                        {monsterData.paiEnergy}/{monsterData.maxPaiEnergy}
-                      </Text>
-                    </View>
-                    <View style={styles.statBar}>
-                      <View
-                        style={[
-                          styles.statBarFill,
-                          {
-                            width: `${paiPercent}%`,
-                            backgroundColor: colors.purple,
-                          },
-                        ]}
-                      />
-                    </View>
-                  </View>
+                  <Text style={styles.statValue}>
+                    {monsterData.paiEnergy}/{monsterData.maxPaiEnergy}
+                  </Text>
                 </View>
               </View>
             </View>
           </View>
         </View>
+      </View>
 
-        <View style={styles.tabsContainer}>
-          <View style={styles.tabs}>
-            {[
-              { id: 'tasks' as ActiveTab, label: '任务', icon: 'layers' },
-              { id: 'notes' as ActiveTab, label: '笔记', icon: 'document-text' },
-              { id: 'chat' as ActiveTab, label: '对话', icon: 'chatbubbles' },
-            ].map((tab) => (
-              <TouchableOpacity
-                key={tab.id}
-                onPress={() => setActiveTab(tab.id)}
-                activeOpacity={0.7}
+      <View style={styles.tabsContainer}>
+        <View style={styles.tabs}>
+          {[
+            { id: 'tasks' as ActiveTab, label: '任务', icon: 'layers' },
+            { id: 'notes' as ActiveTab, label: '笔记', icon: 'document-text' },
+            { id: 'chat' as ActiveTab, label: '对话', icon: 'chatbubbles' },
+          ].map((tab) => (
+            <TouchableOpacity
+              key={tab.id}
+              onPress={() => setActiveTab(tab.id)}
+              activeOpacity={0.7}
+              style={[
+                styles.tab,
+                {
+                  backgroundColor: activeTab === tab.id ? colors.borderDark : 'transparent',
+                  borderColor: activeTab === tab.id ? colors.borderDark : 'transparent',
+                },
+              ]}
+            >
+              <Ionicons
+                name={tab.icon as any} size={16}
+                color={activeTab === tab.id ? colors.primary : colors.textSecondary}
+              />
+              <Text
                 style={[
-                  styles.tab,
+                  styles.tabText,
                   {
-                    backgroundColor: activeTab === tab.id ? colors.borderDark : 'transparent',
-                    borderColor: activeTab === tab.id ? colors.borderDark : 'transparent',
+                    color: activeTab === tab.id ? colors.primary : colors.textSecondary,
+                    fontWeight: activeTab === tab.id ? '700' : '400',
                   },
                 ]}
               >
-                <Ionicons
-                  name={tab.icon as any} size={16}
-                  color={activeTab === tab.id ? colors.primary : colors.textSecondary}
-                />
-                <Text
-                  style={[
-                    styles.tabText,
-                    {
-                      color: activeTab === tab.id ? colors.primary : colors.textSecondary,
-                      fontWeight: activeTab === tab.id ? '700' : '400',
-                    },
-                  ]}
-                >
-                  {tab.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
+      </View>
+    </>
+  );
 
-        {activeTab === 'tasks' && renderTasksTab()}
-        {activeTab === 'notes' && renderNotesTab()}
-        {activeTab === 'chat' && renderChatTab()}
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {activeTab === 'chat' ? (
+        <KeyboardAvoidingView 
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          {renderHeaderAndTabs()}
+          {renderChatTab()}
+        </KeyboardAvoidingView>
+      ) : (
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {renderHeaderAndTabs()}
+          {activeTab === 'tasks' && renderTasksTab()}
+          {activeTab === 'notes' && renderNotesTab()}
+          <View style={styles.bottomPadding} />
+        </ScrollView>
+      )}
 
-        <View style={styles.bottomPadding} />
-      </ScrollView>
-
-      {/* 游戏弹窗 */}
       <Modal
         visible={showGameModal}
         animationType="slide"

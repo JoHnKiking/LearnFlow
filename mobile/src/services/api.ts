@@ -7,6 +7,9 @@ import {
   UserResponse,
   AuthResponse,
   MonsterSetupRequest,
+  MonsterChatRequest,
+  MonsterChatResponse,
+  MonsterMessagesResponse,
   MonsterResponse,
   // 新增：笔记相关类型
   CreateNoteRequest,
@@ -220,6 +223,18 @@ export const monsterService = {
   // 扣除体力（学习时调用）
   consumeStamina: async (userId: number, amount: number): Promise<{ success: boolean }> => {
     const response = await api.post('/monster/stamina/consume', { userId, amount });
+    return response.data;
+  },
+
+  // 与小怪兽对话
+  chat: async (request: MonsterChatRequest): Promise<MonsterChatResponse> => {
+    const response = await api.post('/monster/chat', request);
+    return response.data;
+  },
+
+  // 获取历史对话消息
+  getMessages: async (userId: number): Promise<MonsterMessagesResponse> => {
+    const response = await api.get(`/monster/messages/${userId}`);
     return response.data;
   },
 };
