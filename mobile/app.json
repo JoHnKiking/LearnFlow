@@ -8,6 +8,7 @@
     "scheme": "learnflow",
     "plugins": [
       "expo-router",
+      "expo-splash-screen",
       [
         "expo-build-properties",
         {
@@ -17,9 +18,6 @@
         }
       ]
     ],
-    "splash": {
-      "backgroundColor": "#ffffff"
-    },
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -34,7 +32,7 @@
     },
     "web": {},
     "extra": {
-      "apiBaseUrl": "https://heterotrichous-gerty-catadromous.ngrok-free.dev/api",
+      "apiBaseUrl": "http://192.168.1.110:3001/api",
       "eas": {
         "projectId": "a4114c63-9fd5-43d7-9771-accfb461b82c"
       }
