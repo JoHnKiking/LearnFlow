@@ -16,7 +16,39 @@ interface Module {
   isCustom?: boolean;
 }
 
-const CUSTOM_ICONS = ['school', 'bulb', 'star', 'flame', 'compass'];
+// 自定义模块调色板 — 深色/浅色各一套，(颜色, 图标) 配对
+const CUSTOM_PALETTE_DARK = [
+  { color: '#D05858', icon: 'flame' },       // 0 红
+  { color: '#D4A058', icon: 'sunny' },       // 1 琥珀
+  { color: '#4EA8B8', icon: 'water' },       // 2 青
+  { color: '#6B6BD4', icon: 'flash' },       // 3 靛蓝
+  { color: '#E07860', icon: 'bulb' },        // 4 珊瑚
+  { color: '#88B848', icon: 'leaf' },        // 5 黄绿
+  { color: '#9B6BC8', icon: 'diamond' },     // 6 紫罗兰
+  { color: '#58A8B0', icon: 'earth' },       // 7 蓝绿
+  { color: '#C87090', icon: 'heart' },       // 8 玫瑰
+  { color: '#78A8D0', icon: 'compass' },     // 9 天蓝
+  { color: '#B8A048', icon: 'star' },        // 10 金
+  { color: '#D078D0', icon: 'sparkles' },    // 11 品红
+  { color: '#68B068', icon: 'leaf' },        // 12 翠绿
+  { color: '#C86848', icon: 'bonfire' },     // 13 橙棕
+];
+const CUSTOM_PALETTE_LIGHT = [
+  { color: '#C45A5A', icon: 'flame' },       // 0
+  { color: '#C49A60', icon: 'sunny' },       // 1
+  { color: '#4A90A0', icon: 'water' },       // 2
+  { color: '#5A5AB8', icon: 'flash' },       // 3
+  { color: '#D46850', icon: 'bulb' },        // 4
+  { color: '#7AA838', icon: 'leaf' },        // 5
+  { color: '#8C5CB0', icon: 'diamond' },     // 6
+  { color: '#4898A0', icon: 'earth' },       // 7
+  { color: '#B86080', icon: 'heart' },       // 8
+  { color: '#6898C0', icon: 'compass' },     // 9
+  { color: '#A89038', icon: 'star' },        // 10
+  { color: '#C068C0', icon: 'sparkles' },    // 11
+  { color: '#58A058', icon: 'leaf' },        // 12
+  { color: '#B85838', icon: 'bonfire' },     // 13
+];
 
 // 静态样式 — 不随主题变化的布局属性
 const staticStyles = StyleSheet.create({
@@ -207,9 +239,8 @@ const MapScreen = () => {
     },
   }), [colors, isDark]);
 
-  const CUSTOM_COLORS = useMemo(() => [
-    colors.orange, colors.purple, colors.success, colors.error, colors.warning,
-  ], [colors]);
+  // 根据当前主题选择自定义模块调色板
+  const customPalette = isDark ? CUSTOM_PALETTE_DARK : CUSTOM_PALETTE_LIGHT;
 
   const moduleConfigs = useMemo(() => ({
     'ai-product-manager': {
@@ -326,9 +357,11 @@ const MapScreen = () => {
           {modules.map((module, index) => {
             // 实时从 moduleConfigs 派生展示属性，不经过任何中间状态
             const config = moduleConfigs[module.id];
-            const icon = config?.icon ?? CUSTOM_ICONS[index % CUSTOM_ICONS.length];
-            const color = config?.color ?? CUSTOM_COLORS[index % CUSTOM_COLORS.length];
-            const cardBg = config?.cardBg ?? colors.card;
+            const paletteEntry = customPalette[index % customPalette.length];
+            const icon = config?.icon ?? paletteEntry.icon;
+            const color = config?.color ?? paletteEntry.color;
+            // 预设模块用配置的背景色，自定义模块根据图标颜色生成对应淡色背景
+            const cardBg = config?.cardBg ?? (isDark ? color + '10' : color + '14');
             const category = config?.category ?? '';
 
             return (
