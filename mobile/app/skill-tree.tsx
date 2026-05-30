@@ -231,6 +231,7 @@ const SkillTreeScreen = () => {
     { key: 'bilibili' as PlatformType, label: 'B站', icon: 'play-circle', color: '#FB7299' },
     { key: 'xiaohongshu' as PlatformType, label: '小红书', icon: 'book', color: '#FF2442' },
     { key: 'mooc' as PlatformType, label: '中国大学MOOC', icon: 'school', color: colors.primary },
+    { key: 'other' as PlatformType, label: '其他', icon: 'globe', color: '#9CA3AF' },
   ], [colors.primary]);
 
   /** 获取平台对应的图标和颜色 */
@@ -239,6 +240,7 @@ const SkillTreeScreen = () => {
       case 'bilibili': return { icon: 'play-circle', color: '#FB7299' };
       case 'xiaohongshu': return { icon: 'book', color: '#FF2442' };
       case 'mooc': return { icon: 'school', color: colors.primary };
+      case 'other': return { icon: 'globe', color: '#9CA3AF' };
       default: return { icon: 'link', color: '#888' };
     }
   };
@@ -265,6 +267,7 @@ const SkillTreeScreen = () => {
   const [customStages, setCustomStages] = useState<CustomStage[]>([]);
   const [customNodes, setCustomNodes] = useState<CustomNode[]>([]);
   const [customDescription, setCustomDescription] = useState('');
+  const [customModuleName, setCustomModuleName] = useState('');
 
   // ---- 添加大标题 / 结点的弹窗 ----
   const [addStageVisible, setAddStageVisible] = useState(false);
@@ -272,7 +275,7 @@ const SkillTreeScreen = () => {
   const [newStageName, setNewStageName] = useState('');
   const [newNodeName, setNewNodeName] = useState('');
   const [newNodeUrl, setNewNodeUrl] = useState('');
-  const [newNodePlatform, setNewNodePlatform] = useState<PlatformType>('bilibili');
+  const [newNodePlatform, setNewNodePlatform] = useState<PlatformType>('other');
   const [targetStageId, setTargetStageId] = useState(''); // 当前要添加结点的目标大标题 ID
 
   // ---- 编辑自定义结点 / 大标题的弹窗 ----
@@ -283,7 +286,7 @@ const SkillTreeScreen = () => {
   const [editingStage, setEditingStage] = useState<CustomStage | null>(null);
   const [editNodeName, setEditNodeName] = useState('');
   const [editNodeUrl, setEditNodeUrl] = useState('');
-  const [editNodePlatform, setEditNodePlatform] = useState<PlatformType>('bilibili');
+  const [editNodePlatform, setEditNodePlatform] = useState<PlatformType>('other');
   const [editStageName, setEditStageName] = useState('');
 
   // ---- Toast ----
@@ -309,8 +312,15 @@ const SkillTreeScreen = () => {
     if (customModulesStr) {
       const customModules: Record<string, { name: string; description: string }> = JSON.parse(customModulesStr);
       if (customModules[domain as string]) {
+        setCustomModuleName(customModules[domain as string].name || domain as string);
         setCustomDescription(customModules[domain as string].description || '');
+      } else if (!tree && typeof domain === 'string' && domain.startsWith('custom-')) {
+        // 兜底：自定义模块未找到名称时，用 domain 作为标题
+        setCustomModuleName(domain as string);
       }
+    } else if (!tree && typeof domain === 'string' && domain.startsWith('custom-')) {
+      // 没有 customModules 记录时的兜底
+      setCustomModuleName(domain as string);
     }
 
     // 3. 加载自定义大标题和结点
@@ -369,7 +379,7 @@ const SkillTreeScreen = () => {
       duration: 1,
     };
     saveCustomNodes([...customNodes, node]);
-    setNewNodeName(''); setNewNodeUrl(''); setNewNodePlatform('bilibili');
+    setNewNodeName(''); setNewNodeUrl(''); setNewNodePlatform('other');
     setAddNodeVisible(false);
     showToast('结点添加成功');
   };
@@ -578,7 +588,7 @@ const SkillTreeScreen = () => {
             <Text style={s.backArrow}>←</Text>
           </TouchableOpacity>
           <Text style={[s.headerTitle, { color: colors.textPrimary }]}>
-            {skillTree?.title ?? (customDescription ? '自定义模块' : '学习课程')}
+            {(skillTree?.title ?? customModuleName) || domain || '学习课程'}
           </Text>
           <View style={s.headerPlaceholder} />
         </View>
@@ -949,9 +959,9 @@ const s = StyleSheet.create({
   },
   addLabel: { fontSize: 12, fontWeight: '600', marginBottom: 6 },
   // 平台选择
-  platformSelector: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  platformSelector: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   platformOption: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    width: '30%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 4, paddingVertical: 10, borderRadius: 8, borderWidth: 1,
   },
   platformOptionText: { fontSize: 11, fontWeight: '600' },

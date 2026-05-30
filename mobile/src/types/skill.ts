@@ -1,4 +1,4 @@
-export type PlatformType = 'bilibili' | 'xiaohongshu' | 'mooc';
+export type PlatformType = 'bilibili' | 'xiaohongshu' | 'mooc' | 'other';
 
 export type StageType = 'beginner' | 'intermediate' | 'advanced';
 
@@ -112,6 +112,9 @@ export interface MonsterChatResponse {
   success: boolean;
   data: {
     message: string;
+    tokens?: number;
+    energyCost?: number;
+    remainingEnergy?: number;
   };
 }
 
@@ -121,6 +124,8 @@ export interface MonsterMessageItem {
   message: string;
   isUser: boolean;
   createdAt: string;
+  /** 怪兽回复消耗的 Π 能量（仅 isUser=false 时有值） */
+  energyCost?: number;
 }
 
 export interface MonsterMessagesResponse {

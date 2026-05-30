@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Animated, PanResponder } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -64,12 +64,105 @@ const staticStyles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 24,
   },
+  planetDecorations: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    overflow: 'hidden',
+  },
+  planet1: {
+    position: 'absolute',
+    top: -10,
+    right: -30,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 3,
+    opacity: 0.15,
+  },
+  planet2: {
+    position: 'absolute',
+    top: 30,
+    right: 30,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+  },
+  planet3: {
+    position: 'absolute',
+    top: 70,
+    right: -15,
+    width: 65,
+    height: 65,
+    borderRadius: 32,
+  },
+  planetRing: {
+    position: 'absolute',
+    top: 45,
+    right: 20,
+    width: 90,
+    height: 32,
+    borderWidth: 3,
+    borderRadius: 45,
+    transform: [{ rotate: '-20deg' }],
+  },
+  star1: {
+    position: 'absolute',
+    top: 80,
+    left: 30,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  star2: {
+    position: 'absolute',
+    top: 320,
+    left: 70,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+  },
+  star3: {
+    position: 'absolute',
+    top: 550,
+    left: 20,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  // 像素点（远离标题区域，散布在卡片区域）
+  pixel3: {
+    position: 'absolute', top: 280, left: 100, width: 5, height: 5, borderRadius: 1,
+  },
+  pixel4: {
+    position: 'absolute', top: 380, left: 40, width: 3, height: 3, borderRadius: 1,
+  },
+  pixel5: {
+    position: 'absolute', top: 520, left: 60, width: 4, height: 4, borderRadius: 1,
+  },
+  pixel7: {
+    position: 'absolute', top: 220, right: 140, width: 5, height: 5, borderRadius: 1,
+  },
+  pixel8: {
+    position: 'absolute', top: 340, right: 70, width: 4, height: 4, borderRadius: 1,
+  },
+  pixel9: {
+    position: 'absolute', top: 460, right: 120, width: 3, height: 3, borderRadius: 1,
+  },
+  pixel10: {
+    position: 'absolute', top: 600, left: 100, width: 5, height: 5, borderRadius: 1,
+  },
+  pixel12: {
+    position: 'absolute', top: 420, right: 30, width: 6, height: 6, borderRadius: 2,
+  },
   modulesGrid: {
     paddingHorizontal: 24,
     gap: 16,
   },
   moduleCard: {
-    borderRadius: 20,
+    borderRadius: 12,
     padding: 18,
     position: 'relative',
     overflow: 'hidden',
@@ -103,7 +196,7 @@ const staticStyles = StyleSheet.create({
   moduleIcon: {
     width: 44,
     height: 44,
-    borderRadius: 14,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -140,15 +233,15 @@ const staticStyles = StyleSheet.create({
   },
   section: {
     paddingHorizontal: 24,
-    marginTop: 32,
+    marginTop: 40,
   },
   tipsContainer: {
-    gap: 12,
+    gap: 16,
   },
   tipCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 14,
     gap: 12,
   },
@@ -193,7 +286,9 @@ const MapScreen = () => {
     progressBadge: {
       paddingHorizontal: 12,
       paddingVertical: 5,
-      borderRadius: 20,
+      borderRadius: 4,
+      borderWidth: 2,
+      borderColor: colors.primary,
     },
     progressBadgeText: {
       fontSize: 12,
@@ -202,13 +297,16 @@ const MapScreen = () => {
     },
     moduleProgressBar: {
       backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : colors.border,
+      height: 8,
     },
     addModuleCard: {
       backgroundColor: colors.card,
-      borderColor: colors.borderDark,
+      borderWidth: 2,
+      borderColor: colors.primary,
     },
     addModuleIcon: {
-      backgroundColor: colors.borderDark,
+      backgroundColor: colors.primary + '20',
+      borderRadius: 8,
     },
     addModuleName: {
       fontSize: 18,
@@ -231,6 +329,8 @@ const MapScreen = () => {
     },
     tipCard: {
       backgroundColor: colors.card,
+      borderWidth: 2,
+      borderColor: colors.border,
     },
     tipText: {
       fontSize: 14,
@@ -246,19 +346,19 @@ const MapScreen = () => {
     'ai-product-manager': {
       icon: 'hardware-chip' as const,
       color: colors.primary,
-      cardBg: isDark ? 'rgba(100,100,180,0.10)' : '#EAE8F6',
+      cardBg: isDark ? 'rgba(100,100,180,0.10)' : 'rgba(234,232,246,0.50)',
       category: '专业技能',
     },
     'personal-finance': {
       icon: 'trending-up' as const,
       color: colors.success,
-      cardBg: isDark ? 'rgba(80,150,100,0.08)' : '#E8F0E4',
+      cardBg: isDark ? 'rgba(80,150,100,0.08)' : 'rgba(232,240,228,0.50)',
       category: '生活技能',
     },
     'english-communication': {
       icon: 'globe' as const,
       color: colors.orange,
-      cardBg: isDark ? 'rgba(180,130,80,0.08)' : '#F8ECE0',
+      cardBg: isDark ? 'rgba(180,130,80,0.08)' : 'rgba(248,236,224,0.50)',
       category: '语言学习',
     },
   }), [colors, isDark]);
@@ -317,31 +417,93 @@ const MapScreen = () => {
     router.push({ pathname: '/skill-tree', params: { domain: moduleId } });
   };
 
-  const handleModuleLongPress = (moduleId: string, moduleName: string) => {
-    Alert.alert(
-      '删除模块',
-      `确定要删除「${moduleName}」吗？`,
-      [
-        { text: '取消', style: 'cancel' },
-        {
-          text: '删除',
-          style: 'destructive',
-          onPress: async () => {
-            const stored = await AsyncStorage.getItem('selectedModules');
-            if (stored) {
-              const selected = JSON.parse(stored) as string[];
-              const updated = selected.filter((id: string) => id !== moduleId);
-              await AsyncStorage.setItem('selectedModules', JSON.stringify(updated));
-              setModules(prev => prev.filter(m => m.id !== moduleId));
-            }
-          },
-        },
-      ],
+  const handleModuleLongPress = async (moduleId: string, moduleName: string) => {
+    // 预设模块不允许删除
+    const presetModules = ['ai-product-manager', 'personal-finance', 'english-communication'];
+    if (presetModules.includes(moduleId)) {
+      Alert.alert('提示', '预设模块不可删除');
+      return;
+    }
+    // 从 AsyncStorage 移除
+    const stored = await AsyncStorage.getItem('selectedModules');
+    if (stored) {
+      const selected = JSON.parse(stored) as string[];
+      const updated = selected.filter((id: string) => id !== moduleId);
+      await AsyncStorage.setItem('selectedModules', JSON.stringify(updated));
+    }
+    const cm = await AsyncStorage.getItem('customModules');
+    if (cm) {
+      const parsed = JSON.parse(cm);
+      delete parsed[moduleId];
+      await AsyncStorage.setItem('customModules', JSON.stringify(parsed));
+    }
+    await AsyncStorage.multiRemove([`customStages_${moduleId}`, `customNodes_${moduleId}`]);
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      await fetch(`http://10.200.132.186:3001/api/domains/${moduleId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch {}
+    setModules(prev => prev.filter(m => m.id !== moduleId));
+  };
+
+  // 左滑删除组件
+  const SwipeableRow = ({ children, moduleName, moduleId }: { children: React.ReactNode; moduleName: string; moduleId: string }) => {
+    const translateX = useRef(new Animated.Value(0)).current;
+    const panResponder = useRef(PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dx) > 10 && Math.abs(gs.dx) > Math.abs(gs.dy),
+      onPanResponderMove: (_, gs) => { if (gs.dx < 0) translateX.setValue(Math.max(gs.dx, -80)); },
+      onPanResponderRelease: (_, gs) => {
+        Animated.spring(translateX, { toValue: gs.dx < -40 ? -80 : 0, useNativeDriver: true }).start();
+      },
+    })).current;
+
+    const handleSwipeDelete = () => {
+      Alert.alert('删除模块', `确定要删除「${moduleName}」吗？`, [
+        { text: '取消', style: 'cancel', onPress: () => Animated.spring(translateX, { toValue: 0, useNativeDriver: true }).start() },
+        { text: '删除', style: 'destructive', onPress: () => handleModuleLongPress(moduleId, moduleName) },
+      ]);
+    };
+
+    return (
+      <View style={{ position: 'relative', borderRadius: 20, marginBottom: 12, backgroundColor: colors.backgroundLight }}>
+        {/* 红色删除按钮 —— 仅在卡片左滑后可见 */}
+        <TouchableOpacity
+          style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 80, backgroundColor: '#EF4444', alignItems: 'center', justifyContent: 'center', borderTopRightRadius: 20, borderBottomRightRadius: 20 }}
+          onPress={handleSwipeDelete}
+        >
+          <Ionicons name="trash" size={24} color="#fff" />
+        </TouchableOpacity>
+        {/* 卡片内容 —— 覆盖在删除按钮上方，左滑时移开露出按钮 */}
+        <Animated.View style={{ zIndex: 1, elevation: 1, transform: [{ translateX }], backgroundColor: colors.backgroundLight, borderRadius: 20, overflow: 'hidden' }} {...panResponder.panHandlers}>
+          {children}
+        </Animated.View>
+      </View>
     );
   };
 
   return (
     <SafeAreaView style={[staticStyles.container, dynamicStyles.container]} edges={['top']}>
+      {/* 星球装饰背景 */}
+      <View style={staticStyles.planetDecorations} pointerEvents="none">
+        <View style={[staticStyles.planet1, { borderColor: colors.primary }]} />
+        <View style={[staticStyles.planet2, { backgroundColor: colors.warning + '20' }]} />
+        <View style={[staticStyles.planet3, { backgroundColor: colors.success + '15' }]} />
+        <View style={[staticStyles.planetRing, { borderColor: colors.primary + '30' }]} />
+        <View style={[staticStyles.star1, { backgroundColor: colors.primary }]} />
+        <View style={[staticStyles.star2, { backgroundColor: colors.warning }]} />
+        <View style={[staticStyles.star3, { backgroundColor: colors.success }]} />
+        {/* 像素点——远离标题，散布在卡片区域 */}
+        <View style={[staticStyles.pixel3, { backgroundColor: '#4ADE80' }]} />
+        <View style={[staticStyles.pixel4, { backgroundColor: '#FF6B6B' }]} />
+        <View style={[staticStyles.pixel5, { backgroundColor: '#60A5FA' }]} />
+        <View style={[staticStyles.pixel7, { backgroundColor: '#F472B6' }]} />
+        <View style={[staticStyles.pixel8, { backgroundColor: '#34D399' }]} />
+        <View style={[staticStyles.pixel9, { backgroundColor: '#FBBF24' }]} />
+        <View style={[staticStyles.pixel10, { backgroundColor: '#818CF8' }]} />
+        <View style={[staticStyles.pixel12, { backgroundColor: '#60A5FA' }]} />
+      </View>
       <ScrollView
         contentContainerStyle={staticStyles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -356,7 +518,7 @@ const MapScreen = () => {
         <View style={staticStyles.modulesGrid}>
           {modules.map((module, index) => {
             // 实时从 moduleConfigs 派生展示属性，不经过任何中间状态
-            const config = moduleConfigs[module.id];
+            const config = moduleConfigs[module.id as keyof typeof moduleConfigs];
             const paletteEntry = customPalette[index % customPalette.length];
             const icon = config?.icon ?? paletteEntry.icon;
             const color = config?.color ?? paletteEntry.color;
@@ -365,15 +527,15 @@ const MapScreen = () => {
             const category = config?.category ?? '';
 
             return (
+            <SwipeableRow key={`${module.id}-${isDark ? 'd' : 'l'}`} moduleName={module.name} moduleId={module.id}>
             <TouchableOpacity
-              key={`${module.id}-${isDark ? 'd' : 'l'}`}
               style={[
                 staticStyles.moduleCard,
                 { backgroundColor: cardBg },
-                isDark && { borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.06)' },
+                isDark && { borderWidth: 2, borderColor: colors.primary + '40' },
+                !isDark && { borderWidth: 2, borderColor: colors.border },
               ]}
               onPress={() => handleModulePress(module.id)}
-              onLongPress={() => handleModuleLongPress(module.id, module.name)}
               activeOpacity={0.8}
             >
               {isDark && (
@@ -387,7 +549,7 @@ const MapScreen = () => {
                   <View
                     style={[
                       staticStyles.moduleIcon,
-                      { backgroundColor: color },
+                      { backgroundColor: color, borderWidth: 2, borderColor: colors.textInverse + '20' },
                       isDark && { shadowColor: color, shadowOpacity: 0.3, shadowRadius: 12, elevation: 6 },
                     ]}
                   >
@@ -415,6 +577,7 @@ const MapScreen = () => {
                 </View>
               </View>
             </TouchableOpacity>
+            </SwipeableRow>
             );
           })}
 

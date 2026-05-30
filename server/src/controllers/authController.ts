@@ -150,4 +150,32 @@ export class AuthController {
       });
     }
   }
+
+  // 更新用户资料（头像等）
+  static async updateProfile(req: Request, res: Response) {
+    try {
+      // 从 Authorization header 中提取并验证 token
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ success: false, error: '未登录' });
+      }
+      const token = authHeader.replace('Bearer ', '');
+      const decoded = await AuthService.verifyToken(token);
+      if (!decoded || decoded.type !== 'access') {
+        return res.status(401).json({ success: false, error: '令牌无效' });
+      }
+
+      const { avatar } = req.body;
+      if (!avatar) return res.status(400).json({ success: false, error: '缺少头像参数' });
+
+      const { DatabaseConnection } = await import('../config/database');
+      const conn = await DatabaseConnection.getConnection();
+      await conn.execute('UPDATE users SET avatar_url = ? WHERE id = ?', [avatar, decoded.userId]);
+
+      res.json({ success: true, message: '更新成功' });
+    } catch (error) {
+      console.error('更新资料失败:', error);
+      res.status(500).json({ success: false, error: '更新失败' });
+    }
+  }
 }

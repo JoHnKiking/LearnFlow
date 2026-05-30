@@ -179,11 +179,26 @@ export const finishLearning = async (req: Request, res: Response) => {
   }
 };
 
+export const deleteDomain = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { id } = req.params;
+    if (!userId || !id) return res.status(400).json({ error: 'Missing user or domain id' });
+    const { DatabaseConnection } = await import('../config/database');
+    const conn = await DatabaseConnection.getConnection();
+    await conn.execute('DELETE FROM domains WHERE id = ? AND user_id = ?', [id, userId]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: '删除失败' });
+  }
+};
+
 export default {
   createDomain,
   getDomains,
   getDomainById,
   updateNodeProgress,
   startLearning,
-  finishLearning
+  finishLearning,
+  deleteDomain,
 };

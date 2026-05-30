@@ -342,7 +342,7 @@ const MiniGames = ({ onGameComplete, onClose }: MiniGamesProps) => {
   welcomeContent: {
     flex: 1,
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 80,
   },
   welcomeSection: {
     alignItems: 'center',
@@ -371,7 +371,7 @@ const MiniGames = ({ onGameComplete, onClose }: MiniGamesProps) => {
   rewardsSection: {
     backgroundColor: colors.surface,
     borderRadius: 16,
-    padding: 20,
+    padding: 14,
     marginBottom: 20,
     borderWidth: 1,
     borderColor: colors.borderDark,
@@ -379,24 +379,24 @@ const MiniGames = ({ onGameComplete, onClose }: MiniGamesProps) => {
   rewardsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 40,
-    marginBottom: 12,
+    gap: 32,
+    marginBottom: 8,
   },
   rewardBox: {
     alignItems: 'center',
   },
   rewardIcon: {
-    fontSize: 32,
-    marginBottom: 8,
+    fontSize: 24,
+    marginBottom: 4,
   },
   rewardAmount: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '800',
     color: colors.warning,
     fontFamily: 'Courier',
   },
   rewardName: {
-    fontSize: 14,
+    fontSize: 12,
     color: colors.textSecondary,
     fontFamily: 'Courier',
   },

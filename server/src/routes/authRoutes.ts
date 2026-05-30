@@ -18,4 +18,7 @@ router.post('/verify-token', AuthController.verifyToken);
 // 用户登出
 router.post('/logout', AuthController.logout);
 
+// 更新用户资料
+router.put('/profile', AuthController.updateProfile);
+
 export default router;

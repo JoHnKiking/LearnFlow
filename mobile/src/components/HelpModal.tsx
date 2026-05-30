@@ -97,10 +97,10 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
     placeholder: { width: 44 },
     content: {
       paddingHorizontal: 20,
-      paddingTop: 8,
+      paddingTop: 16,
       paddingBottom: 40,
     },
-    section: { marginBottom: 28 },
+    section: { marginBottom: 32 },
     sectionTitle: {
       color: colors.primary,
       fontSize: 16,
@@ -110,19 +110,19 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
     sectionDivider: {
       height: 1,
       backgroundColor: colors.borderDark,
-      marginBottom: 14,
+      marginBottom: 16,
     },
     sectionDesc: {
       color: colors.textSecondary,
       fontSize: 13,
-      marginBottom: 14,
-      lineHeight: 1.5,
+      marginBottom: 16,
+      lineHeight: 20,
     },
     helpItem: {
       backgroundColor: colors.borderLight,
       borderRadius: 12,
       padding: 14,
-      marginBottom: 10,
+      marginBottom: 12,
     },
     helpTitle: {
       color: colors.textPrimary,
@@ -133,16 +133,16 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
     helpText: {
       color: colors.textSecondary,
       fontSize: 13,
-      lineHeight: 1.7,
+      lineHeight: 20,
     },
-    examplesList: { marginBottom: 18 },
+    examplesList: { marginBottom: 20 },
     exampleItem: {
       flexDirection: 'row',
       alignItems: 'flex-start',
       padding: 14,
       backgroundColor: colors.borderLight,
       borderRadius: 12,
-      marginBottom: 8,
+      marginBottom: 10,
       borderWidth: 1,
       borderColor: 'transparent',
     },
@@ -177,9 +177,9 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
     exampleDesc: {
       color: colors.textSecondary,
       fontSize: 12,
-      lineHeight: 1.6,
+      lineHeight: 18,
     },
-    feedbackInputContainer: { marginBottom: 18 },
+    feedbackInputContainer: { marginBottom: 20 },
     feedbackLabel: {
       color: colors.textSecondary,
       fontSize: 13,
@@ -193,7 +193,7 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
       fontSize: 14,
       minHeight: 100,
       textAlignVertical: 'top',
-      lineHeight: 1.6,
+      lineHeight: 22,
     },
     submitBtn: {
       backgroundColor: colors.primary,
@@ -209,7 +209,7 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
     contactText: {
       color: colors.textSecondary,
       fontSize: 13,
-      lineHeight: 1.7,
+      lineHeight: 20,
       marginBottom: 14,
     },
     contactCard: {
@@ -220,7 +220,7 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
     contactItem: {
       color: colors.textPrimary,
       fontSize: 13,
-      lineHeight: 1.7,
+      lineHeight: 20,
       marginBottom: 8,
     },
     contactItemLast: { marginBottom: 0 },
@@ -231,42 +231,18 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
       <View style={styles.modalContent}>
         {/* 头部 */}
         <View style={styles.header}>
+          <View style={styles.placeholder} />
+          <Text style={styles.title}>帮助与反馈</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
             <Ionicons name="close" size={28} color={colors.textSecondary} />
           </TouchableOpacity>
-          <Text style={styles.title}>帮助与反馈</Text>
-          <View style={styles.placeholder} />
         </View>
 
         {/* 滚动内容区域 */}
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* 使用帮助 */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📋 使用帮助</Text>
-            <View style={styles.sectionDivider} />
-            <View style={styles.helpItem}>
-              <Text style={styles.helpTitle}>💪 体力系统</Text>
-              <Text style={styles.helpText}>
-                专注学习会消耗体力，完成小游戏可恢复体力。游戏说明请在怪兽页面查看。
-              </Text>
-            </View>
-            <View style={styles.helpItem}>
-              <Text style={styles.helpTitle}>📚 学习资源</Text>
-              <Text style={styles.helpText}>
-                在技能树页面跳转学习资源时会消耗10点体力，请确保体力充足。
-              </Text>
-            </View>
-            <View style={styles.helpItem}>
-              <Text style={styles.helpTitle}>⏰ 每日重置</Text>
-              <Text style={styles.helpText}>
-                每天凌晨5点重置游戏次数和每日数据。
-              </Text>
-            </View>
-          </View>
-
           {/* 问题反馈 */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📝 问题反馈</Text>
+            <Text style={styles.sectionTitle}>📝 问题类型</Text>
             <View style={styles.sectionDivider} />
             <Text style={styles.sectionDesc}>请选择您遇到的问题类型，或直接描述问题：</Text>
             

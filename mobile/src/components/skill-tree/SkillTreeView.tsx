@@ -14,8 +14,6 @@ interface SkillTreeViewProps {
 
 
 const SkillTreeView: React.FC<SkillTreeViewProps> = ({ skillTree }) => {
-  return (
-
   const { colors } = useTheme();
 
 const getPlatformIcon = (platform: PlatformType) => {
@@ -26,6 +24,8 @@ const getPlatformIcon = (platform: PlatformType) => {
         return { icon: 'book', color: '#FF2442' };
       case 'mooc':
         return { icon: 'school', color: colors.primary };
+      case 'other':
+        return { icon: 'globe', color: '#9CA3AF' };
       default:
         return { icon: 'link', color: '#888' };
     }
@@ -253,6 +253,7 @@ const StageNode: React.FC<{ name: string; duration: number; stageColor: { bg: st
       bottom: 12,
     },
   }), [colors]);
+  return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>{skillTree.title}</Text>

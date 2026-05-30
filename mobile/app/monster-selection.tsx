@@ -4,9 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../src/contexts/ThemeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { storage, STORAGE_KEYS } from '../src/utils/storage';
+import { MONSTER_CONFIG } from '../src/utils/constants';
 import { monsterService } from '../src/services/api';
 import { getCurrentUser } from '../src/utils/auth';
+import MonsterIcon from '../src/components/MonsterIcon';
 
 type MonsterType = 'lively' | 'calm' | 'rebel';
 
@@ -23,6 +25,8 @@ const MonsterSelectionScreen = () => {
       name: '活力小怪',
       personality: '元气满满',
       color: colors.orange,
+      // 选中背景用实色暖橘，与怪兽本身的亮橙拉开差异
+      selectedBg: '#FFD4A0',
       description: '适合快节奏碎片化学习',
       trait: '专属特权：单次学习任务时长直接减少 5 分钟',
     },
@@ -30,15 +34,19 @@ const MonsterSelectionScreen = () => {
       id: 'calm' as MonsterType,
       name: '沉稳小怪',
       personality: '冷静沉着',
-      color: colors.primary,
+      color: MONSTER_CONFIG.COLORS.calm.primary,
+      // 选中背景用实色中蓝，与怪兽的深天蓝拉开差异
+      selectedBg: '#B8D8FF',
       description: '擅长深度思考',
-      trait: '专属特权：每日额外赠送 20 点体力，可多 2 次知识节点跳转（原有基础 10 次，叠加后 12 次）',
+      trait: '专属特权：每日额外赠送 20 点体力，可多 2 次知识节点跳转',
     },
     {
       id: 'rebel' as MonsterType,
       name: '叛逆小怪',
       personality: '个性独立',
-      color: colors.purple,
+      color: MONSTER_CONFIG.COLORS.rebel.primary,
+      // 选中背景用实色中粉，与怪兽的玫红拉开差异
+      selectedBg: '#FFC0D0',
       description: '有主见爱探索、敢于挑战',
       trait: '专属特权：小游戏获得的体力、能量全部双倍',
     },
@@ -81,7 +89,7 @@ const MonsterSelectionScreen = () => {
         createdAt: new Date().toISOString(),
       };
       console.log('[MonsterSelection] 创建怪物数据:', monsterData.name, '类型:', selectedType);
-      await AsyncStorage.setItem('monster', JSON.stringify(monsterData));
+      await storage.setItem(STORAGE_KEYS.MONSTER, monsterData);
       console.log('[MonsterSelection] 怪物数据已保存到本地');
 
       try {
@@ -286,45 +294,6 @@ const MonsterSelectionScreen = () => {
     },
   }), [colors]);
 
-  const MonsterIcon = ({ type, size }: { type: MonsterType; size: number }) => {
-    const iconColors: Record<MonsterType, { primary: string; secondary: string }> = {
-      lively: { primary: colors.orange, secondary: '#B08040' },
-      calm: { primary: colors.primary, secondary: '#5A54B0' },
-      rebel: { primary: colors.purple, secondary: '#A05068' },
-    };
-
-    const color = iconColors[type];
-    const scale = size / 100;
-
-    return (
-      <View style={[styles.monsterIcon, { width: size, height: size }]}>
-        <View style={[styles.monsterHeadIcon, { width: 44 * scale, height: 36 * scale, backgroundColor: color.primary, left: 14 * scale, top: 20 * scale }]}>
-          <View style={[styles.earIcon, { width: 8 * scale, height: 12 * scale, backgroundColor: color.secondary, left: -4 * scale, top: 4 * scale }]} />
-          <View style={[styles.earIcon, { width: 8 * scale, height: 12 * scale, backgroundColor: color.secondary, right: -4 * scale, top: 4 * scale }]} />
-          <View style={[styles.eyeIcon, { width: 12 * scale, height: 12 * scale, backgroundColor: '#FFFFFF', left: 4 * scale, top: 8 * scale }]}>
-            <View style={[styles.pupilIcon, { width: 4 * scale, height: 6 * scale, backgroundColor: colors.background, left: 4 * scale, top: 2 * scale }]} />
-          </View>
-          <View style={[styles.eyeIcon, { width: 12 * scale, height: 12 * scale, backgroundColor: '#FFFFFF', right: 4 * scale, top: 8 * scale }]}>
-            <View style={[styles.pupilIcon, { width: 4 * scale, height: 6 * scale, backgroundColor: colors.background, left: 4 * scale, top: 2 * scale }]} />
-          </View>
-          <View style={[styles.mouthIcon, { width: 20 * scale, height: 4 * scale, backgroundColor: colors.background, left: 12 * scale, top: 24 * scale }]} />
-        </View>
-        <View style={[styles.bodyIcon, { width: 36 * scale, height: 20 * scale, backgroundColor: color.primary, left: 18 * scale, top: 56 * scale }]} />
-        {type === 'lively' && (
-          <>
-            <View style={[styles.sparkleIcon, { width: 4 * scale, height: 4 * scale, backgroundColor: '#FFD60A', left: 2 * scale, top: 8 * scale }]} />
-            <View style={[styles.sparkleIcon, { width: 4 * scale, height: 4 * scale, backgroundColor: '#FFD60A', right: 2 * scale, top: 16 * scale }]} />
-          </>
-        )}
-        {type === 'rebel' && (
-          <>
-            <View style={[styles.lightningIcon, { width: 4 * scale, height: 10 * scale, backgroundColor: '#FFD60A', left: 4 * scale, top: 10 * scale }]} />
-          </>
-        )}
-      </View>
-    );
-  };
-
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -354,7 +323,7 @@ const MonsterSelectionScreen = () => {
                       style={[
                         styles.monsterCard,
                         {
-                          backgroundColor: isSelected ? monster.color : colors.card,
+                          backgroundColor: isSelected ? monster.selectedBg : colors.card,
                           borderColor: monster.color,
                         },
                       ]}
@@ -365,10 +334,10 @@ const MonsterSelectionScreen = () => {
                         </View>
 
                         <View style={styles.monsterInfo}>
-                          <Text style={[styles.monsterName, { color: isSelected ? '#FFFFFF' : colors.textPrimary }]}>
+                          <Text style={[styles.monsterName, { color: isSelected ? monster.color : colors.textPrimary }]}>
                             {monster.name}
                           </Text>
-                          <Text style={[styles.monsterDescription, { color: isSelected ? 'rgba(255,255,255,0.9)' : colors.textSecondary }]}>
+                          <Text style={[styles.monsterDescription, { color: isSelected ? (monster.color + 'CC') : colors.textSecondary }]}>
                             {monster.description}
                           </Text>
                           <View
@@ -379,7 +348,7 @@ const MonsterSelectionScreen = () => {
                               },
                             ]}
                           >
-                            <Text style={[styles.traitText, { color: isSelected ? '#FFFFFF' : monster.color }]}>
+                            <Text style={[styles.traitText, { color: monster.color }]}>
                               ✨ {monster.trait}
                             </Text>
                           </View>

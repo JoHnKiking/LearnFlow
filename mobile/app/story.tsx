@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../src/contexts/ThemeContext';
+import MonsterIcon from '../src/components/MonsterIcon';
 
 const ROUTES = {
   MONSTER_SELECTION: '/monster-selection',
@@ -32,19 +33,20 @@ const useStoryAnimation = (totalFrames: number) => {
   const slideAnimation = useState(new Animated.Value(0))[0];
 
   const switchFrame = useCallback((nextFrame: number) => {
-    Animated.sequence([
-      Animated.timing(slideAnimation, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
+    // 先淡出旧帧
+    Animated.timing(slideAnimation, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      // 不可见时切换内容，避免闪烁
+      setCurrentFrame(nextFrame);
+      // 新帧淡入
       Animated.timing(slideAnimation, {
         toValue: 0,
-        duration: 0,
+        duration: 300,
         useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setCurrentFrame(nextFrame);
+      }).start();
     });
   }, [slideAnimation]);
 
@@ -150,6 +152,11 @@ const StoryScreen = () => {
       width: 180,
       height: 180,
       position: 'relative',
+    },
+    monsterIconContainer: {
+      position: 'absolute',
+      bottom: -10,
+      right: -20,
     },
     title: {
       color: colors.textPrimary,
@@ -538,6 +545,9 @@ const StoryScreen = () => {
           >
             <View style={styles.illustrationContainer}>
               <StoryIllustration frameIndex={currentFrame} />
+              <View style={styles.monsterIconContainer}>
+                <MonsterIcon type={currentFrame === 1 ? 'rebel' : currentFrame === 2 ? 'calm' : 'lively'} size={60} />
+              </View>
             </View>
 
             <Text style={styles.title}>{currentStory.title}</Text>

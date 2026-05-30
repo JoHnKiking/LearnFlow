@@ -41,34 +41,86 @@ const MonsterManageScreen = () => {
   },
   header: {
     position: 'relative',
-    paddingTop: 48,
+    paddingHorizontal: 24,
+    paddingTop: 20,
     paddingBottom: 24,
-    overflow: 'hidden',
   },
-  pixelBackground: {
+  headerDecorations: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: colors.backgroundDark,
-    opacity: 0.95,
+    overflow: 'hidden',
+  },
+  planet1: {
+    position: 'absolute',
+    top: 10,
+    left: -30,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 4,
+    opacity: 0.2,
+  },
+  planet2: {
+    position: 'absolute',
+    top: 40,
+    right: -20,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    opacity: 0.15,
+  },
+  planetRing: {
+    position: 'absolute',
+    top: 60,
+    right: -10,
+    width: 120,
+    height: 40,
+    borderWidth: 3,
+    borderRadius: 60,
+    transform: [{ rotate: '-20deg' }],
+    opacity: 0.2,
+  },
+  star1: {
+    position: 'absolute',
+    top: 30,
+    left: 40,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  star2: {
+    position: 'absolute',
+    top: 50,
+    right: 80,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+  },
+  star3: {
+    position: 'absolute',
+    top: 70,
+    left: 120,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
   },
   headerContent: {
-    paddingHorizontal: 20,
     position: 'relative',
     zIndex: 1,
   },
   title: {
     color: colors.textPrimary,
     fontWeight: '800',
-    fontSize: 24,
+    fontSize: 28,
     fontFamily: 'Courier',
-    marginBottom: 24,
+    marginBottom: 4,
   },
   monsterCard: {
-    borderRadius: 24,
-    padding: 24,
+    borderRadius: 16,
+    padding: 16,
     position: 'relative',
     overflow: 'hidden',
     backgroundColor: 'transparent',
@@ -90,22 +142,22 @@ const MonsterManageScreen = () => {
   monsterTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-    marginBottom: 16,
+    gap: 12,
+    marginBottom: 12,
   },
   monsterActionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 16,
+    gap: 8,
+    marginBottom: 12,
   },
   monsterIconContainer: {
-    width: 108,
-    height: 108,
+    width: 72,
+    height: 72,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 24,
+    borderRadius: 16,
     backgroundColor: colors.borderLight,
     borderWidth: 1,
     borderColor: colors.borderDark,
@@ -117,22 +169,21 @@ const MonsterManageScreen = () => {
     gap: 8,
   },
   rightButtons: {
-    width: 92,
-    gap: 8,
+    width: 76,
+    gap: 6,
     alignItems: 'stretch',
   },
   gameButton: {
-    flex: 1,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 10,
-    borderRadius: 14,
+    borderRadius: 12,
     backgroundColor: colors.borderLight,
     borderWidth: 1,
     borderColor: colors.borderDark,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    minHeight: 52,
+    gap: 6,
+    flexShrink: 0,
   },
   gameButtonDisabled: {
     backgroundColor: 'rgba(85,85,119,0.15)',
@@ -156,9 +207,9 @@ const MonsterManageScreen = () => {
     fontFamily: 'Courier',
   },
   infoButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 36,
+    height: 36,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.borderLight,
@@ -197,18 +248,22 @@ const MonsterManageScreen = () => {
     marginBottom: 4,
     flexWrap: 'wrap',
   },
+  monsterNameContainer: {
+    flex: 1,
+    gap: 2,
+  },
   monsterName: {
     color: colors.textPrimary,
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '800',
     fontFamily: 'Courier',
     flexShrink: 1,
   },
   monsterPersonality: {
     color: colors.textSecondary,
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'Courier',
-    lineHeight: 20,
+    lineHeight: 18,
   },
   statsRow: {
     gap: 12,
@@ -235,6 +290,7 @@ const MonsterManageScreen = () => {
     fontSize: 12,
     fontWeight: '700',
     fontFamily: 'Courier',
+    color: colors.textPrimary,
   },
   statBar: {
     height: 8,
@@ -246,8 +302,19 @@ const MonsterManageScreen = () => {
     height: '100%',
     borderRadius: 999,
   },
+  statBarContainer: {
+    width: '100%',
+    marginVertical: 4,
+  },
+  monsterStats: {
+    marginTop: 12,
+    gap: 10,
+  },
+  statItem: {
+    gap: 4,
+  },
   tabsContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     marginBottom: 16,
   },
   tabs: {
@@ -272,7 +339,7 @@ const MonsterManageScreen = () => {
     fontFamily: 'Courier',
   },
   tabContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     gap: 16,
   },
   taskCard: {
@@ -586,6 +653,15 @@ const MonsterManageScreen = () => {
     fontFamily: 'Courier',
     lineHeight: 20,
   },
+  // 怪兽回复下方的能量消耗提示
+  energyCostText: {
+    fontSize: 11,
+    fontFamily: 'Courier',
+    color: colors.textTertiary,
+    textAlign: 'right',
+    marginTop: 2,
+    paddingRight: 4,
+  },
   // 输入栏
   chatInputBar: {
     flexDirection: 'row',
@@ -694,9 +770,23 @@ const MonsterManageScreen = () => {
         await storage.setItem(STORAGE_KEYS.MONSTER, newMonster);
       }
 
-      const saved = await storage.getItem<any[]>(STORAGE_KEYS.NOTES);
-      if (saved) {
-        setSavedNotes(saved);
+      // 从服务端加载笔记（按用户隔离，避免历史用户数据残留）
+      try {
+        const user = await getCurrentUser();
+        if (user?.id) {
+          const serverNotes = await noteService.getNotes(user.id);
+          if (serverNotes && serverNotes.length > 0) {
+            setSavedNotes(serverNotes);
+          } else {
+            // 服务端无数据时回退到本地，但本地数据可能是旧用户的，清空
+            setSavedNotes([]);
+            await storage.removeItem(STORAGE_KEYS.NOTES);
+          }
+        }
+      } catch {
+        // 网络不通时回退到本地缓存
+        const local = await storage.getItem<any[]>(STORAGE_KEYS.NOTES);
+        if (local) setSavedNotes(local);
       }
 
       const savedTasks = await storage.getItem<any[]>(STORAGE_KEYS.TASKS);
@@ -842,7 +932,7 @@ const MonsterManageScreen = () => {
     // --- 本地存储（主流程不变）---
 
     const newStamina = Math.min(latestData.stamina + staminaBonus, latestData.maxStamina);
-    const newPai = Math.min(latestData.paiEnergy + energyBonus, latestData.maxPaiEnergy);
+    const newPai = latestData.paiEnergy + energyBonus; // 能量无上限，不设封顶
 
     const updated = {
       ...latestData,
@@ -1109,15 +1199,29 @@ const MonsterManageScreen = () => {
 
     try {
       const res = await monsterService.chat({ userId: user.id, message: text });
+      console.log('[Monster] 对话响应:', JSON.stringify({ success: res.success, hasData: !!res.data, energyCost: res.data?.energyCost, remaining: res.data?.remainingEnergy }));
       if (res.success && res.data) {
+        // 能量消耗 = 怪兽回复字数 × 0.05（与服务端一致）
+        const cost = typeof res.data.energyCost === 'number' ? res.data.energyCost : Math.ceil(res.data.message.length * 0.05);
+        console.log('[Monster] 本次消耗 Π:', cost, '消息字数:', res.data.message.length);
         const monsterMsg: MonsterMessageItem = {
           id: Date.now() + 1,
           userId: user.id,
           message: res.data.message,
           isUser: false,
           createdAt: new Date().toISOString(),
+          energyCost: cost,
         };
         setChatMessages(prev => [...prev, monsterMsg]);
+        // 同步更新本地怪兽能量为服务端返回的剩余值
+        if (typeof res.data.remainingEnergy === 'number') {
+          setMonsterData((prev: any) => {
+            const updated = { ...prev, paiEnergy: res.data.remainingEnergy };
+            // 同步写回 AsyncStorage，防止 loadData 覆盖
+            storage.setItem(STORAGE_KEYS.MONSTER, updated).catch(() => {});
+            return updated;
+          });
+        }
       }
     } catch (error) {
       console.error('[Monster] 发送消息失败:', error);
@@ -1164,6 +1268,7 @@ const MonsterManageScreen = () => {
           </View>
         }
         renderItem={({ item }) => (
+          <View>
           <View style={[
             styles.messageBubble,
             item.isUser ? styles.messageUser : styles.messageMonster,
@@ -1184,6 +1289,13 @@ const MonsterManageScreen = () => {
                 {item.message}
               </Text>
             </View>
+          </View>
+          {/* 怪兽回复消耗的 Π 能量 */}
+          {!item.isUser && typeof item.energyCost === 'number' && (
+            <Text style={styles.energyCostText}>
+              -Π{item.energyCost}
+            </Text>
+          )}
           </View>
         )}
       />
@@ -1219,7 +1331,14 @@ const MonsterManageScreen = () => {
   const renderHeaderAndTabs = () => (
     <>
       <View style={styles.header}>
-        <View style={styles.pixelBackground} />
+        <View style={styles.headerDecorations} pointerEvents="none">
+          <View style={[styles.planet1, { borderColor: colors.primary }]} />
+          <View style={[styles.planet2, { backgroundColor: colors.warning + '30' }]} />
+          <View style={[styles.planetRing, { borderColor: colors.primary + '40' }]} />
+          <View style={[styles.star1, { backgroundColor: colors.primary }]} />
+          <View style={[styles.star2, { backgroundColor: colors.warning }]} />
+          <View style={[styles.star3, { backgroundColor: colors.success }]} />
+        </View>
         <View style={styles.headerContent}>
           <Text style={styles.title}>我的怪兽</Text>
           <View style={styles.monsterCard}>
@@ -1227,23 +1346,44 @@ const MonsterManageScreen = () => {
             <View style={styles.monsterCardContent}>
               <View style={styles.monsterTopRow}>
                 <View style={styles.monsterIconContainer}>
-                  <MonsterIcon type={monsterData.type} size={80} />
+                  <MonsterIcon type={monsterData.type} size={56} />
                 </View>
                 <View style={styles.monsterNameContainer}>
                   <Text style={styles.monsterName} numberOfLines={1}>{monsterData.name}</Text>
-                  <Text style={styles.monsterType}>
-                    {monsterData.type === MONSTER_CONFIG.TYPES.LIVELY ? '活力型怪兽 ⚡'
-                      : monsterData.type === MONSTER_CONFIG.TYPES.CALM ? '沉稳型怪兽 🌟'
-                      : '叛逆型怪兽 🔥'}
-                  </Text>
-                  <View style={styles.monsterLevelBadge}>
-                    <Text style={styles.monsterLevelText}>Lv.{monsterData.level}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                    <Text style={{ color: MONSTER_CONFIG.COLORS[monsterData.type as keyof typeof MONSTER_CONFIG.COLORS].primary, fontSize: 15, fontWeight: '900', fontFamily: 'Courier' }}>
+                      Π {monsterData.paiEnergy}
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                    <Text style={{ color: MONSTER_CONFIG.COLORS[monsterData.type as keyof typeof MONSTER_CONFIG.COLORS].primary, fontSize: 11, fontFamily: 'Courier', fontWeight: '700' }}>
+                      {monsterData.type === MONSTER_CONFIG.TYPES.LIVELY ? '活力型怪兽'
+                        : monsterData.type === MONSTER_CONFIG.TYPES.CALM ? '沉稳型怪兽'
+                        : '叛逆型怪兽'}
+                    </Text>
+                    <TouchableOpacity onPress={() => setShowInfo(!showInfo)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <Ionicons name="information-circle" size={14} color={colors.textTertiary} />
+                    </TouchableOpacity>
                   </View>
                 </View>
-                <TouchableOpacity onPress={() => setShowInfo(true)} style={styles.infoButton}>
-                  <Ionicons name="information-circle" size={20} color={colors.primary} />
+                {/* 游戏入口按钮 */}
+                <TouchableOpacity onPress={handlePlayGame} style={styles.gameButton}>
+                  <Ionicons name="game-controller" size={16} color={colors.warning} />
+                  <Text style={styles.gameButtonText}>游戏</Text>
                 </TouchableOpacity>
               </View>
+              {/* 机制说明 —— 点击 ℹ️ 展开/收起，放卡片外避免挤压布局 */}
+              {showInfo && (
+                <View style={[styles.infoCard, { marginTop: 8, marginBottom: 0 }]}>
+                  <Text style={styles.infoText}>
+                    {monsterData.type === MONSTER_CONFIG.TYPES.LIVELY
+                      ? '⚡ 单次学习任务时长 -5分钟\n💡 元气满满，适合碎片化学习'
+                      : monsterData.type === MONSTER_CONFIG.TYPES.CALM
+                      ? '💪 每日体力额外 +20点\n💡 冷静沉着，擅长深度思考'
+                      : '🔥 小游戏体力、能量双倍\n💡 个性独立，敢于探索挑战'}
+                  </Text>
+                </View>
+              )}
               <View style={styles.monsterStats}>
                 <View style={styles.statItem}>
                   <View style={styles.statLabelRow}>
@@ -1259,65 +1399,55 @@ const MonsterManageScreen = () => {
                     {monsterData.stamina}/{monsterData.maxStamina}
                   </Text>
                 </View>
-                <View style={styles.statItem}>
-                  <View style={styles.statLabelRow}>
-                    <Ionicons name="diamond" size={12} color={colors.purple} />
-                    <Text style={styles.statLabel}>Π能量</Text>
-                  </View>
-                  <View style={styles.statBarContainer}>
-                    <View style={[styles.statBar, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
-                      <View style={[styles.statBarFill, { width: `${paiPercent}%`, backgroundColor: colors.purple }]} />
-                    </View>
-                  </View>
-                  <Text style={styles.statValue}>
-                    {monsterData.paiEnergy}/{monsterData.maxPaiEnergy}
-                  </Text>
-                </View>
               </View>
             </View>
           </View>
         </View>
       </View>
+      {renderTabs()}
+    </>
+  );
 
-      <View style={styles.tabsContainer}>
-        <View style={styles.tabs}>
-          {[
-            { id: 'tasks' as ActiveTab, label: '任务', icon: 'layers' },
-            { id: 'notes' as ActiveTab, label: '笔记', icon: 'document-text' },
-            { id: 'chat' as ActiveTab, label: '对话', icon: 'chatbubbles' },
-          ].map((tab) => (
-            <TouchableOpacity
-              key={tab.id}
-              onPress={() => setActiveTab(tab.id)}
-              activeOpacity={0.7}
+  // 仅 tab 栏 —— 对话模式下置顶使用
+  const renderTabs = () => (
+    <View style={styles.tabsContainer}>
+      <View style={styles.tabs}>
+        {[
+          { id: 'tasks' as ActiveTab, label: '任务', icon: 'layers' },
+          { id: 'chat' as ActiveTab, label: '对话', icon: 'chatbubbles' },
+          { id: 'notes' as ActiveTab, label: '笔记', icon: 'document-text' },
+        ].map((tab) => (
+          <TouchableOpacity
+            key={tab.id}
+            onPress={() => setActiveTab(tab.id)}
+            activeOpacity={0.7}
+            style={[
+              styles.tab,
+              {
+                backgroundColor: activeTab === tab.id ? colors.borderDark : 'transparent',
+                borderColor: activeTab === tab.id ? colors.borderDark : 'transparent',
+              },
+            ]}
+          >
+            <Ionicons
+              name={tab.icon as any} size={16}
+              color={activeTab === tab.id ? colors.primary : colors.textSecondary}
+            />
+            <Text
               style={[
-                styles.tab,
+                styles.tabText,
                 {
-                  backgroundColor: activeTab === tab.id ? colors.borderDark : 'transparent',
-                  borderColor: activeTab === tab.id ? colors.borderDark : 'transparent',
+                  color: activeTab === tab.id ? colors.primary : colors.textSecondary,
+                  fontWeight: activeTab === tab.id ? '700' : '400',
                 },
               ]}
             >
-              <Ionicons
-                name={tab.icon as any} size={16}
-                color={activeTab === tab.id ? colors.primary : colors.textSecondary}
-              />
-              <Text
-                style={[
-                  styles.tabText,
-                  {
-                    color: activeTab === tab.id ? colors.primary : colors.textSecondary,
-                    fontWeight: activeTab === tab.id ? '700' : '400',
-                  },
-                ]}
-              >
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
-    </>
+    </View>
   );
 
   return (
@@ -1327,7 +1457,7 @@ const MonsterManageScreen = () => {
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          {renderHeaderAndTabs()}
+          {renderTabs()}
           {renderChatTab()}
         </KeyboardAvoidingView>
       ) : (

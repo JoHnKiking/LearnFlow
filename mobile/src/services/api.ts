@@ -237,6 +237,12 @@ export const monsterService = {
     const response = await api.get(`/monster/messages/${userId}`);
     return response.data;
   },
+
+  // 获取怪兽状态（类型/体力/能量等）
+  getMonsterStatus: async (userId: number): Promise<any> => {
+    const response = await api.get(`/monster/status/${userId}`);
+    return response.data;
+  },
 };
 
 // ============================================================
@@ -298,6 +304,20 @@ export const rewardService = {
   claimReward: async (request: ClaimRewardRequest): Promise<{ success: boolean }> => {
     const response = await api.post('/rewards/claim', request);
     return response.data;
+  },
+};
+
+// ============================================================
+// 用户服务
+// 对应服务端 PUT /api/users/profile
+// ============================================================
+export const userService = {
+  /** 更新用户资料（头像等） */
+  updateProfile: async (data: { avatar?: string }): Promise<void> => {
+    const token = await (await import('../utils/auth')).getAccessToken();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    await api.put('/auth/profile', data, { headers });
   },
 };
 

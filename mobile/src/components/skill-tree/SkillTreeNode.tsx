@@ -74,22 +74,18 @@ const SkillTreeNode: React.FC<SkillTreeNodeProps> = ({
         </Text>
       )}
 
-      {/* 学习资源链接 */}
-      {node.links && node.links.length > 0 && (
-        <View style={styles.linksContainer}>
-          {node.links.map((link, index) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.linkButton}
-            onPress={() => handleLinkPress(link.url)}
-          >
-            <Text style={styles.linkText} numberOfLines={1}>
-              {link.title || '学习资源'}
-            </Text>
-            <Text style={styles.linkIcon}>→</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {/* 节点 URL 链接 */}
+      {node.url ? (
+        <TouchableOpacity
+          style={styles.linkButton}
+          onPress={() => handleLinkPress(node.url)}
+        >
+          <Text style={styles.linkText} numberOfLines={1}>
+            {node.url}
+          </Text>
+          <Text style={styles.linkIcon}>→</Text>
+        </TouchableOpacity>
+      ) : null}
 
       {/* 子节点 - 递归渲染 */}
       {isExpanded && hasChildren && (

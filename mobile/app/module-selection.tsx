@@ -9,13 +9,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../src/contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PlatformType } from '../src/types/skill';
-import { API_BASE_URL } from '../src/utils/constants';
+import { API_BASE_URL, MONSTER_CONFIG } from '../src/utils/constants';
+import MonsterIcon from '../src/components/MonsterIcon';
+import { storage, STORAGE_KEYS } from '../src/utils/storage';
 
 // ---- 平台选项（与 skill-tree 保持一致） ----
 const PLATFORM_OPTIONS: { key: PlatformType; label: string; icon: string; color: string }[] = [
   { key: 'bilibili', label: 'B站', icon: 'play-circle', color: '#FB7299' },
   { key: 'xiaohongshu', label: '小红书', icon: 'book', color: '#FF2442' },
   { key: 'mooc', label: '中国大学MOOC', icon: 'school', color: '#5D9BFA' },
+  { key: 'other', label: '其他', icon: 'globe', color: '#9CA3AF' },
 ];
 
 // ---- 类型定义 ----
@@ -71,6 +74,9 @@ const ModuleSelectionScreen = () => {
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const isAddMode = mode === 'add';
 
+  // ---- 怪物数据 ----
+  const [monsterType, setMonsterType] = useState<any>(MONSTER_CONFIG.TYPES.CALM);
+
   // ---- 预设模块选择相关状态 ----
   const [selectedModules, setSelectedModules] = useState<ModuleType[]>([]);
   const [existingModules, setExistingModules] = useState<ModuleType[]>([]);
@@ -90,6 +96,19 @@ const ModuleSelectionScreen = () => {
 
   // ---- 初始化 ----
   useEffect(() => {
+    // 加载怪物数据
+    const loadMonster = async () => {
+      try {
+        const monster: { type?: 'lively' | 'calm' | 'rebel' } | null = await storage.getItem(STORAGE_KEYS.MONSTER);
+        if (monster?.type) {
+          setMonsterType(monster.type);
+        }
+      } catch (error) {
+        console.error('加载怪物数据失败:', error);
+      }
+    };
+    loadMonster();
+
     if (isAddMode) {
       const loadExisting = async () => {
         const stored = await AsyncStorage.getItem('selectedModules');
@@ -104,7 +123,7 @@ const ModuleSelectionScreen = () => {
       const stageId = generateDraftId();
       const nodeId = generateDraftId();
       setStageDrafts([{ localId: stageId, name: '' }]);
-      setNodeDrafts([{ localId: nodeId, stageLocalId: stageId, name: '', url: '', platform: 'bilibili' }]);
+      setNodeDrafts([{ localId: nodeId, stageLocalId: stageId, name: '', url: '', platform: 'other' }]);
     } else {
       setSelectedModules(['ai-product-manager']);
     }
@@ -154,7 +173,7 @@ const ModuleSelectionScreen = () => {
       stageLocalId,
       name: '',
       url: '',
-      platform: 'bilibili',
+      platform: 'other',
     }]);
   };
 
@@ -252,7 +271,7 @@ const ModuleSelectionScreen = () => {
             stageLocalId: stageId,
             name: sub.subName || '',
             url: sub.link || '',
-            platform: 'bilibili',
+            platform: 'other',
           });
         });
       });
@@ -403,7 +422,7 @@ const ModuleSelectionScreen = () => {
       fontSize: 13, color: colors.textPrimary, fontFamily: 'Courier', marginBottom: 6,
     },
     // 平台选择器
-    platformRow: { flexDirection: 'row', gap: 6, marginTop: 4 },
+    platformRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
     platformChip: {
       flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 10, paddingVertical: 6,
       borderRadius: 8, borderWidth: 1, borderColor: colors.border,
@@ -752,20 +771,6 @@ const ModuleSelectionScreen = () => {
     </>
   );
 
-  // ---- 小怪兽头像（复用） ----
-  const MonsterAvatar = () => (
-    <View style={styles.monsterAvatar}>
-      <View style={styles.monsterHeadAvatar}>
-        <View style={styles.monsterEyesAvatar}>
-          <View style={styles.eyeAvatar}><View style={styles.pupilAvatar} /></View>
-          <View style={styles.eyeAvatar}><View style={styles.pupilAvatar} /></View>
-        </View>
-        <View style={styles.mouthAvatar} />
-      </View>
-      <View style={styles.bodyAvatar} />
-    </View>
-  );
-
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
@@ -783,7 +788,7 @@ const ModuleSelectionScreen = () => {
             {!isAddMode && (
               <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
                 <View style={styles.monsterAvatarContainer}>
-                  <MonsterAvatar />
+                  <MonsterIcon type={monsterType} size={80} />
                 </View>
                 <View style={styles.bubble}>
                   <View style={styles.bubbleTail} />

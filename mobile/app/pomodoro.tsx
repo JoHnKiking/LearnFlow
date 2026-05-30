@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, AppState, Alert,
+  View, Text, StyleSheet, TouchableOpacity, AppState, Alert, TextInput,
   AppStateStatus, Modal, Animated, Easing, Dimensions, Linking, BackHandler,
+  ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
@@ -10,6 +11,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Brightness from 'expo-brightness';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useTheme } from '../src/contexts/ThemeContext';
+import MonsterIcon from '../src/components/MonsterIcon';
+import { getCurrentUser } from '../src/utils/auth';
+import { monsterService } from '../src/services/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PROGRESS_SIZE = SCREEN_WIDTH * 0.55;
@@ -44,6 +48,29 @@ const PomodoroScreen = () => {
   const [showBrightness, setShowBrightness] = useState(false);
   const [brightness, setBrightness] = useState(0.5);
   const [rewards, setRewards] = useState({ stamina: 0, energy: 0 });
+
+  // 怪兽对话状态
+  const [showMonsterChat, setShowMonsterChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState<{ text: string; isUser: boolean }[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [energyInfo, setEnergyInfo] = useState<{ cost: number; remaining: number } | null>(null);
+  const [monsterType, setMonsterType] = useState<'lively' | 'calm' | 'rebel'>('lively');
+
+  // 加载怪兽类型
+  useEffect(() => {
+    (async () => {
+      try {
+        const user = await getCurrentUser();
+        if (!user?.id) return;
+        // 用与 monster 页相同的 API 实例获取怪兽数据
+        const res = await monsterService.getMonsterStatus(user.id);
+        if (res?.success && res.data?.personality) {
+          setMonsterType(res.data.personality);
+        }
+      } catch {}
+    })();
+  }, []);
 
   const completedRef = useRef(false);
   const exitedRef = useRef(false);
@@ -332,8 +359,8 @@ const PomodoroScreen = () => {
     headerTitle: { fontSize: 15, fontWeight: '600', color: colors.textSecondary, fontFamily: 'Courier' },
     headerNode: { fontSize: 12, color: colors.textTertiary, fontFamily: 'Courier', marginTop: 2 },
     brightnessBtn: {
-      width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
-      backgroundColor: colors.borderDark,
+      width: 36, height: 36, borderRadius: 4, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: colors.borderDark, borderWidth: 2, borderColor: colors.primary,
     },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     progressContainer: {
@@ -341,12 +368,23 @@ const PomodoroScreen = () => {
     },
     progressBg: {
       position: 'absolute', width: PROGRESS_SIZE, height: PROGRESS_SIZE,
-      borderRadius: PROGRESS_SIZE / 2, borderWidth: STROKE_WIDTH,
-      borderColor: colors.borderDark,
+      borderRadius: 8, borderWidth: STROKE_WIDTH,
+      borderColor: colors.primary,
+    },
+    timerBox: {
+      backgroundColor: colors.card,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderRadius: 12,
+      borderWidth: 3,
+      borderColor: colors.primary,
+      zIndex: 10,
     },
     timerText: {
-      fontSize: 56, fontWeight: '800', color: colors.textPrimary, fontFamily: 'Courier',
-      letterSpacing: 4,
+      fontSize: 40, fontWeight: '900', 
+      color: '#4F46E5',
+      fontFamily: 'Courier',
+      letterSpacing: 2,
     },
     timerSub: {
       fontSize: 14, color: colors.textSecondary, fontFamily: 'Courier', marginTop: 8,
@@ -359,11 +397,15 @@ const PomodoroScreen = () => {
       gap: 20, paddingVertical: 32, paddingHorizontal: 20,
     },
     ctrlBtn: {
-      width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center',
-      backgroundColor: colors.card, borderWidth: 1, borderColor: colors.borderDark,
+      width: 64, height: 64, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: colors.surface, borderWidth: 3, borderColor: colors.primary,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 0,
     },
     ctrlBtnCenter: {
-      width: 76, height: 76, borderRadius: 38,
+      width: 76, height: 76, borderRadius: 8,
     },
     ctrlLabel: {
       fontSize: 11, color: colors.textTertiary, fontFamily: 'Courier', marginTop: 6, textAlign: 'center',
@@ -372,22 +414,22 @@ const PomodoroScreen = () => {
     // 亮度滑块
     brightnessContainer: {
       position: 'absolute', bottom: 100, left: 40, right: 40,
-      backgroundColor: colors.card, borderRadius: 16, padding: 16,
-      borderWidth: 1, borderColor: colors.borderDark,
+      backgroundColor: colors.surface, borderRadius: 8, padding: 16,
+      borderWidth: 3, borderColor: colors.primary,
     },
     brightnessRow: {
       flexDirection: 'row', alignItems: 'center', gap: 12,
     },
     brightnessTrack: {
-      flex: 1, height: 6, backgroundColor: colors.borderDark, borderRadius: 3,
+      flex: 1, height: 8, backgroundColor: colors.borderDark, borderRadius: 0,
     },
     brightnessFill: {
-      height: '100%', borderRadius: 3, backgroundColor: colors.primary,
+      height: '100%', borderRadius: 0, backgroundColor: colors.primary,
     },
     brightnessHandle: {
-      position: 'absolute', top: -8, width: 22, height: 22, borderRadius: 11,
-      backgroundColor: colors.primary, borderWidth: 2, borderColor: colors.textPrimary,
-      left: '50%', marginLeft: -11, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4,
+      position: 'absolute', top: -8, width: 24, height: 24, borderRadius: 0,
+      backgroundColor: colors.primary, borderWidth: 3, borderColor: colors.textPrimary,
+      left: '50%', marginLeft: -12,
     },
     // 完成覆盖层
     completionOverlay: {
@@ -418,35 +460,35 @@ const PomodoroScreen = () => {
     },
     backBtn: {
       paddingHorizontal: 32, paddingVertical: 14, backgroundColor: colors.primary,
-      borderRadius: 16,
+      borderRadius: 8, borderWidth: 3, borderColor: colors.textPrimary,
     },
     backBtnText: {
-      color: colors.textPrimary, fontSize: 16, fontWeight: '700', fontFamily: 'Courier',
+      color: colors.textInverse, fontSize: 16, fontWeight: '700', fontFamily: 'Courier',
     },
     gotoBtn: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-      paddingHorizontal: 32, paddingVertical: 12, backgroundColor: '#6C63FF',
-      borderRadius: 16, marginBottom: 12,
+      paddingHorizontal: 32, paddingVertical: 12, backgroundColor: colors.primary,
+      borderRadius: 8, marginBottom: 12, borderWidth: 3, borderColor: colors.textPrimary,
     },
     gotoBtnText: {
-      color: '#FFFFFF', fontSize: 15, fontWeight: '600', fontFamily: 'Courier',
+      color: colors.textInverse, fontSize: 15, fontWeight: '600', fontFamily: 'Courier',
     },
     navLinkBtn: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-      paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12,
-      backgroundColor: 'rgba(108,99,255,0.1)', borderWidth: 1, borderColor: 'rgba(108,99,255,0.25)',
+      paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8,
+      backgroundColor: colors.surface, borderWidth: 3, borderColor: colors.primary,
       marginTop: 12,
     },
     navLinkText: {
-      fontSize: 14, color: '#6C63FF', fontWeight: '600', fontFamily: 'Courier',
+      fontSize: 14, color: colors.primary, fontWeight: '600', fontFamily: 'Courier',
     },
     // 确认弹窗
     confirmOverlay: {
       flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 40,
     },
     confirmCard: {
-      width: '100%', maxWidth: 320, backgroundColor: colors.card, borderRadius: 20,
-      padding: 24, borderWidth: 1, borderColor: colors.borderDark,
+      width: '100%', maxWidth: 320, backgroundColor: colors.surface, borderRadius: 8,
+      padding: 24, borderWidth: 3, borderColor: colors.primary,
       alignItems: 'center',
     },
     confirmTitle: {
@@ -465,25 +507,53 @@ const PomodoroScreen = () => {
       flexDirection: 'row', gap: 12, width: '100%',
     },
     confirmCancel: {
-      flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center',
-      backgroundColor: colors.borderDark,
+      flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center',
+      backgroundColor: colors.borderDark, borderWidth: 2, borderColor: colors.textSecondary,
     },
     confirmCancelText: {
       fontSize: 15, color: colors.textSecondary, fontWeight: '600', fontFamily: 'Courier',
     },
     confirmDanger: {
-      flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center',
-      backgroundColor: 'rgba(233,69,96,0.2)',
+      flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center',
+      backgroundColor: colors.error, borderWidth: 2, borderColor: colors.textPrimary,
     },
     confirmDangerText: {
-      fontSize: 15, color: colors.error, fontWeight: '600', fontFamily: 'Courier',
+      fontSize: 15, color: colors.textInverse, fontWeight: '600', fontFamily: 'Courier',
     },
     confirmPrimary: {
-      flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center',
-      backgroundColor: 'rgba(123,117,216,0.2)',
+      flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center',
+      backgroundColor: colors.primary, borderWidth: 2, borderColor: colors.textPrimary,
     },
     confirmPrimaryText: {
-      fontSize: 15, color: colors.primary, fontWeight: '600', fontFamily: 'Courier',
+      fontSize: 15, color: colors.textInverse, fontWeight: '600', fontFamily: 'Courier',
+    },
+    // 怪兽对话弹窗样式
+    chatOverlay: { flex: 1, justifyContent: 'flex-end' },
+    chatCard: {
+      borderTopLeftRadius: 20, borderTopRightRadius: 20,
+      paddingBottom: 20, overflow: 'hidden',
+    },
+    chatHeader: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      padding: 16, borderBottomWidth: 1,
+    },
+    chatTitle: { fontSize: 16, fontWeight: '700', fontFamily: 'Courier' },
+    chatBubble: {
+      maxWidth: '80%', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14, marginBottom: 8,
+    },
+    energyBar: {
+      marginHorizontal: 16, padding: 10, borderRadius: 10, alignItems: 'center', marginBottom: 8,
+    },
+    chatInputRow: {
+      flexDirection: 'row', alignItems: 'flex-end', gap: 8,
+      paddingHorizontal: 16, paddingTop: 8, borderTopWidth: 1,
+    },
+    chatTextInput: {
+      flex: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
+      fontSize: 13, fontFamily: 'Courier', maxHeight: 80,
+    },
+    chatSendBtn: {
+      width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
     },
   }), [colors]);
 
@@ -607,6 +677,32 @@ const PomodoroScreen = () => {
     </Modal>
   );
 
+  // 怪兽对话 —— 发送消息
+  const handleSendChat = async () => {
+    const text = chatInput.trim();
+    if (!text || isSending) return;
+    const user = await getCurrentUser();
+    if (!user?.id) { Alert.alert('提示', '请先登录'); return; }
+
+    setChatInput('');
+    setIsSending(true);
+    setChatMessages(prev => [...prev, { text, isUser: true }]);
+
+    try {
+      const res = await monsterService.chat({ userId: user.id, message: text });
+      if (res.success && res.data) {
+        setChatMessages(prev => [...prev, { text: res.data.message, isUser: false }]);
+        if (res.data.energyCost !== undefined) {
+          setEnergyInfo({ cost: res.data.energyCost, remaining: res.data.remainingEnergy ?? 0 });
+        }
+      }
+    } catch {
+      Alert.alert('发送失败', '网络似乎不太好～');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
@@ -617,7 +713,30 @@ const PomodoroScreen = () => {
             {nodeName ? <Text style={styles.headerNode}>{nodeName}</Text> : null}
           </View>
         </View>
-        <TouchableOpacity
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.borderLight, borderRadius: 16, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: colors.borderDark }}
+            onPress={async () => {
+              setShowMonsterChat(true);
+              setChatInput('');
+              setEnergyInfo(null);
+              // 加载历史消息
+              try {
+                const user = await getCurrentUser();
+                if (user?.id) {
+                  const res = await monsterService.getMessages(user.id);
+                  if (res.success && res.data?.messages) {
+                    setChatMessages(res.data.messages.map((m: any) => ({ text: m.message, isUser: m.isUser })));
+                  }
+                }
+              } catch {}
+            }}
+            activeOpacity={0.7}
+          >
+            <MonsterIcon type={monsterType} size={32} />
+            <Text style={{ color: colors.textPrimary, fontSize: 12, fontWeight: '600', fontFamily: 'Courier' }}>怪兽答疑</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
           style={styles.brightnessBtn}
           onPress={() => setShowBrightness(!showBrightness)}
           activeOpacity={0.7}
@@ -625,13 +744,15 @@ const PomodoroScreen = () => {
           <Ionicons name="sunny" size={18} color={showBrightness ? colors.warning : colors.textSecondary} />
         </TouchableOpacity>
       </View>
+      </View>
 
       {/* 计时区域 */}
       <View style={styles.center}>
         <View style={styles.progressContainer}>
           <View style={styles.progressBg} />
-          <Text style={styles.timerText}>{formatDisplay(timerSeconds)}</Text>
-          <Text style={styles.timerSub}>「{nodeName}」</Text>
+          <View style={styles.timerBox}>
+            <Text style={styles.timerText}>{formatDisplay(timerSeconds)}</Text>
+          </View>
           {isPaused && <Text style={styles.pausedHint}>⏸ 已暂停</Text>}
         </View>
         {url ? (
@@ -722,6 +843,58 @@ const PomodoroScreen = () => {
 
       {/* 退出强提醒弹窗 */}
       {renderExitModal()}
+
+      {/* 怪兽对话弹窗 */}
+      <Modal visible={showMonsterChat} transparent animationType="slide" onRequestClose={() => setShowMonsterChat(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <View style={[styles.chatOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+            <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowMonsterChat(false)} activeOpacity={1} />
+            <View style={[styles.chatCard, { backgroundColor: colors.card, flex: 0.8 }]}>
+              <View style={[styles.chatHeader, { borderColor: colors.borderDark }]}>
+                <Text style={[styles.chatTitle, { color: colors.textPrimary }]}>和小怪兽聊聊</Text>
+                <TouchableOpacity onPress={() => setShowMonsterChat(false)}>
+                  <Ionicons name="close" size={24} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={{ flex: 1, paddingHorizontal: 16, paddingTop: 12 }} contentContainerStyle={{ paddingBottom: 12 }}>
+                {chatMessages.length === 0 && (
+                  <Text style={{ color: colors.textTertiary, textAlign: 'center', marginTop: 20, fontFamily: 'Courier' }}>
+                    聊聊学习、吐槽烦恼、求安慰都行～
+                  </Text>
+                )}
+                {chatMessages.map((msg, i) => (
+                  <View key={i} style={[styles.chatBubble, {
+                    alignSelf: msg.isUser ? 'flex-end' : 'flex-start',
+                    backgroundColor: msg.isUser ? (colors.primary + '20') : colors.borderLight,
+                  }]}>
+                    <Text style={{ color: msg.isUser ? colors.primary : colors.textPrimary, fontSize: 13, fontFamily: 'Courier', lineHeight: 18 }}>{msg.text}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+              {energyInfo && (
+                <View style={[styles.energyBar, { backgroundColor: colors.borderLight }]}>
+                  <Text style={{ color: colors.textSecondary, fontSize: 11, fontFamily: 'Courier' }}>
+                    ⚡ 消耗 Π {energyInfo.cost} · 剩余 Π {energyInfo.remaining}
+                  </Text>
+                </View>
+              )}
+              <View style={[styles.chatInputRow, { borderColor: colors.borderDark }]}>
+                <TextInput
+                  style={[styles.chatTextInput, { color: colors.textPrimary, backgroundColor: colors.borderLight }]}
+                  placeholder="说点什么..."
+                  placeholderTextColor={colors.textTertiary}
+                  value={chatInput}
+                  onChangeText={setChatInput}
+                  multiline
+                />
+                <TouchableOpacity onPress={handleSendChat} disabled={isSending} style={[styles.chatSendBtn, { backgroundColor: colors.primary }]}>
+                  <Ionicons name="send" size={16} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 };
