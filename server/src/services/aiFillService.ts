@@ -1,6 +1,7 @@
 // ================================================================
 // AI Fill Service
 // 调用 DeepSeek API 为自定义模块自动生成学习内容
+// 降级策略：DeepSeek 不可用时返回友好提示，而非 500 错误
 // ================================================================
 
 import fs from 'fs';
@@ -9,6 +10,9 @@ import path from 'path';
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 const DEEPSEEK_MODEL = 'deepseek-chat';
 const REQUEST_TIMEOUT_MS = 15000;
+
+// 降级提示文案
+const FALLBACK_MESSAGE = '小怪兽繁忙，先学学已有领域吧~';
 
 // 从 key.json 读取 API Key
 let DEEPSEEK_API_KEY: string | null = null;
@@ -30,6 +34,9 @@ interface FillModuleResponse {
       link: string;
     }[];
   }[];
+  /** 降级标记：AI 不可用时为 true，前端应展示 fallbackMessage */
+  fallback?: boolean;
+  fallbackMessage?: string;
 }
 
 function buildPrompt(moduleName: string): string {
@@ -73,11 +80,23 @@ function buildPrompt(moduleName: string): string {
 - 直接输出JSON对象，不要包装在数组中`;
 }
 
+/** 返回降级响应（AI 不可用时） */
+function buildFallbackResponse(): FillModuleResponse {
+  return {
+    moduleDescription: '',
+    nodes: [],
+    fallback: true,
+    fallbackMessage: FALLBACK_MESSAGE,
+  };
+}
+
 export async function fillModule(moduleName: string): Promise<FillModuleResponse> {
   console.log(`[AIFillService] 开始为模块「${moduleName}」生成内容...`);
 
+  // 降级检查 1：API Key 缺失
   if (!DEEPSEEK_API_KEY) {
-    throw new Error('未找到 DeepSeek API Key，请检查 key.json 文件');
+    console.warn('[AIFillService] DeepSeek API Key 缺失，降级处理');
+    return buildFallbackResponse();
   }
 
   const controller = new AbortController();
@@ -101,17 +120,19 @@ export async function fillModule(moduleName: string): Promise<FillModuleResponse
 
     clearTimeout(timeoutId);
 
+    // 降级检查 2：API 返回非 200
     if (!response.ok) {
-      console.error(`[AIFillService] API 返回错误: ${response.status}`);
-      throw new Error(`AI 服务返回错误 (${response.status})`);
+      console.error(`[AIFillService] API 返回错误: ${response.status}，降级处理`);
+      return buildFallbackResponse();
     }
 
     const data = await response.json();
     const rawContent = data.choices?.[0]?.message?.content;
 
+    // 降级检查 3：返回内容为空
     if (!rawContent) {
-      console.error('[AIFillService] API 返回空内容');
-      throw new Error('AI 返回内容为空');
+      console.error('[AIFillService] API 返回空内容，降级处理');
+      return buildFallbackResponse();
     }
 
     console.log(`[AIFillService] 原始响应 (前200字): ${rawContent.substring(0, 200)}`);
@@ -128,32 +149,43 @@ export async function fillModule(moduleName: string): Promise<FillModuleResponse
     }
     cleaned = cleaned.trim();
 
-    const parsed: FillModuleResponse = JSON.parse(cleaned);
+    let parsed: FillModuleResponse;
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch {
+      // 降级检查 4：JSON 解析失败
+      console.error('[AIFillService] JSON 解析失败，降级处理');
+      return buildFallbackResponse();
+    }
 
     // 校验数据结构
     if (!parsed.moduleDescription || !Array.isArray(parsed.nodes)) {
-      throw new Error('AI 返回数据结构不完整：缺少 moduleDescription 或 nodes');
+      console.error('[AIFillService] 数据结构不完整，降级处理');
+      return buildFallbackResponse();
     }
 
     if (parsed.nodes.length < 3) {
-      throw new Error(`AI 返回的大结点数量不足：期望 3 个，实际 ${parsed.nodes.length} 个`);
+      console.error(`[AIFillService] 大结点数量不足 (${parsed.nodes.length}/3)，降级处理`);
+      return buildFallbackResponse();
     }
 
     for (let i = 0; i < 3; i++) {
       const node = parsed.nodes[i];
       if (!node.nodeName || !Array.isArray(node.subNodes)) {
-        throw new Error(`第 ${i + 1} 个大结点数据结构不完整`);
+        console.error(`[AIFillService] 第 ${i + 1} 个大结点数据不完整，降级处理`);
+        return buildFallbackResponse();
       }
       if (node.subNodes.length < 3) {
-        throw new Error(`大结点「${node.nodeName}」的小结点数量不足：期望 3 个，实际 ${node.subNodes.length} 个`);
+        console.error(`[AIFillService] 大结点「${node.nodeName}」小结点不足，降级处理`);
+        return buildFallbackResponse();
       }
       for (let j = 0; j < 3; j++) {
         const sub = node.subNodes[j];
         if (!sub.subName) {
-          throw new Error(`大结点「${node.nodeName}」的第 ${j + 1} 个小结点缺少名称`);
+          console.error('[AIFillService] 小结点缺名称，降级处理');
+          return buildFallbackResponse();
         }
         if (!sub.link || (!sub.link.startsWith('http://') && !sub.link.startsWith('https://'))) {
-          // 如果链接无效，给一个占位
           sub.link = `https://www.bilibili.com/search?keyword=${encodeURIComponent(sub.subName)}`;
         }
       }
@@ -163,15 +195,12 @@ export async function fillModule(moduleName: string): Promise<FillModuleResponse
     return parsed;
   } catch (error: any) {
     clearTimeout(timeoutId);
+    // 降级检查 5：超时或网络错误
     if (error.name === 'AbortError') {
-      console.error('[AIFillService] 请求超时');
-      throw new Error('AI 服务请求超时');
+      console.error('[AIFillService] 请求超时，降级处理');
+      return buildFallbackResponse();
     }
-    if (error instanceof SyntaxError) {
-      console.error('[AIFillService] JSON 解析失败:', error.message);
-      throw new Error('AI 返回数据格式异常');
-    }
-    console.error('[AIFillService] 生成失败:', error.message);
-    throw error;
+    console.error('[AIFillService] 生成失败，降级处理:', error.message);
+    return buildFallbackResponse();
   }
 }

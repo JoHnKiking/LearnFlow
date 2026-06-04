@@ -107,7 +107,7 @@ const MonsterSelectionScreen = () => {
         console.error('[MonsterSelection] 同步怪物到服务端失败:', error);
       }
 
-      router.replace('/module-selection');
+      router.replace('/identity-selection');
     }
   };
 

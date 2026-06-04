@@ -151,7 +151,7 @@ export class AuthController {
     }
   }
 
-  // 更新用户资料（头像等）
+  // 更新用户资料（头像/身份等）
   static async updateProfile(req: Request, res: Response) {
     try {
       // 从 Authorization header 中提取并验证 token
@@ -165,12 +165,20 @@ export class AuthController {
         return res.status(401).json({ success: false, error: '令牌无效' });
       }
 
-      const { avatar } = req.body;
-      if (!avatar) return res.status(400).json({ success: false, error: '缺少头像参数' });
+      const { avatar, identity } = req.body;
+      if (!avatar && !identity) {
+        return res.status(400).json({ success: false, error: '缺少更新参数' });
+      }
 
       const { DatabaseConnection } = await import('../config/database');
       const conn = await DatabaseConnection.getConnection();
-      await conn.execute('UPDATE users SET avatar_url = ? WHERE id = ?', [avatar, decoded.userId]);
+
+      if (avatar) {
+        await conn.execute('UPDATE users SET avatar_url = ? WHERE id = ?', [avatar, decoded.userId]);
+      }
+      if (identity && (identity === 'student' || identity === 'worker')) {
+        await conn.execute('UPDATE users SET identity = ? WHERE id = ?', [identity, decoded.userId]);
+      }
 
       res.json({ success: true, message: '更新成功' });
     } catch (error) {

@@ -8,6 +8,7 @@ export interface User {
   passwordHash?: string;
   nickname?: string;
   avatarUrl?: string;
+  identity?: 'student' | 'worker';
   lastLoginAt?: Date;
   loginCount: number;
   status: 'active' | 'inactive' | 'banned';

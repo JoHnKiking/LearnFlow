@@ -361,6 +361,24 @@ const MapScreen = () => {
       cardBg: isDark ? 'rgba(180,130,80,0.08)' : 'rgba(248,236,224,0.50)',
       category: '语言学习',
     },
+    'programming-basics': {
+      icon: 'code-slash' as const,
+      color: colors.primary,
+      cardBg: isDark ? 'rgba(123,117,216,0.10)' : 'rgba(90,84,160,0.12)',
+      category: '专业技能',
+    },
+    'finance-basics': {
+      icon: 'wallet' as const,
+      color: colors.success,
+      cardBg: isDark ? 'rgba(74,152,64,0.08)' : 'rgba(90,128,64,0.12)',
+      category: '生活技能',
+    },
+    'cet-exam': {
+      icon: 'school' as const,
+      color: colors.orange,
+      cardBg: isDark ? 'rgba(212,160,88,0.08)' : 'rgba(196,154,96,0.12)',
+      category: '语言学习',
+    },
   }), [colors, isDark]);
 
   const loadModules = useCallback(async () => {
@@ -374,6 +392,9 @@ const MapScreen = () => {
         'ai-product-manager': 'AI产品经理',
         'personal-finance': '个人理财',
         'english-communication': '英语沟通',
+        'programming-basics': '编程基础',
+        'finance-basics': '理财入门',
+        'cet-exam': '四六级过关',
       };
 
       if (selectedModules) {
@@ -439,12 +460,11 @@ const MapScreen = () => {
     }
     await AsyncStorage.multiRemove([`customStages_${moduleId}`, `customNodes_${moduleId}`]);
     try {
-      const token = await AsyncStorage.getItem('authToken');
-      await fetch(`http://10.200.132.186:3001/api/domains/${moduleId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-    } catch {}
+      const { domainService } = await import('../../src/services/api');
+      await domainService.deleteDomain(moduleId);
+    } catch (e) {
+      console.warn('[Map] 删除服务端领域失败:', e);
+    }
     setModules(prev => prev.filter(m => m.id !== moduleId));
   };
 

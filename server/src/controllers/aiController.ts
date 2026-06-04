@@ -4,6 +4,7 @@ import { fillModule } from '../services/aiFillService';
 /**
  * POST /api/ai/fill-module
  * AI 一键填充自定义模块内容
+ * 降级策略：DeepSeek 不可用时返回 fallback 标记 + 友好提示
  */
 export const fillModuleContent = async (req: Request, res: Response) => {
   const startTime = Date.now();
@@ -26,6 +27,17 @@ export const fillModuleContent = async (req: Request, res: Response) => {
     const result = await fillModule(trimmedName);
 
     const duration = Date.now() - startTime;
+
+    // 降级响应：AI 不可用，返回友好提示而非 500 错误
+    if (result.fallback) {
+      console.warn(`[AIController] AI 降级 - 模块: ${trimmedName}, 耗时: ${duration}ms`);
+      return res.json({
+        code: 200,
+        message: 'success',
+        data: result,
+      });
+    }
+
     console.log(`[AIController] AI 填充成功 - 模块: ${trimmedName}, 耗时: ${duration}ms`);
 
     return res.json({

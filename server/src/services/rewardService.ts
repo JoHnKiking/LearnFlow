@@ -1,6 +1,6 @@
 import * as RewardModel from '../models/Reward';
 
-export const createReward = async (userId: number, type: string, amount: number, source?: string) => {
+export const createReward = async (userId: number, type: 'stamina' | 'energy', amount: number, source?: string) => {
   console.log(`[RewardService] 创建奖励 - 用户ID: ${userId}, 类型: ${type}, 数量: ${amount}`);
   const rewardId = await RewardModel.createReward({
     userId,

@@ -3,7 +3,7 @@ import { pool } from '../config/database';
 export interface Reward {
   id: number;
   userId: number;
-  type: string;
+  type: 'stamina' | 'energy';
   amount: number;
   source?: string;
   claimed: boolean;
@@ -13,7 +13,7 @@ export interface Reward {
 
 export const createReward = async (rewardData: {
   userId: number;
-  type: string;
+  type: 'stamina' | 'energy';
   amount: number;
   source?: string;
 }): Promise<number> => {

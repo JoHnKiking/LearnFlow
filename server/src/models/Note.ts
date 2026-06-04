@@ -5,7 +5,6 @@ export interface Note {
   userId: number;
   date: Date;
   content?: string;
-  monsterComment?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -14,11 +13,10 @@ export const createNote = async (noteData: {
   userId: number;
   date: Date;
   content?: string;
-  monsterComment?: string;
 }): Promise<number> => {
   const [result] = await pool.execute(
-    'INSERT INTO notes (user_id, date, content, monster_comment) VALUES (?, ?, ?, ?)',
-    [noteData.userId, noteData.date, noteData.content || null, noteData.monsterComment || null]
+    'INSERT INTO notes (user_id, date, content) VALUES (?, ?, ?)',
+    [noteData.userId, noteData.date, noteData.content || null]
   );
   return (result as any).insertId;
 };
@@ -54,10 +52,6 @@ export const updateNote = async (
   if (updates.content !== undefined) {
     setClauses.push('content = ?');
     values.push(updates.content);
-  }
-  if (updates.monsterComment !== undefined) {
-    setClauses.push('monster_comment = ?');
-    values.push(updates.monsterComment);
   }
 
   if (setClauses.length > 0) {

@@ -85,7 +85,7 @@ export const updateNodeProgress = async (
     console.log(`[DomainService] 节点完成，发放奖励`);
     await RewardModel.createReward({
       userId,
-      type: 'exp',
+      type: 'energy',
       amount: 10,
       source: `完成节点: ${nodeId}`
     });

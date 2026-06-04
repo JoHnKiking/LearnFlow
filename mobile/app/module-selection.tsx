@@ -220,6 +220,8 @@ const ModuleSelectionScreen = () => {
     data: {
       moduleDescription: string;
       nodes: AIFillNode[];
+      fallback?: boolean;
+      fallbackMessage?: string;
     };
   }
 
@@ -249,6 +251,12 @@ const ModuleSelectionScreen = () => {
       }
 
       const result: AIFillResponse = await response.json();
+
+      // 降级处理：AI 不可用时返回友好提示
+      if (result.data?.fallback) {
+        Alert.alert('提示', result.data.fallbackMessage || '小怪兽繁忙，先学学已有领域吧~');
+        return;
+      }
 
       if (!result.data || !result.data.moduleDescription || !Array.isArray(result.data.nodes)) {
         throw new Error('数据解析异常，请重试');
