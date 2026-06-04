@@ -356,7 +356,7 @@ const MapScreen = () => {
         <View style={staticStyles.modulesGrid}>
           {modules.map((module, index) => {
             // 实时从 moduleConfigs 派生展示属性，不经过任何中间状态
-            const config = moduleConfigs[module.id];
+            const config = moduleConfigs[module.id as keyof typeof moduleConfigs];
             const paletteEntry = customPalette[index % customPalette.length];
             const icon = config?.icon ?? paletteEntry.icon;
             const color = config?.color ?? paletteEntry.color;

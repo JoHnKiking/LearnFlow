@@ -100,32 +100,12 @@ const buildSystemPrompt = (personality: MonsterPersonalityType): string => {
 const buildMessages = async (
   userId: number,
   personality: MonsterPersonalityType,
-  userMessage: string,
 ) => {
   const systemPrompt = buildSystemPrompt(personality);
   
-  // 获取最近 20 条历史消息作为上下文
   const history = await MonsterMessageModel.getMessagesByUserId(userId);
-  const recentHistory = history.slice(0, 20).reverse(); // 按时间正序
+  const recentHistory = history.slice(0, 20).reverse();
 
-  const messages: Array<{ role: string; content: string }> = [
-    { role: 'system', content: systemPrompt },
-  ];
-
-  // 加入历史对话
-  for (const msg of recentHistory) {
-    messages.push({
-      role: msg.isUser ? 'user' : 'assistant',
-      content: msg.message,
-    });
-  }
-
-  // 去掉刚才已经保存的用户消息（避免重复）
-  // 历史中最后一条是刚保存的用户消息，我们手动加入
-  // 去掉历史中最后一条 isUser 消息（因为我们已经手动 push 了）
-  // 实际上 createMessage 已经保存了用户消息，所以从历史中读到的最新一条就是它
-  // 我们先 push 历史，然后再 push 用户消息，所以会有重复
-  // 修复：不从历史中读取，直接构建
   return [
     { role: 'system', content: systemPrompt },
     ...recentHistory.map(msg => ({
@@ -339,7 +319,7 @@ export const chatWithMonster = async (userId: number, message: string) => {
   const personality: MonsterPersonalityType = monsterStatus?.personality || 'lively';
 
   // 3. 构建对话消息（含 system prompt + 历史上下文）
-  const messages = await buildMessages(userId, personality, message);
+  const messages = await buildMessages(userId, personality);
 
   // 4. 调用 DeepSeek API
   let response: string;

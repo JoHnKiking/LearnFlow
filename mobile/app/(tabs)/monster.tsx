@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal, KeyboardAvoidingView, Platform, FlatList, ActivityIndicator, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal, KeyboardAvoidingView, Platform, FlatList, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -111,6 +111,28 @@ const MonsterManageScreen = () => {
     borderColor: colors.borderDark,
     flexShrink: 0,
   },
+  monsterNameContainer: {
+    flex: 1,
+    gap: 4,
+  },
+  monsterType: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontFamily: 'Courier',
+  },
+  monsterLevelBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+    backgroundColor: colors.primary + '1A',
+  },
+  monsterLevelText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: '700',
+    fontFamily: 'Courier',
+  },
   monsterInfo: {
     flex: 1,
     justifyContent: 'center',
@@ -209,6 +231,15 @@ const MonsterManageScreen = () => {
     fontSize: 14,
     fontFamily: 'Courier',
     lineHeight: 20,
+  },
+  monsterStats: {
+    gap: 12,
+  },
+  statItem: {
+    gap: 6,
+  },
+  statBarContainer: {
+    gap: 4,
   },
   statsRow: {
     gap: 12,
@@ -655,7 +686,7 @@ const MonsterManageScreen = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('tasks');
   const [notes, setNotes] = useState('');
   const [savedNotes, setSavedNotes] = useState<any[]>([]);
-  const [showInfo, setShowInfo] = useState(false);
+  
   const [tasks, setTasks] = useState<any[]>([]);
   const [newTaskText, setNewTaskText] = useState('');
   const [selectedTime, setSelectedTime] = useState<typeof MONSTER_CONFIG.POMODORO.TIME_OPTIONS[number]>(MONSTER_CONFIG.POMODORO.TIME_OPTIONS[0]);
@@ -784,19 +815,6 @@ const MonsterManageScreen = () => {
     } catch (error) {
       console.warn('[Monster] 笔记同步服务端失败，仅本地存储:', error);
     }
-  };
-
-  const handlePlayGame = () => {
-    // 读取每日游戏次数上限（免费版 3 次，PRO 版见 MONSTER_CONFIG.GAME.PRO_DAILY_LIMIT）
-    const dailyGameLimit = MONSTER_CONFIG.GAME.DAILY_LIMIT;
-    if (dailyPlays >= dailyGameLimit) {
-      console.log('[Monster] 游戏次数已达上限:', dailyPlays);
-      Alert.alert('提示', '今日体力补充已达上限，明天再来吧');
-      return;
-    }
-
-    console.log('[Monster] 打开游戏弹窗，今日已玩:', dailyPlays);
-    setShowGameModal(true);
   };
 
   const handleGameComplete = async (rewards: { stamina: number; energy: number }) => {
@@ -1240,7 +1258,7 @@ const MonsterManageScreen = () => {
                     <Text style={styles.monsterLevelText}>Lv.{monsterData.level}</Text>
                   </View>
                 </View>
-                <TouchableOpacity onPress={() => setShowInfo(true)} style={styles.infoButton}>
+                <TouchableOpacity style={styles.infoButton}>
                   <Ionicons name="information-circle" size={20} color={colors.primary} />
                 </TouchableOpacity>
               </View>
