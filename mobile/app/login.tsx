@@ -15,20 +15,20 @@ const LoginScreen = () => {
   const { colors } = useTheme();
   const [loginType, setLoginType] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [activeFieldId, setActiveFieldId] = useState<string | null>(null);
 
   const handleSubmit = async () => {
-    console.log(`[Login] handleSubmit - 类型: ${loginType}, 邮箱: ${email}`);
-    if (loginType === 'register' && (!name || !email || !password)) {
+    console.log(`[Login] handleSubmit - 类型: ${loginType}, 手机号: ${phone}`);
+    if (loginType === 'register' && (!name || !phone || !password)) {
       Alert.alert('错误', '请填写完整信息');
       return;
     }
-    if (loginType === 'login' && (!email || !password)) {
-      Alert.alert('错误', '请输入邮箱和密码');
+    if (loginType === 'login' && (!phone || !password)) {
+      Alert.alert('错误', '请输入手机号和密码');
       return;
     }
 
@@ -40,13 +40,13 @@ const LoginScreen = () => {
         console.log('[Login] 开始注册 - 用户名:', name);
         authResponse = await authService.register({
           username: name,
-          email,
+          email: phone,
           password
         });
       } else {
-        console.log('[Login] 开始登录 - 邮箱:', email);
+        console.log('[Login] 开始登录 - 手机号:', phone);
         authResponse = await authService.login({
-          email,
+          email: phone,
           password,
           deviceId: 'mobile-device',
           type: 'email',
@@ -82,13 +82,13 @@ const LoginScreen = () => {
   const inputFields: InputFieldConfig[] = useMemo(() => {
     const fields: InputFieldConfig[] = [
       {
-        id: 'email',
-        label: '邮箱',
-        icon: 'mail',
-        value: email,
-        onChangeText: setEmail,
-        keyboardType: 'email-address',
-        placeholder: '请输入邮箱',
+        id: 'phone',
+        label: '手机号',
+        icon: 'phone-portrait',
+        value: phone,
+        onChangeText: setPhone,
+        keyboardType: 'phone-pad',
+        placeholder: '请输入手机号',
       },
       {
         id: 'password',
@@ -111,11 +111,7 @@ const LoginScreen = () => {
       });
     }
     return fields;
-  }, [loginType, email, password, name, showPassword]);
-
-  const handleRegister = () => {
-    router.push('/register');
-  };
+  }, [loginType, phone, password, name, showPassword]);
 
   const styles = useMemo(() => StyleSheet.create({
   container: {
@@ -143,8 +139,8 @@ const LoginScreen = () => {
     width: 256,
     height: 256,
     borderRadius: 128,
-    backgroundColor: colors.primary,
-    opacity: 0.1,
+    backgroundColor: '#D4A574',
+    opacity: 0.08,
   },
   gradientCircle2: {
     position: 'absolute',
@@ -153,8 +149,8 @@ const LoginScreen = () => {
     width: 192,
     height: 192,
     borderRadius: 96,
-    backgroundColor: colors.orange,
-    opacity: 0.08,
+    backgroundColor: '#C89070',
+    opacity: 0.06,
   },
   gradientCircle3: {
     position: 'absolute',
@@ -163,23 +159,23 @@ const LoginScreen = () => {
     width: 128,
     height: 128,
     borderRadius: 64,
-    backgroundColor: colors.success,
-    opacity: 0.06,
+    backgroundColor: '#D4A574',
+    opacity: 0.04,
   },
   logoSection: {
     alignItems: 'center',
-    paddingTop: 60,
-    paddingBottom: 40,
+    paddingTop: 48,
+    paddingBottom: 32,
   },
   logoContainer: {
     width: 80,
     height: 80,
-    borderRadius: 24,
-    backgroundColor: 'linear-gradient(135deg, #5D9BFA, #7B5EA7)',
+    borderRadius: 2,
+    backgroundColor: '#D4A574',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
-    shadowColor: colors.primary,
+    shadowColor: '#D4A574',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 32,
@@ -187,7 +183,7 @@ const LoginScreen = () => {
   },
   appTitle: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: '600',
     color: '#fff',
     marginBottom: 4,
     letterSpacing: -0.5,
@@ -202,23 +198,23 @@ const LoginScreen = () => {
   },
   tabSwitcher: {
     flexDirection: 'row',
-    backgroundColor: colors.backgroundDark,
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: 2,
     padding: 4,
   },
   tabButton: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 2,
     alignItems: 'center',
   },
   activeTabButton: {
-    backgroundColor: 'rgba(123,117,216,0.8)',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 3,
+    backgroundColor: '#D4A574',
+    shadowColor: '#D4A574',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 2,
   },
   tabText: {
     fontSize: 15,
@@ -227,7 +223,7 @@ const LoginScreen = () => {
   },
   activeTabText: {
     color: '#fff',
-    fontWeight: '700',
+    fontWeight: '600',
   },
   formContainer: {
     gap: 16,
@@ -236,10 +232,10 @@ const LoginScreen = () => {
     height: 56,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.backgroundDark,
+    backgroundColor: colors.inputBg,
     borderWidth: 1,
-    borderColor: 'rgba(123,117,216,0.2)',
-    borderRadius: 16,
+    borderColor: colors.inputBorder,
+    borderRadius: 10,
     paddingHorizontal: 16,
   },
   inputIcon: {
@@ -264,18 +260,18 @@ const LoginScreen = () => {
   },
   forgotPasswordText: {
     fontSize: 13,
-    color: colors.primary,
+    color: '#D4A574',
   },
   loginButton: {
     height: 56,
-    borderRadius: 16,
-    backgroundColor: 'rgba(123,117,216,0.8)',
+    borderRadius: 2,
+    backgroundColor: '#D4A574',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 24,
+    shadowColor: '#D4A574',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
     elevation: 5,
   },
   loginButtonDisabled: {
@@ -285,7 +281,7 @@ const LoginScreen = () => {
   loginButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   loadingSpinner: {
     width: 20,
@@ -294,79 +290,6 @@ const LoginScreen = () => {
     borderWidth: 2,
     borderColor: '#fff',
     borderTopColor: 'transparent',
-  },
-  wechatContainer: {
-    paddingVertical: 16,
-  },
-  wechatButton: {
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: colors.success,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: colors.success,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 24,
-    elevation: 5,
-  },
-  wechatButtonDisabled: {
-    backgroundColor: colors.border,
-    shadowOpacity: 0,
-  },
-  wechatButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 24,
-    gap: 12,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  dividerText: {
-    color: colors.textSecondary,
-    fontSize: 13,
-  },
-  socialContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 32,
-  },
-  socialButton: {
-    flex: 1,
-    height: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: colors.backgroundDark,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 16,
-  },
-  socialButtonText: {
-    fontSize: 13,
-    color: colors.textPrimary,
-  },
-  registerContainer: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  registerText: {
-    color: colors.textSecondary,
-    fontSize: 14,
-  },
-  registerLink: {
-    color: colors.primary,
-    fontWeight: '700',
-    marginLeft: 4,
   },
   termsText: {
     textAlign: 'center',
@@ -396,9 +319,6 @@ const LoginScreen = () => {
 
           {/* Logo 区域 */}
           <View style={styles.logoSection}>
-            <View style={styles.logoContainer}>
-              <Ionicons name="flash" size={36} color="#fff" />
-            </View>
             <Text style={styles.appTitle}>LearnFlow</Text>
             <Text style={styles.appSubtitle}>开启你的技能冒险之旅</Text>
           </View>
@@ -446,14 +366,14 @@ const LoginScreen = () => {
             <TouchableOpacity 
               style={styles.inputContainer}
               activeOpacity={0.7}
-              onPress={() => setActiveFieldId('email')}
+              onPress={() => setActiveFieldId('phone')}
             >
-              <Ionicons name="mail" size={20} color={colors.primary} style={styles.inputIcon} />
+              <Ionicons name="phone-portrait" size={20} color={colors.primary} style={styles.inputIcon} />
               <Text 
-                style={[styles.displayText, email ? { color: colors.textPrimary } : { color: colors.textSecondary }]}
+                style={[styles.displayText, phone ? { color: colors.textPrimary } : { color: colors.textSecondary }]}
                 numberOfLines={1}
               >
-                {email || '邮箱'}
+                {phone || '手机号'}
               </Text>
             </TouchableOpacity>
             
@@ -500,42 +420,6 @@ const LoginScreen = () => {
                 <Text style={styles.loginButtonText}>{loginType === 'login' ? '登录' : '创建账号'}</Text>
               )}
             </TouchableOpacity>
-          </View>
-
-          {/* 分割线 */}
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>或者</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          {/* 社交登录 */}
-          <View style={styles.socialContainer}>
-            {[
-              { name: 'Google', icon: 'logo-google', color: '#EA4335' },
-              { name: 'Apple', icon: 'logo-apple', color: '#ffffff' },
-              { name: '微信', icon: 'logo-wechat', color: '#3AE374' },
-            ].map((provider) => (
-              <TouchableOpacity
-                key={provider.name}
-                style={styles.socialButton}
-                onPress={() => {}}
-                activeOpacity={0.7}
-              >
-                <Ionicons name={provider.icon as any} size={20} color={provider.color} />
-                <Text style={styles.socialButtonText}>{provider.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* 注册链接 */}
-          <View style={styles.registerContainer}>
-            <Text style={styles.registerText}>
-              还没有账号？
-              <Text style={styles.registerLink} onPress={handleRegister}>
-                立即注册
-              </Text>
-            </Text>
           </View>
 
           {/* 底部条款 */}

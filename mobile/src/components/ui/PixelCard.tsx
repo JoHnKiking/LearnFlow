@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
-import { PIXEL_COLORS, PIXEL_BORDERS, SPACING } from '../../utils/constants';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface PixelCardProps {
   children: React.ReactNode;
@@ -13,73 +13,57 @@ const PixelCard: React.FC<PixelCardProps> = ({
   style,
   variant = 'default',
 }) => {
+  const { colors } = useTheme();
+
   const getCardColors = () => {
     switch (variant) {
       case 'highlight':
         return {
-          bg: PIXEL_COLORS.PIXEL_DARK_BLUE,
-          border: PIXEL_COLORS.PIXEL_CYAN,
-          shadow: PIXEL_COLORS.PIXEL_PURPLE,
+          bg: colors.cardAi,
+          border: colors.primary + '30',
         };
       case 'dark':
         return {
-          bg: PIXEL_COLORS.BACKGROUND,
-          border: PIXEL_COLORS.PIXEL_GRAY,
-          shadow: PIXEL_COLORS.BACKGROUND_LIGHT,
+          bg: colors.surface,
+          border: colors.hairline,
         };
       default:
         return {
-          bg: PIXEL_COLORS.BACKGROUND_LIGHT,
-          border: PIXEL_COLORS.PIXEL_GRAY,
-          shadow: PIXEL_COLORS.BACKGROUND,
+          bg: colors.surface,
+          border: colors.hairline,
         };
     }
   };
 
-  const colors = getCardColors();
+  const cardColors = getCardColors();
 
   return (
-    <View style={[styles.container, style]}>
-      <View
-        style={[
-          styles.shadowLayer,
-          {
-            backgroundColor: colors.shadow,
-          },
-        ]}
-      />
-      <View
-        style={[
-          styles.card,
-          {
-            backgroundColor: colors.bg,
-            borderColor: colors.border,
-          },
-        ]}
-      >
-        {children}
-      </View>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: cardColors.bg,
+          borderColor: cardColors.border,
+          shadowColor: colors.shadow,
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.04,
+          shadowRadius: 3,
+          elevation: 2,
+        },
+        style,
+      ]}
+    >
+      {children}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    position: 'relative',
-  },
-  shadowLayer: {
-    position: 'absolute',
-    bottom: -PIXEL_BORDERS.MEDIUM,
-    right: -PIXEL_BORDERS.MEDIUM,
-    width: '100%',
-    height: '100%',
-    zIndex: 0,
-  },
   card: {
-    position: 'relative',
-    borderWidth: PIXEL_BORDERS.MEDIUM,
-    padding: SPACING.LARGE,
-    zIndex: 1,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    overflow: 'hidden',
   },
 });
 

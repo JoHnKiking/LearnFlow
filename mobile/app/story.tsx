@@ -3,6 +3,10 @@ import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+<<<<<<< Updated upstream
+=======
+import MonsterIcon from '../src/components/MonsterIcon';
+>>>>>>> Stashed changes
 import { useTheme } from '../src/contexts/ThemeContext';
 
 const ROUTES = {
@@ -12,13 +16,13 @@ const ROUTES = {
 const STORY_FRAMES = [
   {
     title: '欢迎来到元气星',
-    text: '在这里，每只小怪兽都渴望成长',
-    subtext: '但成长需要不断收集知识能量 Π',
+    text: '你可以认领小怪兽陪伴你的学习',
+    subtext: '在这里，他们生存的重要资源是Π能量和体力',
   },
   {
-    title: '探索知识地图',
+    title: '一键生成学习路径',
     text: '解锁学习节点，跳转学习资源，完成冒险',
-    subtext: '完成指定时长的学习任务，就能收集珍贵的 Π 能量',
+    subtext: '完成不同时长的学习，会获得不同数量的 Π 能量',
   },
   {
     title: '体力与成长',
@@ -68,12 +72,13 @@ const useStoryAnimation = (totalFrames: number) => {
     slideAnimation,
     goToNextFrame,
     skipToSelection,
+    switchFrame,
   };
 };
 
 const StoryScreen = () => {
   const { colors } = useTheme();
-  const { currentFrame, slideAnimation, goToNextFrame, skipToSelection } = useStoryAnimation(STORY_FRAMES.length);
+  const { currentFrame, slideAnimation, goToNextFrame, skipToSelection, switchFrame } = useStoryAnimation(STORY_FRAMES.length);
   const currentStory = STORY_FRAMES[currentFrame];
   const isLastFrame = currentFrame === STORY_FRAMES.length - 1;
 
@@ -131,7 +136,20 @@ const StoryScreen = () => {
     skipText: {
       color: colors.textSecondary,
       fontSize: 14,
-      fontFamily: 'Courier',
+    },
+    backButton: {
+      position: 'absolute',
+      top: 48,
+      left: 24,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+      zIndex: 10,
     },
     storyContainer: {
       flex: 1,
@@ -154,8 +172,7 @@ const StoryScreen = () => {
     title: {
       color: colors.textPrimary,
       fontSize: 22,
-      fontWeight: '700',
-      fontFamily: 'Courier',
+      fontWeight: '600',
       lineHeight: 30,
       textAlign: 'center',
       marginBottom: 12,
@@ -163,15 +180,13 @@ const StoryScreen = () => {
     text: {
       color: colors.textPrimary,
       fontSize: 16,
-      fontFamily: 'Courier',
       lineHeight: 26,
       textAlign: 'center',
       marginBottom: 8,
     },
     subtext: {
-      color: colors.primary,
+      color: '#7AB0A0',
       fontSize: 14,
-      fontFamily: 'Courier',
       lineHeight: 22,
       textAlign: 'center',
     },
@@ -198,91 +213,84 @@ const StoryScreen = () => {
       justifyContent: 'center',
       gap: 8,
       paddingVertical: 16,
-      backgroundColor: colors.primary,
-      borderRadius: 16,
+      backgroundColor: '#D4A574',
+      borderRadius: 2,
       overflow: 'hidden',
-      shadowColor: colors.primary,
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.35,
-      shadowRadius: 24,
+      shadowColor: '#D4A574',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
       elevation: 5,
     },
     nextButtonText: {
       color: '#FFFFFF',
       fontSize: 16,
-      fontWeight: '700',
-      fontFamily: 'Courier',
+      fontWeight: '600',
     },
-    planet: {
-      width: 120,
-      height: 120,
-      position: 'absolute',
-      top: 20,
-      left: 30,
-    },
-    planetSurface: {
-      width: 120,
-      height: 120,
-      borderRadius: 60,
-      backgroundColor: colors.primary,
-    },
-    planetRing: {
-      position: 'absolute',
-      top: 50,
-      left: 0,
-      width: 120,
-      height: 20,
-      borderWidth: 4,
-      borderColor: 'rgba(255,255,255,0.3)',
-      borderRadius: 60,
-    },
-    monsterOverlay: {
-      position: 'absolute',
-      bottom: 10,
-      right: 10,
-    },
-    smallMonster: {
-      width: 48,
-      height: 48,
-    },
-    smallMonsterHead: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: colors.purple,
+    // ---- 欢迎页：三怪兽 + 像素泥土 ----
+    welcomeScene: {
+      width: 300,
+      height: 240,
+      alignItems: 'center',
+      justifyContent: 'flex-end',
       position: 'relative',
+      paddingBottom: 8,
     },
-    smallMonsterEyes: {
+    welcomeBgCircle: {
+      position: 'absolute',
+      width: 280,
+      height: 280,
+      borderRadius: 140,
+      backgroundColor: colors.decorCircle,
+      opacity: 0.12,
+      top: -30,
+    },
+    welcomeBgCircle2: {
+      position: 'absolute',
+      width: 100,
+      height: 100,
+      borderRadius: 50,
+      backgroundColor: colors.decorCircle,
+      opacity: 0.06,
+      bottom: 40,
+      right: 5,
+    },
+    monsterStage: {
+      alignItems: 'center',
+      zIndex: 2,
+    },
+    // 像素泥土
+    pixelGround: {
+      width: 260,
+      marginTop: 4,
+    },
+    soilRow: {
       flexDirection: 'row',
+      gap: 3,
+      marginBottom: 3,
+    },
+    soilPixel: {
+      width: 14,
+      height: 10,
+      borderRadius: 2,
+    },
+    // 怪兽排列 — 在泥土上方
+    monsterRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'center',
       gap: 8,
-      position: 'absolute',
-      top: 12,
-      left: 10,
+      marginBottom: 2,
     },
-    smallPupil: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-      backgroundColor: '#FFFFFF',
+    monsterSlot: {
+      alignItems: 'center',
+      justifyContent: 'center',
     },
-    smallSmile: {
-      position: 'absolute',
-      bottom: 12,
-      left: 16,
-      width: 16,
-      height: 6,
-      borderRadius: 4,
-      backgroundColor: '#FFFFFF',
-    },
-    piSymbol: {
-      position: 'absolute',
-      top: 10,
-      right: 20,
-    },
-    piText: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: '#FFD60A',
+    welcomeSubText: {
+      fontSize: 13,
+      color: colors.textTertiary,
+      marginTop: 10,
+      zIndex: 2,
     },
     mindMapContainer: {
       width: 200,
@@ -295,18 +303,18 @@ const StoryScreen = () => {
       width: 60,
       height: 60,
       borderRadius: 30,
-      backgroundColor: colors.primary,
+      backgroundColor: '#D4A574',
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 10,
-      shadowColor: colors.primary,
+      shadowColor: '#D4A574',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.5,
       shadowRadius: 12,
     },
     mindMapCenterText: {
       fontSize: 10,
-      fontWeight: '700',
+      fontWeight: '600',
       color: '#FFFFFF',
       textAlign: 'center',
       lineHeight: 14,
@@ -324,7 +332,7 @@ const StoryScreen = () => {
       left: '50%',
       width: 3,
       height: 40,
-      backgroundColor: 'rgba(123,117,216,0.4)',
+      backgroundColor: 'rgba(122,176,160,0.20)',
       transform: [{ translateX: -1.5 }],
     },
     connectionLineBottom: {
@@ -333,7 +341,7 @@ const StoryScreen = () => {
       left: '50%',
       width: 3,
       height: 40,
-      backgroundColor: 'rgba(123,117,216,0.4)',
+      backgroundColor: 'rgba(122,176,160,0.20)',
       transform: [{ translateX: -1.5 }],
     },
     connectionLineLeft: {
@@ -342,7 +350,7 @@ const StoryScreen = () => {
       top: '50%',
       width: 40,
       height: 3,
-      backgroundColor: 'rgba(123,117,216,0.4)',
+      backgroundColor: 'rgba(122,176,160,0.20)',
       transform: [{ translateY: -1.5 }],
     },
     connectionLineRight: {
@@ -351,7 +359,7 @@ const StoryScreen = () => {
       top: '50%',
       width: 40,
       height: 3,
-      backgroundColor: 'rgba(123,117,216,0.4)',
+      backgroundColor: 'rgba(122,176,160,0.20)',
       transform: [{ translateY: -1.5 }],
     },
     mindMapNodeTop: {
@@ -397,7 +405,7 @@ const StoryScreen = () => {
     },
     staminaLabel: {
       fontSize: 14,
-      fontWeight: '700',
+      fontWeight: '600',
       color: colors.textPrimary,
       marginBottom: 8,
     },
@@ -410,22 +418,22 @@ const StoryScreen = () => {
     },
     staminaBarFill: {
       height: '100%',
-      backgroundColor: colors.success,
+      backgroundColor: '#D4A574',
       borderRadius: 12,
       justifyContent: 'center',
       alignItems: 'center',
     },
     staminaValue: {
       fontSize: 12,
-      fontWeight: '700',
+      fontWeight: '600',
       color: '#FFFFFF',
     },
     gameButtonNew: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.purple,
-      borderRadius: 12,
+      backgroundColor: '#D4A574',
+      borderRadius: 2,
       paddingVertical: 12,
       paddingHorizontal: 16,
       marginTop: 20,
@@ -436,31 +444,52 @@ const StoryScreen = () => {
     },
     gameButtonText: {
       fontSize: 14,
-      fontWeight: '700',
+      fontWeight: '600',
       color: '#FFFFFF',
     },
   }), [colors]);
 
   const WelcomeFrame = () => (
-    <View style={styles.illustration}>
-      <View style={styles.planet}>
-        <View style={styles.planetSurface} />
-        <View style={styles.planetRing} />
-      </View>
-      <View style={styles.monsterOverlay}>
-        <View style={styles.smallMonster}>
-          <View style={styles.smallMonsterHead}>
-            <View style={styles.smallMonsterEyes}>
-              <View style={styles.smallPupil} />
-              <View style={styles.smallPupil} />
-            </View>
-            <View style={styles.smallSmile} />
+    <View style={styles.welcomeScene}>
+      {/* 装饰背景 */}
+      <View style={styles.welcomeBgCircle} />
+      <View style={styles.welcomeBgCircle2} />
+
+      <View style={styles.monsterStage}>
+        {/* 怪兽们 — 站在泥土上方 */}
+        <View style={styles.monsterRow}>
+          {/* 活力小怪 */}
+          <View style={styles.monsterSlot}>
+            <MonsterIcon type="calm" size={68} />
+          </View>
+          {/* 叛逆小怪 */}
+          <View style={styles.monsterSlot}>
+            <MonsterIcon type="rebel" size={64} />
+          </View>
+        </View>
+
+        {/* 像素泥土地面 — 怪兽脚下 */}
+        <View style={styles.pixelGround}>
+          <View style={[styles.soilRow, { justifyContent: 'flex-start', paddingLeft: 8 }]}>
+            {[...Array(14)].map((_, i) => (
+              <View key={`t-${i}`} style={[styles.soilPixel, { backgroundColor: i % 2 === 0 ? colors.primary : colors.accentGreen }]} />
+            ))}
+          </View>
+          <View style={styles.soilRow}>
+            {[...Array(16)].map((_, i) => (
+              <View key={`m-${i}`} style={[styles.soilPixel, { backgroundColor: i % 3 === 0 ? colors.primary : (i % 3 === 1 ? colors.success : colors.brandPurple) }]} />
+            ))}
+          </View>
+          <View style={[styles.soilRow, { justifyContent: 'flex-end', paddingRight: 6 }]}>
+            {[...Array(13)].map((_, i) => (
+              <View key={`b-${i}`} style={[styles.soilPixel, { backgroundColor: i % 2 === 0 ? colors.primary : colors.warning }]} />
+            ))}
           </View>
         </View>
       </View>
-      <View style={styles.piSymbol}>
-        <Text style={styles.piText}>Π</Text>
-      </View>
+
+      {/* 底部文字 */}
+      <Text style={styles.welcomeSubText}>三只小伙伴等你一起学习</Text>
     </View>
   );
 
@@ -478,7 +507,7 @@ const StoryScreen = () => {
       </View>
 
       <View style={styles.mindMapNodeTop}>
-        <Text style={styles.mindMapNodeEmoji}>📚</Text>
+        <Text style={styles.mindMapNodeEmoji}>🔗</Text>
         <Text style={styles.mindMapNodeLabel}>学习资源</Text>
       </View>
       <View style={styles.mindMapNodeBottom}>
@@ -486,8 +515,8 @@ const StoryScreen = () => {
         <Text style={styles.mindMapNodeLabel}>学习目标</Text>
       </View>
       <View style={styles.mindMapNodeLeft}>
-        <Text style={styles.mindMapNodeEmoji}>🧠</Text>
-        <Text style={styles.mindMapNodeLabel}>技能树</Text>
+        <Text style={styles.mindMapNodeEmoji}>🍅</Text>
+        <Text style={styles.mindMapNodeLabel}>番茄钟</Text>
       </View>
       <View style={styles.mindMapNodeRight}>
         <Text style={styles.mindMapNodeEmoji}>⭐</Text>
@@ -532,6 +561,17 @@ const StoryScreen = () => {
           <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
         </TouchableOpacity>
 
+        {/* 第2页起显示返回按钮 */}
+        {currentFrame > 0 && (
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => switchFrame(currentFrame - 1)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
+          </TouchableOpacity>
+        )}
+
         <View style={styles.storyContainer}>
           <Animated.View
             style={[styles.storyContent, animatedStyle]}
@@ -553,7 +593,7 @@ const StoryScreen = () => {
               style={[
                 styles.progressDot,
                 {
-                  backgroundColor: index === currentFrame ? colors.primary : colors.border,
+                  backgroundColor: index === currentFrame ? '#D4A574' : colors.border,
                   transform: [{ scale: index === currentFrame ? 1.5 : 1 }],
                 },
               ]}

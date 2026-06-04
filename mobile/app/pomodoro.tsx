@@ -329,8 +329,8 @@ const PomodoroScreen = () => {
     headerLeft: {
       flexDirection: 'row', alignItems: 'center', gap: 8,
     },
-    headerTitle: { fontSize: 15, fontWeight: '600', color: colors.textSecondary, fontFamily: 'Courier' },
-    headerNode: { fontSize: 12, color: colors.textTertiary, fontFamily: 'Courier', marginTop: 2 },
+    headerTitle: { fontSize: 15, fontWeight: '600', color: colors.textSecondary,  },
+    headerNode: { fontSize: 12, color: colors.textTertiary,  marginTop: 2 },
     brightnessBtn: {
       width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
       backgroundColor: colors.borderDark,
@@ -345,14 +345,21 @@ const PomodoroScreen = () => {
       borderColor: colors.borderDark,
     },
     timerText: {
+<<<<<<< Updated upstream
       fontSize: 56, fontWeight: '800', color: colors.textPrimary, fontFamily: 'Courier',
       letterSpacing: 4,
+=======
+      fontSize: 40, fontWeight: '900',
+      color: colors.textPrimary,
+      
+      letterSpacing: 2,
+>>>>>>> Stashed changes
     },
     timerSub: {
-      fontSize: 14, color: colors.textSecondary, fontFamily: 'Courier', marginTop: 8,
+      fontSize: 14, color: colors.textSecondary,  marginTop: 8,
     },
     pausedHint: {
-      fontSize: 13, color: colors.warning, fontFamily: 'Courier', marginTop: 4, opacity: 0.8,
+      fontSize: 13, color: colors.warning,  marginTop: 4, opacity: 0.8,
     },
     controls: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
@@ -366,7 +373,7 @@ const PomodoroScreen = () => {
       width: 76, height: 76, borderRadius: 38,
     },
     ctrlLabel: {
-      fontSize: 11, color: colors.textTertiary, fontFamily: 'Courier', marginTop: 6, textAlign: 'center',
+      fontSize: 11, color: colors.textTertiary,  marginTop: 6, textAlign: 'center',
     },
     ctrlWrapper: { alignItems: 'center' },
     // 亮度滑块
@@ -399,11 +406,11 @@ const PomodoroScreen = () => {
     },
     completeIcon: { fontSize: 64, marginBottom: 20 },
     completeTitle: {
-      fontSize: 32, fontWeight: '800', color: colors.warning, fontFamily: 'Courier',
+      fontSize: 32, fontWeight: '600', color: colors.warning, 
       marginBottom: 8,
     },
     completeSub: {
-      fontSize: 16, color: colors.textSecondary, fontFamily: 'Courier',
+      fontSize: 16, color: colors.textSecondary, 
       marginBottom: 32, textAlign: 'center',
     },
     rewardsContainer: {
@@ -411,17 +418,21 @@ const PomodoroScreen = () => {
     },
     rewardItem: { alignItems: 'center' },
     rewardValue: {
-      fontSize: 28, fontWeight: '800', color: colors.warning, fontFamily: 'Courier',
+      fontSize: 28, fontWeight: '600', color: colors.warning, 
     },
     rewardLabel: {
-      fontSize: 14, color: colors.textSecondary, fontFamily: 'Courier', marginTop: 4,
+      fontSize: 14, color: colors.textSecondary,  marginTop: 4,
     },
     backBtn: {
       paddingHorizontal: 32, paddingVertical: 14, backgroundColor: colors.primary,
       borderRadius: 16,
     },
     backBtnText: {
+<<<<<<< Updated upstream
       color: colors.textPrimary, fontSize: 16, fontWeight: '700', fontFamily: 'Courier',
+=======
+      color: colors.textInverse, fontSize: 16, fontWeight: '600', 
+>>>>>>> Stashed changes
     },
     gotoBtn: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -429,7 +440,11 @@ const PomodoroScreen = () => {
       borderRadius: 16, marginBottom: 12,
     },
     gotoBtnText: {
+<<<<<<< Updated upstream
       color: '#FFFFFF', fontSize: 15, fontWeight: '600', fontFamily: 'Courier',
+=======
+      color: colors.textInverse, fontSize: 15, fontWeight: '600', 
+>>>>>>> Stashed changes
     },
     navLinkBtn: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -438,7 +453,11 @@ const PomodoroScreen = () => {
       marginTop: 12,
     },
     navLinkText: {
+<<<<<<< Updated upstream
       fontSize: 14, color: '#6C63FF', fontWeight: '600', fontFamily: 'Courier',
+=======
+      fontSize: 14, color: colors.primary, fontWeight: '600', 
+>>>>>>> Stashed changes
     },
     // 确认弹窗
     confirmOverlay: {
@@ -450,15 +469,15 @@ const PomodoroScreen = () => {
       alignItems: 'center',
     },
     confirmTitle: {
-      fontSize: 18, fontWeight: '700', color: colors.textPrimary, fontFamily: 'Courier',
+      fontSize: 18, fontWeight: '600', color: colors.textPrimary, 
       marginBottom: 8,
     },
     confirmMsg: {
-      fontSize: 14, color: colors.textSecondary, fontFamily: 'Courier',
+      fontSize: 14, color: colors.textSecondary, 
       textAlign: 'center', marginBottom: 24, lineHeight: 20,
     },
     confirmMsgNote: {
-      fontSize: 13, color: colors.textTertiary, fontFamily: 'Courier',
+      fontSize: 13, color: colors.textTertiary, 
       textAlign: 'center', marginBottom: 24, lineHeight: 18,
     },
     confirmRow: {
@@ -469,21 +488,57 @@ const PomodoroScreen = () => {
       backgroundColor: colors.borderDark,
     },
     confirmCancelText: {
-      fontSize: 15, color: colors.textSecondary, fontWeight: '600', fontFamily: 'Courier',
+      fontSize: 15, color: colors.textSecondary, fontWeight: '600', 
     },
     confirmDanger: {
       flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center',
       backgroundColor: 'rgba(233,69,96,0.2)',
     },
     confirmDangerText: {
+<<<<<<< Updated upstream
       fontSize: 15, color: colors.error, fontWeight: '600', fontFamily: 'Courier',
+=======
+      fontSize: 15, color: colors.textInverse, fontWeight: '600', 
+>>>>>>> Stashed changes
     },
     confirmPrimary: {
       flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center',
       backgroundColor: 'rgba(123,117,216,0.2)',
     },
     confirmPrimaryText: {
+<<<<<<< Updated upstream
       fontSize: 15, color: colors.primary, fontWeight: '600', fontFamily: 'Courier',
+=======
+      fontSize: 15, color: colors.textInverse, fontWeight: '600', 
+    },
+    // 怪兽对话弹窗样式
+    chatOverlay: { flex: 1, backgroundColor: colors.background },
+    chatCard: {
+      flex: 1, borderRadius: 0,
+      paddingBottom: 20, overflow: 'hidden',
+    },
+    chatHeader: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      padding: 16, borderBottomWidth: 1,
+    },
+    chatTitle: { fontSize: 16, fontWeight: '600',  },
+    chatBubble: {
+      maxWidth: '80%', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14, marginBottom: 8,
+    },
+    energyBar: {
+      marginHorizontal: 16, padding: 10, borderRadius: 10, alignItems: 'center', marginBottom: 8,
+    },
+    chatInputRow: {
+      flexDirection: 'row', alignItems: 'flex-end', gap: 8,
+      paddingHorizontal: 16, paddingTop: 8, borderTopWidth: 1,
+    },
+    chatTextInput: {
+      flex: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
+      fontSize: 13,  maxHeight: 80,
+    },
+    chatSendBtn: {
+      width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
+>>>>>>> Stashed changes
     },
   }), [colors]);
 
@@ -617,7 +672,34 @@ const PomodoroScreen = () => {
             {nodeName ? <Text style={styles.headerNode}>{nodeName}</Text> : null}
           </View>
         </View>
+<<<<<<< Updated upstream
         <TouchableOpacity
+=======
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.borderLight, borderRadius: 16, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: colors.borderDark }}
+            onPress={async () => {
+              setShowMonsterChat(true);
+              setChatInput('');
+              setEnergyInfo(null);
+              // 加载历史消息
+              try {
+                const user = await getCurrentUser();
+                if (user?.id) {
+                  const res = await monsterService.getMessages(user.id);
+                  if (res.success && res.data?.messages) {
+                    setChatMessages(res.data.messages.map((m: any) => ({ text: m.message, isUser: m.isUser })));
+                  }
+                }
+              } catch {}
+            }}
+            activeOpacity={0.7}
+          >
+            <MonsterIcon type={monsterType} size={32} />
+            <Text style={{ color: colors.textPrimary, fontSize: 12, fontWeight: '600',  }}>怪兽答疑</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+>>>>>>> Stashed changes
           style={styles.brightnessBtn}
           onPress={() => setShowBrightness(!showBrightness)}
           activeOpacity={0.7}
@@ -722,6 +804,60 @@ const PomodoroScreen = () => {
 
       {/* 退出强提醒弹窗 */}
       {renderExitModal()}
+<<<<<<< Updated upstream
+=======
+
+      {/* 怪兽对话弹窗 */}
+      <Modal visible={showMonsterChat} animationType="slide" onRequestClose={() => setShowMonsterChat(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <View style={styles.chatOverlay}>
+            <View style={[styles.chatCard, { backgroundColor: colors.card }]}>
+              <View style={[styles.chatHeader, { borderColor: colors.borderDark }]}>
+                <Text style={[styles.chatTitle, { color: colors.textPrimary }]}>和小怪兽聊聊</Text>
+                <TouchableOpacity onPress={() => setShowMonsterChat(false)}>
+                  <Ionicons name="close" size={24} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={{ flex: 1, paddingHorizontal: 16, paddingTop: 12 }} contentContainerStyle={{ paddingBottom: 12 }}>
+                {chatMessages.length === 0 && (
+                  <Text style={{ color: colors.textTertiary, textAlign: 'center', marginTop: 20,  }}>
+                    聊聊学习、吐槽烦恼、求安慰都行～
+                  </Text>
+                )}
+                {chatMessages.map((msg, i) => (
+                  <View key={i} style={[styles.chatBubble, {
+                    alignSelf: msg.isUser ? 'flex-end' : 'flex-start',
+                    backgroundColor: msg.isUser ? (colors.primary + '20') : colors.borderLight,
+                  }]}>
+                    <Text style={{ color: msg.isUser ? colors.primary : colors.textPrimary, fontSize: 13,  lineHeight: 18 }}>{msg.text}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+              {energyInfo && (
+                <View style={[styles.energyBar, { backgroundColor: colors.borderLight }]}>
+                  <Text style={{ color: colors.textSecondary, fontSize: 11,  }}>
+                    ⚡ 消耗 Π {energyInfo.cost} · 剩余 Π {energyInfo.remaining}
+                  </Text>
+                </View>
+              )}
+              <View style={[styles.chatInputRow, { borderColor: colors.borderDark }]}>
+                <TextInput
+                  style={[styles.chatTextInput, { color: colors.textPrimary, backgroundColor: colors.borderLight }]}
+                  placeholder="说点什么..."
+                  placeholderTextColor={colors.textTertiary}
+                  value={chatInput}
+                  onChangeText={setChatInput}
+                  multiline
+                />
+                <TouchableOpacity onPress={handleSendChat} disabled={isSending} style={[styles.chatSendBtn, { backgroundColor: colors.primary }]}>
+                  <Ionicons name="send" size={16} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+>>>>>>> Stashed changes
     </SafeAreaView>
   );
 };

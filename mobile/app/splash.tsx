@@ -93,6 +93,18 @@ const SplashScreen = () => {
     width: 120,
     height: 120,
   },
+  planetRing: {
+    position: 'absolute',
+    width: 160,
+    height: 40,
+    borderRadius: 80,
+    borderWidth: 3,
+    borderColor: colors.decorCircle,
+    opacity: 0.4,
+    top: 42,
+    left: -20,
+    transform: [{ rotateX: '60deg' }],
+  },
   planetBody: {
     position: 'relative',
     width: 72,
@@ -114,15 +126,15 @@ const SplashScreen = () => {
   title: {
     color: colors.textPrimary,
     fontSize: 32,
-    fontWeight: '800',
+    fontWeight: '600',
     letterSpacing: -0.5,
-    fontFamily: 'Courier',
+    
     marginBottom: 8,
   },
   subtitle: {
     color: colors.primary,
     fontSize: 16,
-    fontFamily: 'Courier',
+    
     letterSpacing: 2,
   },
   dotsContainer: {
@@ -208,6 +220,8 @@ const SplashScreen = () => {
 
 const PixelPlanet = () => (
   <View style={styles.planet}>
+    {/* 星球环 — 超过星球本体 */}
+    <View style={styles.planetRing} />
     <View style={styles.planetBody}>
       <View style={[styles.planetLayer, { top: 0, left: 8, width: 56, height: 8 }]} />
       <View style={[styles.planetLayer, { top: 8, left: 0, width: 72, height: 56 }]} />

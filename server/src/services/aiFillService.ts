@@ -32,12 +32,17 @@ interface FillModuleResponse {
   }[];
 }
 
-function buildPrompt(moduleName: string): string {
+function buildPrompt(moduleName: string, moduleDescription: string): string {
   return `你是一个学习内容规划专家。
-请为学习模块《${moduleName}》生成以下内容，严格按照JSON格式返回，不要包含任何额外解释、markdown代码块标记或注释：
+
+用户已定义了一个学习模块，信息如下：
+- 模块名称：${moduleName}
+- 模块介绍：${moduleDescription}
+
+请你严格基于以上模块名称和模块介绍，规划具体的学习内容。输出的 moduleDescription 必须紧扣用户的模块介绍进行扩写（50~120字），不得偏离。严格按照以下JSON结构返回，不要包含任何额外解释、markdown代码块标记或注释：
 
 {
-  "moduleDescription": "模块介绍（50~120字）",
+  "moduleDescription": "基于用户模块介绍扩写的完整介绍（50~120字）",
   "nodes": [
     {
       "nodeName": "大结点1名称",
@@ -68,12 +73,26 @@ function buildPrompt(moduleName: string): string {
 
 要求：
 - 共3个大结点，每个大结点下3个小结点
+- 大结点和小结点的内容必须与"${moduleName}"和"${moduleDescription}"紧密相关
 - 每个小结点需提供真实、有学习价值的URL链接
-- 模块介绍与学习地图现有默认模块风格对齐
 - 直接输出JSON对象，不要包装在数组中`;
 }
 
+<<<<<<< Updated upstream
 export async function fillModule(moduleName: string): Promise<FillModuleResponse> {
+=======
+/** 返回降级响应（AI 不可用时） */
+function buildFallbackResponse(): FillModuleResponse {
+  return {
+    moduleDescription: '',
+    nodes: [],
+    fallback: true,
+    fallbackMessage: FALLBACK_MESSAGE,
+  };
+}
+
+export async function fillModule(moduleName: string, moduleDescription: string): Promise<FillModuleResponse> {
+>>>>>>> Stashed changes
   console.log(`[AIFillService] 开始为模块「${moduleName}」生成内容...`);
 
   if (!DEEPSEEK_API_KEY) {
@@ -92,7 +111,7 @@ export async function fillModule(moduleName: string): Promise<FillModuleResponse
       },
       body: JSON.stringify({
         model: DEEPSEEK_MODEL,
-        messages: [{ role: 'user', content: buildPrompt(moduleName) }],
+        messages: [{ role: 'user', content: buildPrompt(moduleName, moduleDescription) }],
         temperature: 0.7,
         max_tokens: 2000,
       }),
