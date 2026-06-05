@@ -125,10 +125,7 @@ const MapScreen = () => {
         if (user?.id) {
           const status = await proService.getStatus(user.id);
           setIsPro(status.isPro);
-          return;
         }
-        const subStr = await AsyncStorage.getItem(SUBSCRIPTION_STORAGE_KEY);
-        if (subStr) setIsPro(!!JSON.parse(subStr).isPro);
       } catch {}
     })();
   }, []);
@@ -247,26 +244,38 @@ const MapScreen = () => {
   };
 
   const handleModuleLongPress = async (moduleId: string, moduleName: string) => {
-    const stored = await AsyncStorage.getItem('selectedModules');
-    if (stored) {
-      const selected = JSON.parse(stored) as string[];
-      const updated = selected.filter((id: string) => id !== moduleId);
-      await AsyncStorage.setItem('selectedModules', JSON.stringify(updated));
-    }
-    const cm = await AsyncStorage.getItem('customModules');
-    if (cm) {
-      const parsed = JSON.parse(cm);
-      delete parsed[moduleId];
-      await AsyncStorage.setItem('customModules', JSON.stringify(parsed));
-    }
-    await AsyncStorage.multiRemove([`customStages_${moduleId}`, `customNodes_${moduleId}`]);
-    try {
-      const { domainService } = await import('../../src/services/api');
-      await domainService.deleteDomain(moduleId);
-    } catch (e) {
-      console.warn('[Map] 删除服务端领域失败:', e);
-    }
-    setModules(prev => prev.filter(m => m.id !== moduleId));
+    Alert.alert(
+      '删除模块',
+      `确定要删除「${moduleName}」吗？\n学习进度将被清除。`,
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '删除', style: 'destructive',
+          onPress: async () => {
+            const stored = await AsyncStorage.getItem('selectedModules');
+            if (stored) {
+              const selected = JSON.parse(stored) as string[];
+              const updated = selected.filter((id: string) => id !== moduleId);
+              await AsyncStorage.setItem('selectedModules', JSON.stringify(updated));
+            }
+            const cm = await AsyncStorage.getItem('customModules');
+            if (cm) {
+              const parsed = JSON.parse(cm);
+              delete parsed[moduleId];
+              await AsyncStorage.setItem('customModules', JSON.stringify(parsed));
+            }
+            await AsyncStorage.multiRemove([`customStages_${moduleId}`, `customNodes_${moduleId}`]);
+            try {
+              const { domainService } = await import('../../src/services/api');
+              await domainService.deleteDomain(moduleId);
+            } catch (e) {
+              console.warn('[Map] 删除服务端领域失败:', e);
+            }
+            setModules(prev => prev.filter(m => m.id !== moduleId));
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -320,7 +329,7 @@ const MapScreen = () => {
                   { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 2 },
                 ]}
                 onPress={() => handleModulePress(module.id)}
-                onLongPress={module.isCustom ? () => handleModuleLongPress(module.id, module.name) : undefined}
+                onLongPress={() => handleModuleLongPress(module.id, module.name)}
                 activeOpacity={0.8}
               >
                 {isDark && <View style={[staticStyles.darkGlow, { backgroundColor: color + '10' }]} />}

@@ -380,15 +380,12 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ visible, onClose,
               </View>
               <Text style={s.summaryContact}>
                 请通过以下方式联系获取激活码：{'\n'}
-                QQ：2067567633 / 微信：JohnKiKing
+                QQ：971117427 / 微信：lw971117427
+                QQ：2067567633 / 微信：wzy936490679
               </Text>
             </View>
 
             <View style={s.activateSection}>
-              <Text style={s.activateHint}>
-                付款后请将<Text style={s.activateHintBold}>支付截图</Text>发送给我，
-                我会将激活码发送给你
-              </Text>
 
               <View style={s.codeInputWrap}>
                 <TextInput

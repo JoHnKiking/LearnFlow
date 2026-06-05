@@ -159,38 +159,18 @@ const ModuleSelectionScreen = () => {
     }
   };
 
-  // ---- Pro 检测 ----
+  // ---- Pro 检测（以数据库 is_pro 字段为准） ----
   const [isPro, setIsPro] = useState(false);
 
   useEffect(() => {
     const checkPro = async () => {
       try {
-        // 先查服务端（以数据库为准）
         const user = await getCurrentUser();
         if (user?.id) {
           const proStatus = await proService.getStatus(user.id);
-          if (proStatus.isPro) {
-            setIsPro(true);
-            await AsyncStorage.setItem(SUBSCRIPTION_STORAGE_KEY, JSON.stringify(proStatus));
-            return;
-          }
+          setIsPro(proStatus.isPro);
         }
-        // 服务端不可用时降级到本地缓存
-        const subStr = await AsyncStorage.getItem(SUBSCRIPTION_STORAGE_KEY);
-        if (subStr) {
-          const sub = JSON.parse(subStr);
-          setIsPro(!!sub.isPro);
-        }
-      } catch {
-        // 网络失败时用本地缓存
-        try {
-          const subStr = await AsyncStorage.getItem(SUBSCRIPTION_STORAGE_KEY);
-          if (subStr) {
-            const sub = JSON.parse(subStr);
-            setIsPro(!!sub.isPro);
-          }
-        } catch {}
-      }
+      } catch {}
     };
     checkPro();
   }, []);

@@ -48,7 +48,12 @@ export const getAuthData = async (): Promise<AuthResponse | null> => {
 export const clearAuthData = async (): Promise<void> => {
   try {
     delete memoryStorage[AUTH_STORAGE_KEY];
-    console.log('[Auth] 认证信息从内存清除成功');
+    // 同时清除 Pro 缓存，防止其他用户登录后复用旧的 Pro 状态
+    try {
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      await AsyncStorage.removeItem('user_subscription');
+    } catch {}
+    console.log('[Auth] 认证信息和 Pro 缓存已清除');
   } catch (error) {
     console.error('清除认证信息失败:', error);
   }

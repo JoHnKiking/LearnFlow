@@ -57,7 +57,7 @@ const SkillTreeScreen = () => {
   const { colors } = useTheme();
   const [isPro, setIsPro] = useState(false);
 
-  // 加载 Pro 状态
+  // 加载 Pro 状态（以数据库 is_pro 字段为准）
   useEffect(() => {
     (async () => {
       try {
@@ -65,17 +65,8 @@ const SkillTreeScreen = () => {
         if (user?.id) {
           const status = await proService.getStatus(user.id);
           setIsPro(status.isPro);
-          if (status.isPro) await AsyncStorage.setItem(SUBSCRIPTION_STORAGE_KEY, JSON.stringify(status));
-          return;
         }
-        const subStr = await AsyncStorage.getItem(SUBSCRIPTION_STORAGE_KEY);
-        if (subStr) setIsPro(!!JSON.parse(subStr).isPro);
-      } catch {
-        try {
-          const subStr = await AsyncStorage.getItem(SUBSCRIPTION_STORAGE_KEY);
-          if (subStr) setIsPro(!!JSON.parse(subStr).isPro);
-        } catch {}
-      }
+      } catch {}
     })();
   }, []);
 

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal, KeyboardAvoidingView, Platform, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal, KeyboardAvoidingView, Platform, FlatList, ActivityIndicator, Keyboard } from 'react-native';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -268,6 +268,7 @@ const MonsterManageScreen = () => {
   const [chatMessages, setChatMessages] = useState<MonsterMessageItem[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [showChatInput, setShowChatInput] = useState(false);
   const [isPro, setIsPro] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
@@ -284,26 +285,15 @@ const MonsterManageScreen = () => {
     checkProStatus();
   }, []);
 
-  // 检查 Pro 状态
+  // 检查 Pro 状态（以数据库 is_pro 字段为准）
   const checkProStatus = async () => {
     try {
       const user = await getCurrentUser();
       if (user?.id) {
         const status = await proService.getStatus(user.id);
         setIsPro(status.isPro);
-        if (status.isPro) {
-          await AsyncStorage.setItem(SUBSCRIPTION_STORAGE_KEY, JSON.stringify(status));
-        }
       }
-    } catch {
-      // 服务端不可用时降级
-      try {
-        const subStr = await AsyncStorage.getItem(SUBSCRIPTION_STORAGE_KEY);
-        if (subStr) {
-          setIsPro(!!JSON.parse(subStr).isPro);
-        }
-      } catch {}
-    }
+    } catch {}
   };
 
   const pomodoroTimeLeft = selectedTime * 60;
@@ -583,6 +573,10 @@ const MonsterManageScreen = () => {
     }
   };
 
+  const handleInputBarPress = () => {
+    setShowChatInput(true);
+  };
+
   if (!monsterData) {
     return (
       <SafeAreaView style={[staticStyles.safeArea, dynamicStyles.container]} edges={['top']}>
@@ -736,13 +730,43 @@ const MonsterManageScreen = () => {
     </View>
   );
 
-  const renderChatTab = () => (
+  const renderChatTab = () => {
+    // 非 Pro 用户：显示升级提示
+    if (!isPro) {
+      return (
+        <View style={{ flex: 1 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.hairline, backgroundColor: colors.surface }}>
+            <TouchableOpacity
+              onPress={() => setActiveTab('tasks')}
+              style={{ width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.borderLight }}
+            >
+              <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
+            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 12 }}>
+              <MonsterIcon type={monsterData.type} size={28} />
+              <Text style={{ color: colors.textPrimary, fontSize: 16, fontWeight: '600' }}>{monsterData.name}</Text>
+            </View>
+          </View>
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+            <MonsterIcon type={monsterData.type} size={80} />
+            <Text style={[dynamicStyles.chatTitle, { marginTop: 16 }]}>对话功能即将开放</Text>
+            <Text style={[dynamicStyles.chatDescription, { marginTop: 8 }]}>与 {monsterData.name} 聊天，获得学习建议和鼓励</Text>
+            <TouchableOpacity style={[staticStyles.proBadge, dynamicStyles.proBadge, { marginTop: 20 }]} onPress={() => setShowProModal(true)}>
+              <Text style={dynamicStyles.proText}>升级 Pro 解锁更多功能</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
+
+    // Pro 用户：完整聊天界面
+    return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      {/* 聊天头部：返回按钮 + 怪兽名称 */}
+      {/* 聊天头部 */}
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.hairline, backgroundColor: colors.surface }}>
         <TouchableOpacity
           onPress={() => setActiveTab('tasks')}
@@ -801,33 +825,59 @@ const MonsterManageScreen = () => {
           </View>
         )}
       />
-      <View style={[staticStyles.chatInputBar, dynamicStyles.chatInputBar]}>
-        <TextInput
-          style={[staticStyles.chatTextInput, dynamicStyles.chatTextInput]}
-          value={chatInput}
-          onChangeText={setChatInput}
-          placeholder={`和 ${monsterData.name} 说点什么...`}
-          placeholderTextColor={colors.textTertiary}
-          multiline
-          maxLength={500}
-          returnKeyType="send"
-          onSubmitEditing={sendMessage}
-          editable={!isSending}
-        />
-        <TouchableOpacity
-          style={[staticStyles.sendButton, dynamicStyles.sendButton, (!chatInput.trim() || isSending) && staticStyles.sendButtonDisabled]}
-          onPress={sendMessage}
-          disabled={!chatInput.trim() || isSending}
-        >
-          {isSending ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Ionicons name="send" size={18} color="#FFFFFF" />
-          )}
+      {/* 临时输入栏：点击后弹出浮动输入框 */}
+      <TouchableOpacity
+        style={[staticStyles.chatInputBar, dynamicStyles.chatInputBar]}
+        onPress={() => handleInputBarPress()}
+        activeOpacity={0.8}
+      >
+        <Text style={{ flex: 1, color: colors.textTertiary, fontSize: 14 }}>
+          {chatInput || `和 ${monsterData.name} 说点什么...`}
+        </Text>
+        <View style={[staticStyles.sendButton, dynamicStyles.sendButton, !chatInput.trim() && staticStyles.sendButtonDisabled]}>
+          <Ionicons name="send" size={18} color="#FFFFFF" />
+        </View>
+      </TouchableOpacity>
+
+      {/* 浮动输入模态 */}
+      <Modal visible={showChatInput} transparent animationType="fade" onRequestClose={() => { setShowChatInput(false); Keyboard.dismiss(); }}>
+        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' }} activeOpacity={1} onPress={() => { setShowChatInput(false); Keyboard.dismiss(); }}>
+          <View style={{ flex: 1, justifyContent: 'flex-end' }} pointerEvents="box-none">
+            <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+              <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}>
+                <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 24, borderTopWidth: 1, borderColor: colors.hairline }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 10 }}>
+                    <TextInput
+                      style={[staticStyles.chatTextInput, dynamicStyles.chatTextInput, { flex: 1, maxHeight: 120 }]}
+                      value={chatInput}
+                      onChangeText={setChatInput}
+                      placeholder={`和 ${monsterData.name} 说点什么...`}
+                      placeholderTextColor={colors.textTertiary}
+                      multiline
+                      maxLength={500}
+                      autoFocus
+                    />
+                    <TouchableOpacity
+                      style={[staticStyles.sendButton, dynamicStyles.sendButton, (!chatInput.trim() || isSending) && staticStyles.sendButtonDisabled, { marginBottom: 4 }]}
+                      onPress={() => { sendMessage(); setShowChatInput(false); Keyboard.dismiss(); }}
+                      disabled={!chatInput.trim() || isSending}
+                    >
+                      {isSending ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
+                        <Ionicons name="send" size={18} color="#FFFFFF" />
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </KeyboardAvoidingView>
+            </TouchableOpacity>
+          </View>
         </TouchableOpacity>
-      </View>
+      </Modal>
     </KeyboardAvoidingView>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={[staticStyles.safeArea, dynamicStyles.container]} edges={['top']}>
