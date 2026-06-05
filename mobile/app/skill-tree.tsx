@@ -47,186 +47,325 @@ interface CustomNode {
   duration: number; // 预估学习时长（小时）
 }
 
-// ---- 工具函数（模块级，不依赖主题） ----
-
-// ===================== 子组件：大标题结点 =====================
-
-/**
- * StageNode — 展示一个大标题（阶段），显示名称和总时长
- * 如果 isCustom 为 true，长按可触发删除
- */
-const StageNode: React.FC<{
-  name: string; duration: number;
-  stageColor: { bg: string; border: string; text: string };
-  onLongPress?: () => void; onEdit?: () => void;
-  isCustom?: boolean;
-}> = ({ name, duration, stageColor, onLongPress, onEdit, isCustom }) => (
-  <TouchableOpacity
-    onLongPress={onLongPress}
-    onPress={isCustom ? onEdit : undefined}
-    disabled={!isCustom}
-    activeOpacity={isCustom ? 0.6 : 1}
-  >
-    <View style={[s.stageNode, { backgroundColor: stageColor.bg, borderColor: stageColor.border }]}>
-      <View style={s.stageNodeRow}>
-        <Text style={[s.stageName, { color: stageColor.text }]}>{name}</Text>
-        {isCustom && <Ionicons name="create-outline" size={10} color={stageColor.text} style={{ marginLeft: 4 }} />}
-      </View>
-      <Text style={s.stageDuration}>{duration}小时</Text>
-    </View>
-  </TouchableOpacity>
-);
-
-// ===================== 子组件：学习结点卡片 =====================
-
-/**
- * SkillNodeItem — 展示一个学习结点，包含序号、平台图标、名称、链接、时长
- * 点击触发 onSelect → 弹出 DurationModal
- * 长按 / 编辑按钮触发 onEdit → 弹出编辑表单
- */
-const SkillNodeItem: React.FC<{
-  name: string; platform: PlatformType; duration: number; url: string;
-  index: number; stageColor: { bg: string; border: string; text: string };
-  platformIcon: string; platformColor: string;
-  onSelect: (name: string, url: string, suggestedDuration: number) => void;
-  onLongPress?: () => void; onEdit?: () => void;
-  isCustom?: boolean;
-}> = ({ name, platform, duration, url, index, stageColor, platformIcon, platformColor, onSelect, onLongPress, onEdit, isCustom }) => (
-    <TouchableOpacity
-      style={[s.skillNode, { borderColor: stageColor.border }]}
-      onPress={() => onSelect(name, url, duration)}
-      onLongPress={onLongPress}
-      activeOpacity={0.7}
-    >
-      <View style={s.skillNodeHeader}>
-        <View style={[s.nodeBadge, { backgroundColor: stageColor.border }]}>
-          <Text style={[s.nodeBadgeText, { color: stageColor.text }]}>{index + 1}</Text>
-        </View>
-        <Ionicons name={platformIcon as any} size={14} color={platformColor} />
-        {isCustom && (
-          <TouchableOpacity onPress={onEdit} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="create-outline" size={12} color="#888" />
-          </TouchableOpacity>
-        )}
-      </View>
-      <Text style={[s.skillNodeName, { color: stageColor.text }]}>{name}</Text>
-      <View style={s.skillNodeFooter}>
-        <Text style={[s.platformText, { color: platformColor }]}>
-          {PLATFORM_NAME_MAP[platform] ?? platform}
-        </Text>
-        <Text style={s.durationText}>{duration}h</Text>
-      </View>
-      <View style={s.arrowIcon}>
-        <Ionicons name="chevron-forward" size={14} color={stageColor.text} />
-      </View>
-    </TouchableOpacity>
-  );
-
-// ===================== 模态框：选择学习时长 =====================
-
-const DurationModal: React.FC<{
-  visible: boolean; onClose: () => void;
-  nodeName: string; url: string; suggestedDuration: number;
-  colors: any;
-}> = ({ visible, onClose, nodeName, url, suggestedDuration, colors }) => {
-  const [selectedDuration, setSelectedDuration] = useState(25);
-  const [monsterStamina, setMonsterStamina] = useState(100);
-  const [maxStamina, setMaxStamina] = useState(100);
-
-  useEffect(() => {
-    if (!visible) return;
-    setSelectedDuration(25);
-    const loadStamina = async () => {
-      const monster = await AsyncStorage.getItem('monster');
-      if (monster) {
-        const data = JSON.parse(monster);
-        setMonsterStamina(typeof data.stamina === 'number' ? data.stamina : 100);
-        setMaxStamina(data.type === 'calm' ? 120 : 100);
-      }
-    };
-    loadStamina();
-  }, [visible]);
-
-  const durations = [15, 25, 30, 45, 60];
-  const staminaCost = Math.ceil(selectedDuration / 5);
-
-  const handleConfirm = async () => {
-    if (monsterStamina < staminaCost) {
-      Alert.alert('体力不足', `需要 ${staminaCost} 点体力，当前体力 ${monsterStamina} 点`);
-      return;
-    }
-    console.log('[DurationModal] 确认开始学习', { nodeName, url, selectedDuration, staminaCost });
-    try {
-      const monster = await AsyncStorage.getItem('monster');
-      if (monster) {
-        const m = JSON.parse(monster);
-        m.stamina = Math.max(0, m.stamina - staminaCost);
-        await AsyncStorage.setItem('monster', JSON.stringify(m));
-      }
-      const user = await getCurrentUser();
-      if (user?.id) await monsterService.consumeStamina(user.id, staminaCost).catch(() => {});
-
-      onClose();
-      router.push({
-        pathname: '/pomodoro',
-        params: { nodeName, url, duration: String(selectedDuration) },
-      });
-    } catch {
-      Alert.alert('错误', '操作失败');
-    }
-  };
-
-  if (!visible) return null;
-  return (
-    <Modal visible transparent onRequestClose={onClose} animationType="fade">
-      <TouchableOpacity style={s.overlayLight} onPress={onClose} activeOpacity={1}>
-        <View style={[s.modalCard, { backgroundColor: colors.backgroundDark || colors.background, borderColor: colors.borderDark }]} onStartShouldSetResponder={() => true}>
-          <View style={s.modalHeader}>
-            <Text style={s.modalTitle}>开始学习</Text>
-            <TouchableOpacity style={[s.modalClose, { backgroundColor: colors.border }]} onPress={onClose}>
-              <Ionicons name="close" size={20} color="#888" />
-            </TouchableOpacity>
-          </View>
-          <Text style={s.modalNodeName}>{nodeName}</Text>
-          <View style={s.staminaInfo}>
-            <View style={s.staminaBar}>
-              <View style={[s.staminaFill, { width: `${Math.min(100, (monsterStamina / maxStamina) * 100)}%`, backgroundColor: colors.success }]} />
-            </View>
-            <Text style={[s.staminaText, { color: colors.textSecondary }]}>体力: {monsterStamina}/{maxStamina}</Text>
-          </View>
-          <Text style={s.modalSubtitle}>选择学习时长</Text>
-          <View style={s.durationOptions}>
-            {durations.map(d => (
-              <TouchableOpacity
-                key={d}
-                onPress={() => setSelectedDuration(d)}
-                style={[s.durationButton, selectedDuration === d && { borderColor: colors.primary },
-                  { backgroundColor: selectedDuration === d ? colors.primary : colors.backgroundDark || colors.background },
-                ]}>
-                <Text style={[s.durationTextSmall, selectedDuration === d && s.durationTextActive]}>{d}分钟</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <View style={s.costInfo}>
-            <Text style={s.costText}>预计消耗体力: {staminaCost} 点</Text>
-            <Text style={[s.suggestedText, { color: colors.textSecondary }]}>建议学习时长: {suggestedDuration}小时</Text>
-          </View>
-          <TouchableOpacity style={[s.modalConfirmBtn, { backgroundColor: colors.primary }]} onPress={handleConfirm}>
-            <Text style={s.modalConfirmText}>开始学习</Text>
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
-    </Modal>
-  );
-};
-
 // ===================== 主组件 =====================
 
 const SkillTreeScreen = () => {
   const { domain } = useLocalSearchParams();
   const { colors } = useTheme();
 
-  // ---- 平台选项常量（使用主题颜色） ----
+  // ---- 样式表（依赖 colors） ----
+  const s = useMemo(() => StyleSheet.create({
+  safeArea: { flex: 1 },
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  loadingText: { fontSize: 14, marginTop: 12 },
+  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
+  emptyBtn: {
+    paddingVertical: 10, paddingHorizontal: 20, borderRadius: 12,
+    borderWidth: 1, borderStyle: 'dashed',
+  },
+  emptyBtnText: { fontSize: 13, fontWeight: '600' },
+  scrollContent: { flexGrow: 1, paddingBottom: 20 },
+  // 顶部栏
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingVertical: 16,
+  },
+  backBtnRect: {
+    width: 40, height: 40, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  backArrow: { fontSize: 24, color: '#FFFFFF', fontWeight: 'bold' },
+  headerTitle: { fontSize: 18, fontWeight: '600' },
+  headerPlaceholder: { width: 40 },
+  // 描述区
+  descriptionSection: { paddingHorizontal: 20, marginBottom: 20 },
+  descriptionTitle: { fontSize: 14, fontWeight: '600', marginTop: 16, marginBottom: 8 },
+  descriptionText: { fontSize: 13, lineHeight: 20 },
+  // 时长徽章
+  totalDurationBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 8,
+    borderRadius: 10, marginHorizontal: 20, marginBottom: 20, alignSelf: 'center',
+  },
+  totalDurationText: { fontSize: 12, fontWeight: '600' },
+  // 技能树容器
+  treeContainer: { paddingHorizontal: 16 },
+  stageColumn: { marginBottom: 20 },
+  middleStage: { marginTop: 20 },
+  // 大标题
+  stageNode: {
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10,
+    borderWidth: 1, alignItems: 'center', marginBottom: 12,
+  },
+  stageNodeRow: { flexDirection: 'row', alignItems: 'center' },
+  stageName: { fontSize: 12, fontWeight: '600', marginBottom: 2 },
+  stageDuration: { fontSize: 10, color: '#888' },
+  // 结点列表
+  skillNodesList: { gap: 8 },
+  skillNode: {
+    backgroundColor: colors.surface, borderWidth: 1,
+    borderRadius: 14, padding: 12, position: 'relative',
+    borderColor: colors.hairline,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  skillNodeHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  nodeBadge: {
+    width: 20, height: 20, borderRadius: 6,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  nodeBadgeText: { fontSize: 10, fontWeight: '600' },
+  skillNodeName: { fontSize: 13, fontWeight: '600', marginBottom: 8, lineHeight: 16 },
+  skillNodeFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  platformText: { fontSize: 10, fontWeight: '500' },
+  durationText: { fontSize: 10, color: '#888', fontWeight: '500' },
+  arrowIcon: { position: 'absolute', right: 12, bottom: 12 },
+  // 添加结点按钮
+  addNodeBtn: {
+    alignItems: 'center', justifyContent: 'center', paddingVertical: 10,
+    borderRadius: 10, borderWidth: 1, borderStyle: 'dashed', marginTop: 4,
+  },
+  addNodeText: { fontSize: 12, fontWeight: '600' },
+  // 添加大标题按钮
+  addStageBtn: {
+    alignItems: 'center', justifyContent: 'center', marginHorizontal: 16,
+    paddingVertical: 14, borderRadius: 14, borderWidth: 1, borderStyle: 'dashed', marginTop: 8,
+  },
+  addStageText: { fontSize: 14, fontWeight: '600' },
+  // 返回按钮（空状态用）
+  backBtn: {
+    marginTop: 24, paddingVertical: 10, paddingHorizontal: 24,
+    borderRadius: 14,
+  },
+  // 输入框通用
+  addInput: {
+    borderWidth: 1, borderRadius: 10, paddingHorizontal: 14,
+    paddingVertical: 12, fontSize: 14, marginBottom: 12,
+  },
+  addLabel: { fontSize: 12, fontWeight: '600', marginBottom: 6 },
+  // 平台选择
+  platformSelector: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  platformOption: {
+    width: '30%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 4, paddingVertical: 10, borderRadius: 10, borderWidth: 1,
+  },
+  platformOptionText: { fontSize: 11, fontWeight: '600' },
+  bottomPadding: { height: 40 },
+  // 模态框通用
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center', padding: 20 },
+  modalContent: { width: '100%', borderRadius: 16, padding: 24, backgroundColor: colors.surface },
+  // 卡片式弹出（学习时长选择用）
+  overlayLight: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  modalCard: {
+    width: '100%', maxWidth: 380, borderRadius: 16, padding: 24,
+    borderWidth: 1, borderColor: colors.hairline,
+    backgroundColor: colors.surface,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  modalTitle: { fontSize: 20, fontWeight: '600' },
+  modalClose: {
+    width: 32, height: 32, borderRadius: 8,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  modalNodeName: { fontSize: 16, fontWeight: '600', color: '#E2E0DF', marginBottom: 16 },
+  // 体力信息
+  staminaInfo: { marginBottom: 16 },
+  staminaBar: { height: 6, backgroundColor: colors.progressTrack, borderRadius: 9999, overflow: 'hidden', marginBottom: 8 },
+  staminaFill: { height: '100%', borderRadius: 9999 },
+  staminaText: { fontSize: 12, color: '#B6B2B8' },
+  modalSubtitle: { fontSize: 14, fontWeight: '600', color: '#E2E0DF', marginBottom: 12 },
+  // 时长选项
+  durationOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
+  durationButton: {
+    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10,
+    borderWidth: 1, borderColor: colors.hairline,
+  },
+  durationButtonActive: {},
+  durationTextSmall: { fontSize: 12, color: '#888' },
+  durationTextActive: { color: '#FFFFFF' },
+  costInfo: { marginBottom: 20 },
+  costText: { fontSize: 12, color: '#C4A27A', marginBottom: 4 },
+  suggestedText: { fontSize: 12, color: '#8A86A0' },
+  modalConfirmBtn: { paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
+  modalConfirmText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
+  // Toast
+  toast: {
+    position: 'absolute', bottom: 40, left: 20, right: 20,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: colors.surface, paddingVertical: 12, paddingHorizontal: 20, borderRadius: 14,
+    borderWidth: 1, borderColor: colors.hairline,
+  },
+  toastText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
+  }), [colors]);
+
+  // ===================== 子组件：大标题结点 =====================
+
+  const StageNode = ({ name, duration, stageColor, onLongPress, onEdit, isCustom }: {
+    name: string; duration: number;
+    stageColor: { bg: string; border: string; text: string };
+    onLongPress?: () => void; onEdit?: () => void;
+    isCustom?: boolean;
+  }) => (
+    <TouchableOpacity
+      onLongPress={onLongPress}
+      onPress={isCustom ? onEdit : undefined}
+      disabled={!isCustom}
+      activeOpacity={isCustom ? 0.6 : 1}
+    >
+      <View style={[s.stageNode, { backgroundColor: stageColor.bg, borderColor: stageColor.border }]}>
+        <View style={s.stageNodeRow}>
+          <Text style={[s.stageName, { color: stageColor.text }]}>{name}</Text>
+          {isCustom && <Ionicons name="create-outline" size={10} color={stageColor.text} style={{ marginLeft: 4 }} />}
+        </View>
+        <Text style={s.stageDuration}>{duration}小时</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  // ===================== 子组件：学习结点卡片 =====================
+
+  const SkillNodeItem = ({ name, platform, duration, url, index, stageColor, platformIcon, platformColor, onSelect, onLongPress, onEdit, isCustom }: {
+    name: string; platform: PlatformType; duration: number; url: string;
+    index: number; stageColor: { bg: string; border: string; text: string };
+    platformIcon: string; platformColor: string;
+    onSelect: (name: string, url: string, suggestedDuration: number) => void;
+    onLongPress?: () => void; onEdit?: () => void;
+    isCustom?: boolean;
+  }) => (
+      <TouchableOpacity
+        style={[s.skillNode, { borderColor: stageColor.border }]}
+        onPress={() => onSelect(name, url, duration)}
+        onLongPress={onLongPress}
+        activeOpacity={0.7}
+      >
+        <View style={s.skillNodeHeader}>
+          <View style={[s.nodeBadge, { backgroundColor: stageColor.border }]}>
+            <Text style={[s.nodeBadgeText, { color: stageColor.text }]}>{index + 1}</Text>
+          </View>
+          <Ionicons name={platformIcon as any} size={14} color={platformColor} />
+          {isCustom && (
+            <TouchableOpacity onPress={onEdit} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="create-outline" size={12} color="#888" />
+            </TouchableOpacity>
+          )}
+        </View>
+        <Text style={[s.skillNodeName, { color: stageColor.text }]}>{name}</Text>
+        <View style={s.skillNodeFooter}>
+          <Text style={[s.platformText, { color: platformColor }]}>
+            {PLATFORM_NAME_MAP[platform] ?? platform}
+          </Text>
+          <Text style={s.durationText}>{duration}h</Text>
+        </View>
+        <View style={s.arrowIcon}>
+          <Ionicons name="chevron-forward" size={14} color={stageColor.text} />
+        </View>
+      </TouchableOpacity>
+    );
+
+  // ===================== 模态框：选择学习时长 =====================
+
+  const DurationModal = ({ visible, onClose, nodeName, url, suggestedDuration }: {
+    visible: boolean; onClose: () => void;
+    nodeName: string; url: string; suggestedDuration: number;
+  }) => {
+    const [selectedDuration, setSelectedDuration] = useState(25);
+    const [monsterStamina, setMonsterStamina] = useState(100);
+    const [maxStamina, setMaxStamina] = useState(100);
+
+    useEffect(() => {
+      if (!visible) return;
+      setSelectedDuration(25);
+      const loadStamina = async () => {
+        const monster = await AsyncStorage.getItem('monster');
+        if (monster) {
+          const data = JSON.parse(monster);
+          setMonsterStamina(typeof data.stamina === 'number' ? data.stamina : 100);
+          setMaxStamina(data.type === 'calm' ? 120 : 100);
+        }
+      };
+      loadStamina();
+    }, [visible]);
+
+    const durations = [15, 25, 30, 45, 60];
+    const staminaCost = Math.ceil(selectedDuration / 5);
+
+    const handleConfirm = async () => {
+      if (monsterStamina < staminaCost) {
+        Alert.alert('体力不足', `需要 ${staminaCost} 点体力，当前体力 ${monsterStamina} 点`);
+        return;
+      }
+      console.log('[DurationModal] 确认开始学习', { nodeName, url, selectedDuration, staminaCost });
+      try {
+        const monster = await AsyncStorage.getItem('monster');
+        if (monster) {
+          const m = JSON.parse(monster);
+          m.stamina = Math.max(0, m.stamina - staminaCost);
+          await AsyncStorage.setItem('monster', JSON.stringify(m));
+        }
+        const user = await getCurrentUser();
+        if (user?.id) await monsterService.consumeStamina(user.id, staminaCost).catch(() => {});
+
+        onClose();
+        router.push({
+          pathname: '/pomodoro',
+          params: { nodeName, url, duration: String(selectedDuration) },
+        });
+      } catch {
+        Alert.alert('错误', '操作失败');
+      }
+    };
+
+    if (!visible) return null;
+    return (
+      <Modal visible transparent onRequestClose={onClose} animationType="fade">
+        <TouchableOpacity style={s.overlayLight} onPress={onClose} activeOpacity={1}>
+          <View style={[s.modalCard, { backgroundColor: colors.backgroundDark || colors.background, borderColor: colors.borderDark }]} onStartShouldSetResponder={() => true}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>开始学习</Text>
+              <TouchableOpacity style={[s.modalClose, { backgroundColor: colors.border }]} onPress={onClose}>
+                <Ionicons name="close" size={20} color="#888" />
+              </TouchableOpacity>
+            </View>
+            <Text style={s.modalNodeName}>{nodeName}</Text>
+            <View style={s.staminaInfo}>
+              <View style={s.staminaBar}>
+                <View style={[s.staminaFill, { width: `${Math.min(100, (monsterStamina / maxStamina) * 100)}%`, backgroundColor: colors.success }]} />
+              </View>
+              <Text style={[s.staminaText, { color: colors.textSecondary }]}>体力: {monsterStamina}/{maxStamina}</Text>
+            </View>
+            <Text style={s.modalSubtitle}>选择学习时长</Text>
+            <View style={s.durationOptions}>
+              {durations.map(d => (
+                <TouchableOpacity
+                  key={d}
+                  onPress={() => setSelectedDuration(d)}
+                  style={[s.durationButton, selectedDuration === d && { borderColor: colors.primary },
+                    { backgroundColor: selectedDuration === d ? colors.primary : colors.backgroundDark || colors.background },
+                  ]}>
+                  <Text style={[s.durationTextSmall, selectedDuration === d && s.durationTextActive]}>{d}分钟</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={s.costInfo}>
+              <Text style={s.costText}>预计消耗体力: {staminaCost} 点</Text>
+              <Text style={[s.suggestedText, { color: colors.textSecondary }]}>建议学习时长: {suggestedDuration}小时</Text>
+            </View>
+            <TouchableOpacity style={[s.modalConfirmBtn, { backgroundColor: colors.primary }]} onPress={handleConfirm}>
+              <Text style={s.modalConfirmText}>开始学习</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    );
+  };
+
   const PLATFORM_OPTIONS: { key: PlatformType; label: string; icon: string; color: string }[] = useMemo(() => [
     { key: 'bilibili' as PlatformType, label: 'B站', icon: 'play-circle', color: '#FB7299' },
     { key: 'xiaohongshu' as PlatformType, label: '小红书', icon: 'book', color: '#FF2442' },
@@ -861,145 +1000,6 @@ const SkillTreeScreen = () => {
   );
 };
 
-// ===================== 样式表 =====================
 
-const s = StyleSheet.create({
-  safeArea: { flex: 1 },
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { fontSize: 14, marginTop: 12 },
-  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
-  emptyBtn: {
-    paddingVertical: 10, paddingHorizontal: 20, borderRadius: 10,
-    borderWidth: 1.5, borderStyle: 'dashed',
-  },
-  emptyBtnText: { fontSize: 13, fontWeight: '600' },
-  scrollContent: { flexGrow: 1, paddingBottom: 20 },
-  // 顶部栏
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 16,
-  },
-  backBtnRect: {
-    width: 40, height: 40, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  backArrow: { fontSize: 24, color: '#FFFFFF', fontWeight: 'bold' },
-  headerTitle: { fontSize: 18, fontWeight: '700' },
-  headerPlaceholder: { width: 40 },
-  // 描述区
-  descriptionSection: { paddingHorizontal: 20, marginBottom: 20 },
-  descriptionTitle: { fontSize: 14, fontWeight: '700', marginTop: 16, marginBottom: 8 },
-  descriptionText: { fontSize: 13, lineHeight: 20 },
-  // 时长徽章
-  totalDurationBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 8,
-    borderRadius: 20, marginHorizontal: 20, marginBottom: 20, alignSelf: 'center',
-  },
-  totalDurationText: { fontSize: 12, fontWeight: '600' },
-  // 技能树容器
-  treeContainer: { paddingHorizontal: 16 },
-  stageColumn: { marginBottom: 20 },
-  middleStage: { marginTop: 20 },
-  // 大标题
-  stageNode: {
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12,
-    borderWidth: 1, alignItems: 'center', marginBottom: 12,
-  },
-  stageNodeRow: { flexDirection: 'row', alignItems: 'center' },
-  stageName: { fontSize: 12, fontWeight: '700', marginBottom: 2 },
-  stageDuration: { fontSize: 10, color: '#888' },
-  // 结点列表
-  skillNodesList: { gap: 8 },
-  skillNode: {
-    backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1,
-    borderRadius: 12, padding: 12, position: 'relative',
-  },
-  skillNodeHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  nodeBadge: {
-    width: 20, height: 20, borderRadius: 6,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  nodeBadgeText: { fontSize: 10, fontWeight: '700' },
-  skillNodeName: { fontSize: 13, fontWeight: '600', marginBottom: 8, lineHeight: 16 },
-  skillNodeFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  platformText: { fontSize: 10, fontWeight: '500' },
-  durationText: { fontSize: 10, color: '#888', fontWeight: '500' },
-  arrowIcon: { position: 'absolute', right: 12, bottom: 12 },
-  // 添加结点按钮
-  addNodeBtn: {
-    alignItems: 'center', justifyContent: 'center', paddingVertical: 10,
-    borderRadius: 10, borderWidth: 1, borderStyle: 'dashed', marginTop: 4,
-  },
-  addNodeText: { fontSize: 12, fontWeight: '600' },
-  // 添加大标题按钮
-  addStageBtn: {
-    alignItems: 'center', justifyContent: 'center', marginHorizontal: 16,
-    paddingVertical: 14, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', marginTop: 8,
-  },
-  addStageText: { fontSize: 14, fontWeight: '700' },
-  // 返回按钮（空状态用）
-  backBtn: {
-    marginTop: 24, paddingVertical: 10, paddingHorizontal: 24,
-    borderRadius: 10,
-  },
-  // 输入框通用
-  addInput: {
-    borderWidth: 1, borderRadius: 10, paddingHorizontal: 14,
-    paddingVertical: 12, fontSize: 14, marginBottom: 12,
-  },
-  addLabel: { fontSize: 12, fontWeight: '600', marginBottom: 6 },
-  // 平台选择
-  platformSelector: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  platformOption: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 4, paddingVertical: 10, borderRadius: 8, borderWidth: 1,
-  },
-  platformOptionText: { fontSize: 11, fontWeight: '600' },
-  bottomPadding: { height: 40 },
-  // 模态框通用
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  modalContent: { width: '100%', borderRadius: 20, padding: 24 },
-  // 卡片式弹出（学习时长选择用）
-  overlayLight: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  modalCard: {
-    width: '100%', maxWidth: 380, borderRadius: 20, padding: 24,
-    borderWidth: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 20,
-    elevation: 10,
-  },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  modalTitle: { fontSize: 20, fontWeight: '700' },
-  modalClose: {
-    width: 32, height: 32, borderRadius: 16,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  modalNodeName: { fontSize: 16, fontWeight: '600', color: '#FFFFFF', marginBottom: 16 },
-  // 体力信息
-  staminaInfo: { marginBottom: 16 },
-  staminaBar: { height: 8, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 4, overflow: 'hidden', marginBottom: 8 },
-  staminaFill: { height: '100%', borderRadius: 4 },
-  staminaText: { fontSize: 12 },
-  modalSubtitle: { fontSize: 14, fontWeight: '600', color: '#FFFFFF', marginBottom: 12 },
-  // 时长选项
-  durationOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
-  durationButton: {
-    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
-  },
-  durationButtonActive: {},
-  durationTextSmall: { fontSize: 12, color: '#888' },
-  durationTextActive: { color: '#FFFFFF' },
-  costInfo: { marginBottom: 20 },
-  costText: { fontSize: 12, color: '#FF9800', marginBottom: 4 },
-  suggestedText: { fontSize: 12 },
-  modalConfirmBtn: { paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  modalConfirmText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
-  // Toast
-  toast: {
-    position: 'absolute', bottom: 40, left: 20, right: 20,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: 'rgba(0,0,0,0.85)', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12,
-  },
-  toastText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
-});
 
 export default SkillTreeScreen;

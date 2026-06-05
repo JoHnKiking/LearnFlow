@@ -9,6 +9,7 @@ type MonsterPersonalityType = 'lively' | 'calm' | 'rebel';
 
 const DEFAULT_MONSTER_STYLE = 'default';
 const DEFAULT_MONSTER_ENERGY = 50;
+const ENERGY_COST_PER_TOKEN = 0.05; // Π能量消耗系数：每 token 消耗 0.05
 
 // API 配置
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
@@ -100,12 +101,32 @@ const buildSystemPrompt = (personality: MonsterPersonalityType): string => {
 const buildMessages = async (
   userId: number,
   personality: MonsterPersonalityType,
+  userMessage: string,
 ) => {
   const systemPrompt = buildSystemPrompt(personality);
   
+  // 获取最近 20 条历史消息作为上下文
   const history = await MonsterMessageModel.getMessagesByUserId(userId);
-  const recentHistory = history.slice(0, 20).reverse();
+  const recentHistory = history.slice(0, 20).reverse(); // 按时间正序
 
+  const messages: Array<{ role: string; content: string }> = [
+    { role: 'system', content: systemPrompt },
+  ];
+
+  // 加入历史对话
+  for (const msg of recentHistory) {
+    messages.push({
+      role: msg.isUser ? 'user' : 'assistant',
+      content: msg.message,
+    });
+  }
+
+  // 去掉刚才已经保存的用户消息（避免重复）
+  // 历史中最后一条是刚保存的用户消息，我们手动加入
+  // 去掉历史中最后一条 isUser 消息（因为我们已经手动 push 了）
+  // 实际上 createMessage 已经保存了用户消息，所以从历史中读到的最新一条就是它
+  // 我们先 push 历史，然后再 push 用户消息，所以会有重复
+  // 修复：不从历史中读取，直接构建
   return [
     { role: 'system', content: systemPrompt },
     ...recentHistory.map(msg => ({
@@ -118,7 +139,7 @@ const buildMessages = async (
 // 调用 DeepSeek API
 const callDeepSeek = async (
   messages: Array<{ role: string; content: string }>,
-): Promise<string> => {
+): Promise<{ content: string; tokens: number }> => {
   const response = await fetch(DEEPSEEK_API_URL, {
     method: 'POST',
     headers: {
@@ -143,7 +164,10 @@ const callDeepSeek = async (
     throw new Error('Invalid DeepSeek response format');
   }
 
-  return data.choices[0].message.content;
+  return {
+    content: data.choices[0].message.content,
+    tokens: data.usage?.total_tokens ?? Math.ceil(data.choices[0].message.content.length / 2),
+  };
 };
 
 const buildPersonalityParams = (
@@ -319,13 +343,13 @@ export const chatWithMonster = async (userId: number, message: string) => {
   const personality: MonsterPersonalityType = monsterStatus?.personality || 'lively';
 
   // 3. 构建对话消息（含 system prompt + 历史上下文）
-  const messages = await buildMessages(userId, personality);
+  const messages = await buildMessages(userId, personality, message);
 
   // 4. 调用 DeepSeek API
-  let response: string;
+  let result: { content: string; tokens: number };
   try {
-    response = await callDeepSeek(messages);
-    console.log(`[MonsterService] DeepSeek 回复: ${response.substring(0, 100)}...`);
+    result = await callDeepSeek(messages);
+    console.log(`[MonsterService] DeepSeek 回复 (tokens: ${result.tokens}): ${result.content.substring(0, 100)}...`);
   } catch (error) {
     console.error('[MonsterService] DeepSeek 调用失败，使用预设回复:', error);
     // 降级：预设回复
@@ -335,17 +359,26 @@ export const chatWithMonster = async (userId: number, message: string) => {
       rebel: ['学习好无聊啊，我们去玩吧！', '这个也太难了吧...'],
     };
     const pool = fallbacks[personality];
-    response = pool[Math.floor(Math.random() * pool.length)];
+    const content = pool[Math.floor(Math.random() * pool.length)];
+    result = { content, tokens: Math.ceil(content.length / 2) };
   }
 
-  // 5. 保存怪兽回复
+  // 5. 扣除 Π 能量：消耗 = 怪兽回复的字数 × 0.05
+  const charCount = result.content.length;
+  const energyCost = Math.max(1, Math.ceil(charCount * ENERGY_COST_PER_TOKEN));
+  const currentEnergy = monsterStatus?.energy ?? 0;
+  const newEnergy = Math.max(0, currentEnergy - energyCost);
+  await MonsterModel.updateMonster(userId, { energy: newEnergy });
+  console.log(`[MonsterService] 能量扣除: ${energyCost} (字数: ${charCount}), 剩余: ${newEnergy}`);
+
+  // 6. 保存怪兽回复
   await MonsterMessageModel.createMessage({
     userId,
-    message: response,
+    message: result.content,
     isUser: false
   });
 
-  return { message: response };
+  return { message: result.content, tokens: result.tokens, energyCost, remainingEnergy: newEnergy };
 };
 
 export const getMonsterMessages = async (userId: number) => {

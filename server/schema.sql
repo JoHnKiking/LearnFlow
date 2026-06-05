@@ -67,6 +67,25 @@ CREATE TABLE `domains` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `email_verification_tokens`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `email_verification_tokens` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `email` varchar(100) NOT NULL,
+  `token` varchar(6) NOT NULL,
+  `attempts` int DEFAULT '0',
+  `expires_at` timestamp NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_email` (`email`),
+  KEY `idx_token` (`token`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `learning_records`
 --
 
@@ -129,8 +148,8 @@ CREATE TABLE `monsters` (
   `max_stamina` int NOT NULL DEFAULT '100',
   `level` int DEFAULT '1' COMMENT '等级',
   `exp` int DEFAULT '0' COMMENT '经验值',
-  `energy` int NOT NULL DEFAULT '50',
-  `max_energy` int NOT NULL DEFAULT '50',
+  `energy` decimal(10,1) NOT NULL DEFAULT '50.0',
+  `max_energy` decimal(10,1) NOT NULL DEFAULT '50.0',
   `last_energy_recover` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '上次能量恢复时间',
   `last_stamina_recover` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,

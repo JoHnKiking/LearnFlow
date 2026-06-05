@@ -47,7 +47,7 @@ const RegisterScreen = () => {
       value: password,
       onChangeText: setPassword,
       secureTextEntry: !showPassword,
-      placeholder: '请输入密码',
+      placeholder: '至少6位密码',
     },
     {
       id: 'confirmPassword',
@@ -68,6 +68,17 @@ const RegisterScreen = () => {
       return;
     }
 
+    if (username.trim().length < 2) {
+      Alert.alert('错误', '用户名至少2个字符');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('错误', '请输入有效的邮箱地址');
+      return;
+    }
+
     if (password !== confirmPassword) {
       console.log('[Register] 验证失败 - 密码不一致');
       Alert.alert('错误', '两次输入的密码不一致');
@@ -82,16 +93,12 @@ const RegisterScreen = () => {
 
     setLoading(true);
     try {
-      const authResponse = await authService.register({ username, email, password });
+      await authService.register({ username: username.trim(), email, password });
       
-      console.log('[Register] 注册成功 - 用户ID:', authResponse.user?.id);
-      await saveAuthData(authResponse);
-      await AsyncStorage.setItem(STORAGE_KEYS.IS_NEW_USER, 'true');
-      
+      console.log('[Register] 注册成功，跳转验证码页面 - 邮箱:', email);
       setLoading(false);
-      Alert.alert('注册成功', '账号创建成功！');
       
-      router.replace('/onboarding');
+      router.push({ pathname: '/verify-email', params: { email, username: username.trim() } });
     } catch (error) {
       console.error('[Register] 注册失败:', error);
       setLoading(false);
@@ -201,10 +208,10 @@ const RegisterScreen = () => {
     height: 56,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.backgroundDark,
+    backgroundColor: colors.inputBg,
     borderWidth: 1,
-    borderColor: 'rgba(123,117,216,0.2)',
-    borderRadius: 16,
+    borderColor: colors.inputBorder,
+    borderRadius: 10,
     paddingHorizontal: 16,
   },
   inputIcon: {
@@ -227,14 +234,14 @@ const RegisterScreen = () => {
   registerButton: {
     height: 56,
     borderRadius: 16,
-    backgroundColor: 'rgba(123,117,216,0.8)',
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 24,
-    elevation: 5,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
   },
   registerButtonDisabled: {
     backgroundColor: colors.border,
@@ -262,7 +269,7 @@ const RegisterScreen = () => {
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: colors.border,
   },
   dividerText: {
     color: colors.textSecondary,
@@ -280,10 +287,10 @@ const RegisterScreen = () => {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: colors.backgroundDark,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 16,
+    borderColor: colors.border,
+    borderRadius: 12,
   },
   socialButtonText: {
     fontSize: 13,

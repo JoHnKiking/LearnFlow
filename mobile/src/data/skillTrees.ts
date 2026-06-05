@@ -130,12 +130,13 @@ export const aiProductManagerTree: SkillTree = {
 export const personalFinanceTree: SkillTree = {
   id: 'personal-finance',
   domain: 'personal-finance',
-  title: '个人理财',
-  description: '建立科学的理财观念与资产配置能力',
-  totalDuration: 60,
-  learningMethod: '1. 从B站视频建立理财思维；2. 通过MOOC学习系统理财知识；3. 参考小红书实践案例；4. 实际记账3个月验证效果',
-  learningGoal: '建立完整的个人财务体系，实现财务自由的第一步，能够独立进行资产配置、风险控制和长期财富规划',
-  frameworkExplanation: '遵循"认知-配置-进阶"的理财学习路径：初级阶段培养理财思维和记账习惯，中级阶段学习安全资产配置，高级阶段掌握进阶投资工具与长期规划，符合从基础到进阶的学习规律',
+  title: '理财进阶',
+  description: '从零建立理财体系：记账→安全配置→基金定投',
+  totalDuration: 21,
+  learningMethod: '1. MOOC《个人理财》1-2章打基础；2. 开随手记App同步记账；3. 支付宝买100元货币基金体验；4. 读完《小狗钱钱》+《穷查理宝典》部分章节',
+  learningGoal: '能独立做家庭财务盘点、完成保险+基金配置方案、开始指数基金定投，形成长期理财习惯',
+  frameworkExplanation: '一阶觉醒：建立复利思维+开始记账 → 二阶锻造：理解保险配置+货币基金→ 三阶出师：指数定投实操+完成资产配置计划书',
+
   stages: [
     {
       id: 'beginner',
@@ -245,12 +246,13 @@ export const personalFinanceTree: SkillTree = {
 export const englishCommunicationTree: SkillTree = {
   id: 'english-communication',
   domain: 'english-communication',
-  title: '英语无障碍沟通',
-  description: '提升英语听说能力，实现无障碍沟通',
-  totalDuration: 60,
-  learningMethod: '1. 每天30分钟音标跟读；2. 精听+泛听结合训练；3. 模仿native speaker语调；4. 每周2次口语练习',
-  learningGoal: '实现日常英语无障碍沟通，能够自信地进行日常对话、职场交流和跨文化沟通',
-  frameworkExplanation: '采用"基础-进阶-实战"的语言学习框架：初级阶段打牢发音和词汇基础，中级阶段提升听力和日常口语，高级阶段聚焦职场应用和实战能力，符合语言学习循序渐进的规律',
+  title: '英语学习',
+  description: '开口→听懂→实战，三阶告别哑巴英语',
+  totalDuration: 21,
+  learningMethod: '1. 每天B站音标跟读15min；2. BBC 6 Minute English精听每周3篇；3. English with Lucy学日常表达；4. 最终用HelloTalk找老外实战3次',
+  learningGoal: '能开口做英文自我介绍、听懂慢速英语播客、用英语完成日常购物/点餐/电话沟通，最终用HelloTalk和老外聊上半小时',
+  frameworkExplanation: '一阶觉醒：纠正发音+听慢速→二阶锻造：精听BBC+模仿母语者日常对话→三阶出师：职场英语+找老外实战',
+
   stages: [
     {
       id: 'beginner',

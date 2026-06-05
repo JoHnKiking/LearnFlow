@@ -1,153 +1,150 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
-import { PIXEL_COLORS, SPACING, PIXEL_BORDERS } from '../../utils/constants';
+import {
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  TextStyle,
+  ViewStyle,
+  ActivityIndicator,
+} from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext';
+import { Ionicons } from '@expo/vector-icons';
 
 interface PixelButtonProps {
   title: string;
   onPress: () => void;
-  disabled?: boolean;
-  variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'danger';
+  variant?: 'primary' | 'secondary' | 'outline';
   size?: 'small' | 'medium' | 'large';
-  fullWidth?: boolean;
+  icon?: keyof typeof Ionicons.glyphMap;
+  loading?: boolean;
+  disabled?: boolean;
+  style?: ViewStyle;
 }
 
 const PixelButton: React.FC<PixelButtonProps> = ({
   title,
   onPress,
-  disabled = false,
   variant = 'primary',
   size = 'medium',
-  fullWidth = false,
+  icon,
+  loading = false,
+  disabled = false,
+  style,
 }) => {
+  const { colors } = useTheme();
+
   const getButtonColors = () => {
     switch (variant) {
-      case 'primary':
-        return {
-          bg: PIXEL_COLORS.PIXEL_DARK_BLUE,
-          border: PIXEL_COLORS.PRIMARY,
-          shadow: PIXEL_COLORS.PIXEL_PURPLE,
-        };
       case 'secondary':
         return {
-          bg: PIXEL_COLORS.PIXEL_PURPLE,
-          border: PIXEL_COLORS.PIXEL_PINK,
-          shadow: PIXEL_COLORS.PIXEL_DARK_BLUE,
+          bg: colors.surface,
+          border: colors.hairline,
+          text: colors.textPrimary,
+          iconColor: colors.textPrimary,
         };
-      case 'success':
+      case 'outline':
         return {
-          bg: PIXEL_COLORS.PIXEL_GREEN,
-          border: PIXEL_COLORS.SUCCESS,
-          shadow: PIXEL_COLORS.PIXEL_DARK_BLUE,
-        };
-      case 'warning':
-        return {
-          bg: PIXEL_COLORS.PIXEL_YELLOW,
-          border: PIXEL_COLORS.WARNING,
-          shadow: PIXEL_COLORS.PIXEL_ORANGE,
-        };
-      case 'danger':
-        return {
-          bg: PIXEL_COLORS.PIXEL_PINK,
-          border: PIXEL_COLORS.ERROR,
-          shadow: PIXEL_COLORS.PIXEL_DARK_BLUE,
+          bg: 'transparent',
+          border: colors.primary,
+          text: colors.primary,
+          iconColor: colors.primary,
         };
       default:
         return {
-          bg: PIXEL_COLORS.PIXEL_DARK_BLUE,
-          border: PIXEL_COLORS.PRIMARY,
-          shadow: PIXEL_COLORS.PIXEL_PURPLE,
+          bg: colors.primary,
+          border: colors.primary,
+          text: colors.onPrimary,
+          iconColor: colors.onPrimary,
         };
     }
   };
 
-  const getButtonSize = () => {
-    switch (size) {
-      case 'small':
-        return { height: 36, paddingHorizontal: SPACING.MEDIUM };
-      case 'medium':
-        return { height: 48, paddingHorizontal: SPACING.LARGE };
-      case 'large':
-        return { height: 60, paddingHorizontal: SPACING.XLARGE };
-      default:
-        return { height: 48, paddingHorizontal: SPACING.LARGE };
-    }
-  };
-
-  const getTextSize = () => {
-    switch (size) {
-      case 'small':
-        return 12;
-      case 'medium':
-        return 16;
-      case 'large':
-        return 20;
-      default:
-        return 16;
-    }
-  };
-
-  const colors = getButtonColors();
-  const buttonSize = getButtonSize();
+  const buttonColors = getButtonColors();
+  const isDisabled = disabled || loading;
 
   return (
     <TouchableOpacity
       style={[
         styles.button,
+        styles[size],
         {
-          backgroundColor: disabled ? PIXEL_COLORS.PIXEL_GRAY : colors.bg,
-          borderColor: disabled ? PIXEL_COLORS.PIXEL_LIGHT_GRAY : colors.border,
-          ...buttonSize,
-          width: fullWidth ? '100%' : undefined,
+          backgroundColor: isDisabled ? colors.border : buttonColors.bg,
+          borderColor: buttonColors.border,
+          shadowColor: colors.shadow,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 8,
+          elevation: variant === 'primary' ? 3 : 1,
+          opacity: isDisabled ? 0.5 : 1,
         },
+        style,
       ]}
       onPress={onPress}
-      disabled={disabled}
-      activeOpacity={0.9}
+      disabled={isDisabled}
+      activeOpacity={0.7}
     >
-      <View
-        style={[
-          styles.shadowLayer,
-          {
-            backgroundColor: disabled ? PIXEL_COLORS.PIXEL_LIGHT_GRAY : colors.shadow,
-          },
-        ]}
-      />
-      <Text
-        style={[
-          styles.text,
-          {
-            fontSize: getTextSize(),
-            color: disabled ? PIXEL_COLORS.TEXT_SECONDARY : PIXEL_COLORS.WHITE,
-          },
-        ]}
-      >
-        {title}
-      </Text>
+      {loading ? (
+        <ActivityIndicator size="small" color={buttonColors.text} />
+      ) : (
+        <>
+          {icon && (
+            <Ionicons
+              name={icon}
+              size={size === 'small' ? 16 : size === 'large' ? 22 : 18}
+              color={buttonColors.iconColor}
+              style={styles.icon}
+            />
+          )}
+          <Text
+            style={[
+              styles.text,
+              styles[`${size}Text` as keyof typeof styles] as TextStyle,
+              { color: buttonColors.text },
+            ]}
+          >
+            {title}
+          </Text>
+        </>
+      )}
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   button: {
-    position: 'relative',
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: PIXEL_BORDERS.MEDIUM,
-    overflow: 'hidden',
+    justifyContent: 'center',
+    borderRadius: 14,
+    borderWidth: 1,
   },
-  shadowLayer: {
-    position: 'absolute',
-    top: -PIXEL_BORDERS.MEDIUM,
-    left: -PIXEL_BORDERS.MEDIUM,
-    right: -PIXEL_BORDERS.MEDIUM,
-    bottom: -PIXEL_BORDERS.MEDIUM,
-    zIndex: 0,
+  small: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  medium: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  large: {
+    paddingVertical: 16,
+    paddingHorizontal: 32,
   },
   text: {
-    fontWeight: '800',
-    letterSpacing: 1,
-    zIndex: 1,
-    textTransform: 'uppercase',
+    fontWeight: '700',
+    fontFamily: 'Courier',
+  },
+  smallText: {
+    fontSize: 13,
+  },
+  mediumText: {
+    fontSize: 15,
+  },
+  largeText: {
+    fontSize: 17,
+  },
+  icon: {
+    marginRight: 6,
   },
 });
 

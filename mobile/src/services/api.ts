@@ -102,9 +102,21 @@ api.interceptors.response.use(
 );
 
 export const authService = {
-  // 用户注册
-  register: async (request: CreateUserRequest): Promise<AuthResponse> => {
+  // 用户注册（邮箱验证模式，返回 { message, email }）
+  register: async (request: CreateUserRequest): Promise<{ message: string; email: string }> => {
     const response = await api.post('/auth/register', request);
+    return response.data.data;
+  },
+
+  // 验证邮箱
+  verifyEmail: async (email: string, token: string): Promise<AuthResponse> => {
+    const response = await api.post('/auth/verify-email', { email, token });
+    return response.data.data;
+  },
+
+  // 重新发送验证码
+  resendVerification: async (email: string): Promise<{ message: string }> => {
+    const response = await api.post('/auth/resend-verification', { email });
     return response.data.data;
   },
 
