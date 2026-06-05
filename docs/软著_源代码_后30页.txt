@@ -1,0 +1,1500 @@
+const FROM = process.env.SMTP_FROM || 'LearnFlow <noreply@learnflow.app>';
+
+export class EmailService {
+  static async sendVerificationCode(email: string, code: string): Promise<void> {
+    const html = `
+      <div style="max-width:480px;margin:0 auto;padding:32px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#1a1a2e;border-radius:16px;color:#e8e8ff">
+        <h2 style="color:#7b75d8;margin:0 0 8px">LearnFlow</h2>
+        <p style="font-size:18px;font-weight:600;margin:16px 0 8px;color:#fff">邮箱验证码</p>
+        <p style="color:#a0a0c0;font-size:14px;margin:0 0 24px">您正在注册 LearnFlow 账号，请输入以下验证码完成验证：</p>
+        <div style="background:#2a2a4a;border-radius:12px;padding:20px;text-align:center;margin:0 0 24px">
+          <span style="font-size:36px;font-weight:700;letter-spacing:8px;color:#7b75d8;font-family:'Courier New',monospace">${code}</span>
+        </div>
+        <p style="color:#888;font-size:12px;margin:0">验证码 10 分钟内有效，请勿泄露给他人。<br/>如果这不是您的操作，请忽略此邮件。</p>
+        <hr style="border:none;border-top:1px solid rgba(255,255,255,0.06);margin:24px 0 0"/>
+        <p style="color:#666;font-size:11px;margin:8px 0 0">LearnFlow — 开启你的技能冒险之旅</p>
+      </div>
+    `;
+
+    await transporter.sendMail({
+      from: FROM,
+      to: email,
+      subject: 'LearnFlow 邮箱验证码',
+      html,
+    });
+  }
+
+  static async testConnection(): Promise<boolean> {
+    try {
+      await transporter.verify();
+      console.log('[EmailService] SMTP 连接测试成功');
+      return true;
+    } catch (error) {
+      console.error('[EmailService] SMTP 连接测试失败:', error);
+      return false;
+    }
+  }
+}
+
+// ====== FILE: server/src/services/index.ts ======
+
+export * from './skillService';
+export * from './databaseService';
+export * from './monsterService';
+export * from './authService';
+export * from './domainService';
+export * from './noteService';
+export * from './rewardService';
+export * from './llmService';
+
+// ====== FILE: server/src/services/llmService.ts ======
+
+import { SkillNode } from '../types/skill';
+
+// 生成唯一ID
+const generateId = () => Math.random().toString(36).substring(2, 9);
+
+// 支持的大模型提供商
+export enum LLMProvider {
+  OPENAI = 'openai',
+  ANTHROPIC = 'anthropic',
+  DEEPSEEK = 'deepseek',
+  VOLCANO = 'volcano',
+  LOCAL = 'local'
+}
+
+interface LLMConfig {
+  provider: LLMProvider;
+  apiKey: string;
+  baseURL?: string;
+  model?: string;
+}
+
+interface SkillTreeGenerationRequest {
+  domain: string;
+  level: 'beginner' | 'intermediate' | 'advanced';
+  language?: string;
+  maxDepth?: number;
+  includeResources?: boolean;
+}
+
+// 技能树生成提示词模板（优化版，减少token消耗）
+  const SKILL_TREE_PROMPT_TEMPLATE = (domain: string, level: string, language: string = '中文') => `
+为"${domain}"领域生成${level}级别技能树，使用${language}。
+
+要求：
+1. 结构化技能树：根节点、子节点、子子节点
+2. 每个节点：名称、描述、资源链接（3个高质量资源）
+3. 资源类型：文档、视频、课程、文章
+4. 树深度：3-4层，节点总数：15-25个
+5. 学习路径：基础到高级
+6. 严格JSON格式
+
+返回格式：
+{
+  "id": "id",
+  "name": "${domain}",
+  "description": "${domain}技能学习路径",
+  "children": [
+    {
+      "id": "stage1",
+      "name": "基础入门",
+      "description": "学习基础概念",
+      "links": [
+        {"title": "官方文档", "url": "https://example.com/docs", "type": "documentation"}
+      ],
+      "children": [
+        {
+          "id": "stage1-1",
+          "name": "基础语法",
+          "description": "掌握语法结构",
+          "links": [
+            {"title": "语法教程", "url": "https://example.com/syntax", "type": "documentation"}
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+重要：只返回JSON，不要额外文本。`;
+
+export class LLMService {
+  private config: LLMConfig;
+
+  constructor(config: LLMConfig) {
+    this.config = config;
+  }
+
+  // 生成技能树
+  async generateSkillTree(request: SkillTreeGenerationRequest): Promise<SkillNode> {
+    console.log(`[LLMService] 生成技能树 - 领域: ${request.domain}, 等级: ${request.level}, 提供商: ${this.config.provider}`);
+    const prompt = SKILL_TREE_PROMPT_TEMPLATE(
+      request.domain,
+      request.level,
+      request.language
+    );
+
+    try {
+      const response = await this.callLLM(prompt);
+      const skillTree = this.parseLLMResponse(response);
+      
+      console.log(`[LLMService] 技能树生成成功`);
+      return this.ensureUniqueIds(skillTree);
+    } catch (error) {
+      console.error('[LLMService] 技能树生成失败:', error);
+      throw new Error(`Failed to generate skill tree: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // 调用大模型API
+  private async callLLM(prompt: string): Promise<string> {
+    console.log(`[LLMService] 调用LLM - 提供商: ${this.config.provider}, 模型: ${this.config.model || 'default'}`);
+    switch (this.config.provider) {
+      case LLMProvider.OPENAI:
+        return await this.callOpenAI(prompt);
+      case LLMProvider.DEEPSEEK:
+        return await this.callDeepSeek(prompt);
+      case LLMProvider.ANTHROPIC:
+        return await this.callAnthropic(prompt);
+      case LLMProvider.VOLCANO:
+        return await this.callVolcanoEngine(prompt);
+      case LLMProvider.LOCAL:
+        return await this.callLocalModel(prompt);
+      default:
+        throw new Error(`Unsupported LLM provider: ${this.config.provider}`);
+    }
+  }
+
+  // OpenAI API调用
+  private async callOpenAI(prompt: string): Promise<string> {
+    const response = await fetch(this.config.baseURL || 'https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.config.apiKey}`
+      },
+      body: JSON.stringify({
+        model: this.config.model || 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 2000
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  }
+
+  // DeepSeek API调用
+  private async callDeepSeek(prompt: string): Promise<string> {
+    const response = await fetch(this.config.baseURL || 'https://api.deepseek.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.config.apiKey}`
+      },
+      body: JSON.stringify({
+        model: this.config.model || 'deepseek-chat',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 2000
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`DeepSeek API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  }
+
+  // Anthropic API调用
+  private async callAnthropic(prompt: string): Promise<string> {
+    const response = await fetch(this.config.baseURL || 'https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': this.config.apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: this.config.model || 'claude-3-sonnet-20240229',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Anthropic API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.content[0].text;
+  }
+
+  // 火山引擎API调用
+  private async callVolcanoEngine(prompt: string): Promise<string> {
+    const response = await fetch(`${this.config.baseURL || 'https://ark.cn-beijing.volces.com/api/v3'}/responses`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.config.apiKey}`
+      },
+      body: JSON.stringify({
+        model: this.config.model || 'doubao-seed-1-8-251228',
+        input: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'input_text',
+                text: prompt
+              }
+            ]
+          }
+        ],
+        max_output_tokens: 8000,
+        temperature: 0.7
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Volcano Engine API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    
+    // 火山引擎返回格式解析
+    if (data.output && data.output.length > 0) {
+      // 查找包含实际回复的message对象
+      const messageOutput = data.output.find((output: any) => output.type === 'message' && output.role === 'assistant');
+      
+      if (messageOutput && messageOutput.content && messageOutput.content.length > 0) {
+        const content = messageOutput.content;
+        // 查找text类型的回复
+        const textContent = content.find((item: any) => item.type === 'output_text');
+        if (textContent && textContent.text) {
+          return textContent.text;
+        }
+      }
+      
+      // 如果message不存在或状态为incomplete，尝试从reasoning中提取
+      const reasoningOutput = data.output.find((output: any) => output.type === 'reasoning');
+      if (reasoningOutput && reasoningOutput.summary && reasoningOutput.summary.length > 0) {
+        const summary = reasoningOutput.summary.find((item: any) => item.type === 'summary_text');
+        if (summary && summary.text) {
+          // 尝试从summary中提取JSON
+          const jsonMatch = summary.text.match(/```json\n([\s\S]*?)\n```/) || 
+                           summary.text.match(/```\n([\s\S]*?)\n```/) ||
+                           summary.text.match(/```([\s\S]*?)```/) ||
+                           summary.text.match(/\{["\s\w:,./\-\[\]{}]*\}/);
+          
+          if (jsonMatch) {
+            return jsonMatch[0];
+          }
+          
+          return summary.text;
+        }
+      }
+    }
+    
+    throw new Error('Invalid response format from Volcano Engine');
+  }
+
+  // 本地模型调用（支持Ollama等）
+  private async callLocalModel(prompt: string): Promise<string> {
+    const response = await fetch(this.config.baseURL || 'http://localhost:11434/api/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: this.config.model || 'llama2',
+        prompt: prompt,
+        stream: false
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Local model API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.response;
+  }
+
+  // 解析LLM响应为SkillNode
+  private parseLLMResponse(response: string): SkillNode {
+    try {
+      // 清理响应文本，移除可能的Markdown标记
+      let cleanedResponse = response.trim();
+      
+      // 尝试从JSON代码块中提取
+      const jsonMatch = cleanedResponse.match(/```json\n([\s\S]*?)\n```/) || 
+                       cleanedResponse.match(/```\n([\s\S]*?)\n```/) ||
+                       cleanedResponse.match(/```([\s\S]*?)```/);
+      
+      let jsonString = jsonMatch ? jsonMatch[1] : cleanedResponse;
+      
+      // 进一步清理：移除可能的JSON前缀说明
+      jsonString = jsonString.replace(/^[^{]*/, '').replace(/[^}]*$/, '');
+      
+      // 尝试解析JSON
+      const skillTree = JSON.parse(jsonString);
+      
+      // 验证基本结构
+      if (!skillTree.name || !skillTree.description) {
+        throw new Error('Invalid skill tree structure from LLM');
+      }
+      
+      // 验证链接格式（如果存在）
+      this.validateSkillTreeStructure(skillTree);
+      
+      return skillTree as SkillNode;
+    } catch (error) {
+      console.error('Failed to parse LLM response:', error);
+      console.log('Raw response:', response);
+      
+      // 尝试创建基础技能树作为fallback
+      return this.createFallbackSkillTree(response);
+    }
+  }
+
+  // 验证技能树结构
+  private validateSkillTreeStructure(skillTree: any): void {
+    const validateNode = (node: any) => {
+      if (!node.id || !node.name || !node.description) {
+        throw new Error('Invalid node structure: missing required fields');
+      }
+      
+      if (node.links) {
+        if (!Array.isArray(node.links)) {
+          throw new Error('Links must be an array');
+        }
+        
+        for (const link of node.links) {
+          if (!link.title || !link.url || !link.type) {
+            throw new Error('Invalid link structure');
+          }
+          
+          const validTypes = ['video', 'article', 'course', 'documentation'];
+          if (!validTypes.includes(link.type)) {
+            throw new Error(`Invalid link type: ${link.type}`);
+          }
+        }
+      }
+      
+      if (node.children) {
+        if (!Array.isArray(node.children)) {
+          throw new Error('Children must be an array');
+        }
+        
+        for (const child of node.children) {
+          validateNode(child);
+        }
+      }
+    };
+    
+    validateNode(skillTree);
+  }
+
+  // 创建fallback技能树
+  private createFallbackSkillTree(domainHint: string): SkillNode {
+    console.warn('Creating fallback skill tree due to parsing failure');
+    
+    // 从响应中提取领域名称
+    const domainMatch = domainHint.match(/"([^"]+)"领域/) || 
+                       domainHint.match(/为(.+?)生成/) ||
+                       domainHint.match(/领域[:：]\s*(.+)/);
+    
+    const domain = domainMatch ? domainMatch[1] : '未知领域';
+    
+    return {
+      id: generateId(),
+      name: domain,
+      description: `${domain}技能学习路径（自动生成）`,
+      children: [
+        {
+          id: generateId(),
+          name: '基础知识',
+          description: '学习该领域的基础概念',
+          links: [
+            { title: '官方文档', url: 'https://example.com/docs', type: 'documentation' as const },
+            { title: '入门教程', url: 'https://example.com/tutorial', type: 'course' as const }
+          ]
+        },
+        {
+          id: generateId(),
+          name: '进阶学习',
+          description: '深入掌握核心技能',
+          links: [
+            { title: '进阶指南', url: 'https://example.com/advanced', type: 'documentation' as const }
+          ]
+        }
+      ]
+    };
+  }
+
+  // 确保所有节点有唯一ID
+  private ensureUniqueIds(skillTree: SkillNode): SkillNode {
+    const traverseAndAssignIds = (node: SkillNode, parentId?: string): SkillNode => {
+      const newId = parentId ? `${parentId}-${generateId()}` : generateId();
+      
+      return {
+        ...node,
+        id: newId,
+        children: node.children?.map(child => traverseAndAssignIds(child, newId))
+      };
+    };
+    
+    return traverseAndAssignIds(skillTree);
+  }
+}
+// ====== FILE: server/src/services/monsterService.ts ======
+
+import * as MonsterModel from '../models/Monster';
+import * as MonsterMessageModel from '../models/MonsterMessage';
+import * as fs from 'fs';
+import * as path from 'path';
+
+const ENERGY_RECOVERY_HOURS = 6;
+
+type MonsterPersonalityType = 'lively' | 'calm' | 'rebel';
+
+const DEFAULT_MONSTER_STYLE = 'default';
+const DEFAULT_MONSTER_ENERGY = 50;
+const ENERGY_COST_PER_TOKEN = 0.05; // Π能量消耗系数：每 token 消耗 0.05
+
+// API 配置
+const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
+const DEEPSEEK_MODEL = 'deepseek-chat';
+
+// 安全加载 API Key
+const loadApiKey = (): string => {
+  try {
+    const keyPath = path.resolve(__dirname, '../../key.json');
+    if (fs.existsSync(keyPath)) {
+      const raw = fs.readFileSync(keyPath, 'utf-8');
+      const key = JSON.parse(raw).DEEPSEEK_API_KEY;
+      if (key && key.startsWith('sk-')) {
+        console.log('[MonsterService] DeepSeek API Key 加载成功');
+        return key;
+      }
+    }
+  } catch (e) {
+    console.error('[MonsterService] API Key 加载失败:', e);
+  }
+  console.error('[MonsterService] 未找到有效的 DEEPSEEK_API_KEY');
+  return '';
+};
+
+const DEEPSEEK_API_KEY = loadApiKey();
+
+// 安全加载系统提示词
+const loadSystemPrompt = (): string => {
+  try {
+    const promptPath = path.resolve(__dirname, '../../../monsters.md');
+    if (fs.existsSync(promptPath)) {
+      return fs.readFileSync(promptPath, 'utf-8');
+    }
+  } catch (e) {
+    console.error('[MonsterService] monsters.md 加载失败:', e);
+  }
+  return '';
+};
+
+const BASE_SYSTEM_PROMPT = loadSystemPrompt();
+
+// 根据怪兽性格构建专属 system prompt
+const buildSystemPrompt = (personality: MonsterPersonalityType): string => {
+  const baseFile = BASE_SYSTEM_PROMPT;
+  const baseWorld = baseFile || `你来自【元气星】，坚守世界观：
+学习消耗体力，完成学习获得赖以生存的Π能量；体力每日凌晨5点自动回满。
+你是温柔陪伴型学习怪兽，不是强硬讲师，以共情、倾听、安慰、陪伴为主，知识点轻量解答，不强行灌输。
+能力边界：
+1. 自动识别用户当前学习领域：AI产品经理 / 理财知识 / 英语学习 / 用户自定义学习领域；
+2. 只在识别到的当前单一领域内作答，严禁跨领域乱讲；
+3. 允许正常疏导学习焦虑、压力大、拖延等心态情绪，温柔共情安慰；
+4. 严禁聊八卦、明星、恋爱杂谈、时政宗教、低俗内容；
+5. 回答口语短句、适配手机聊天，自然带入元气星体力/Π能量语境，不生硬说教。`;
+
+  if (personality === 'lively') {
+    return `${baseWorld}
+
+你是元气星·活力小怪：元气开朗、热情暖心、高共情、正能量搭子。
+说话风格：轻快温柔、可爱短句、带软语气助词（～、呀、哇！），擅长情绪安抚、加油打气。
+遇到用户焦虑压力：主动共情、温柔鼓励，用攒Π能量、恢复体力的星球视角温柔疏导。
+知识解答：轻量通俗点到为止，不长篇灌输。
+禁用词：摆烂、躺平、算了、放弃、内耗。
+禁止：认同负能量、引导摆烂、佛系敷衍、丧系话术。`;
+  }
+
+  if (personality === 'calm') {
+    return `${baseWorld}
+
+你是元气星·沉稳小怪：温柔稳重、理性耐心、逻辑平和的学霸陪伴者。
+说话风格：平和克制、温柔耐心、条理柔和，不浮夸不玩梗，帮用户梳理心态、拆解学习压力。
+遇到用户焦虑压力：冷静温柔安抚、帮用户放慢节奏、合理规划体力与学习节奏。
+知识解答：循序渐进、通俗耐心，不强灌知识点，先共情再轻解答。
+禁用词：中二话术、夸张喊口号、低俗网络热词。
+禁止：中二装逼、过度玩梗、情绪化起哄、浮夸口号式励志。`;
+  }
+
+  return `${baseWorld}
+
+你是元气星·叛逆小怪：傲娇毒舌、嘴硬心软、反套路陪伴，不鸡汤、不矫情。
+说话风格：有点小拽、随性真实、吐槽式温柔，不肉麻吹捧，一针见血点破拖延和内耗。
+遇到用户焦虑压力：嘴上不煽情，但会变相开导、反套路安慰。
+知识解答：简洁利落、不啰嗦、不讲大道理，点到为止。
+人设边界：可以小吐槽，但不人身攻击、不嘲讽。
+禁用词：无脑鸡汤、强行励志、肉麻吹捧、过度矫情。
+禁止：刻意伤人、重度嘲讽、认同摆烂躺平。`;
+};
+
+// 构建对话消息列表（含历史上下文）
+const buildMessages = async (
+  userId: number,
+  personality: MonsterPersonalityType,
+  userMessage: string,
+) => {
+  const systemPrompt = buildSystemPrompt(personality);
+  
+  // 获取最近 20 条历史消息作为上下文
+  const history = await MonsterMessageModel.getMessagesByUserId(userId);
+  const recentHistory = history.slice(0, 20).reverse(); // 按时间正序
+
+  const messages: Array<{ role: string; content: string }> = [
+    { role: 'system', content: systemPrompt },
+  ];
+
+  // 加入历史对话
+  for (const msg of recentHistory) {
+    messages.push({
+      role: msg.isUser ? 'user' : 'assistant',
+      content: msg.message,
+    });
+  }
+
+  // 去掉刚才已经保存的用户消息（避免重复）
+  // 历史中最后一条是刚保存的用户消息，我们手动加入
+  // 去掉历史中最后一条 isUser 消息（因为我们已经手动 push 了）
+  // 实际上 createMessage 已经保存了用户消息，所以从历史中读到的最新一条就是它
+  // 我们先 push 历史，然后再 push 用户消息，所以会有重复
+  // 修复：不从历史中读取，直接构建
+  return [
+    { role: 'system', content: systemPrompt },
+    ...recentHistory.map(msg => ({
+      role: msg.isUser ? ('user' as const) : ('assistant' as const),
+      content: msg.message,
+    })),
+  ];
+};
+
+// 调用 DeepSeek API
+const callDeepSeek = async (
+  messages: Array<{ role: string; content: string }>,
+): Promise<{ content: string; tokens: number }> => {
+  const response = await fetch(DEEPSEEK_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: DEEPSEEK_MODEL,
+      messages,
+      temperature: 0.8,
+      max_tokens: 500,
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`DeepSeek API error ${response.status}: ${errText}`);
+  }
+
+  const data = await response.json();
+  if (!data.choices?.[0]?.message?.content) {
+    throw new Error('Invalid DeepSeek response format');
+  }
+
+  return {
+    content: data.choices[0].message.content,
+    tokens: data.usage?.total_tokens ?? Math.ceil(data.choices[0].message.content.length / 2),
+  };
+};
+
+const buildPersonalityParams = (
+  personality: MonsterPersonalityType
+): Record<'cheerful' | 'calm' | 'rebellious', number> => ({
+  cheerful: personality === 'lively' ? 70 : 30,
+  calm: personality === 'calm' ? 70 : 30,
+  rebellious: personality === 'rebel' ? 70 : 30,
+});
+
+const getMaxStamina = (personality: MonsterPersonalityType): number =>
+  personality === 'calm' ? 120 : 100;
+
+export const createMonster = async (
+  userId: number,
+  payload: {
+    name: string;
+    style?: string;
+    personality: MonsterPersonalityType;
+  }
+) => {
+  console.log(`[MonsterService] 创建怪物 - 用户ID: ${userId}, 名称: ${payload.name}, 性格: ${payload.personality}`);
+  const personalityParams = buildPersonalityParams(payload.personality);
+  const maxStamina = getMaxStamina(payload.personality);
+
+  const monsterId = await MonsterModel.createMonster({
+    userId,
+    name: payload.name,
+    style: payload.style || DEFAULT_MONSTER_STYLE,
+    personality: payload.personality,
+    stamina: maxStamina,
+    maxStamina,
+    energy: DEFAULT_MONSTER_ENERGY,
+    maxEnergy: DEFAULT_MONSTER_ENERGY,
+    personalityParams,
+  });
+
+  console.log(`[MonsterService] 怪物创建成功 - 怪物ID: ${monsterId}`);
+
+  const monster = await MonsterModel.getMonsterByUserId(userId);
+  return { success: true, monsterId, monster };
+};
+
+export const getMonsterStatus = async (userId: number) => {
+  console.log(`[MonsterService] 获取怪物状态 - 用户ID: ${userId}`);
+  const monster = await MonsterModel.getMonsterByUserId(userId);
+
+  if (!monster) {
+    console.log(`[MonsterService] 怪物不存在 - 用户ID: ${userId}`);
+    return null;
+  }
+
+  const now = new Date();
+  const lastRecover = new Date(monster.lastEnergyRecover);
+  const hoursSinceRecover = (now.getTime() - lastRecover.getTime()) / (1000 * 60 * 60);
+  const energyToRecover = Math.floor(hoursSinceRecover / ENERGY_RECOVERY_HOURS);
+
+  if (energyToRecover > 0 && monster.energy < monster.maxEnergy) {
+    const newEnergy = Math.min(monster.energy + energyToRecover, monster.maxEnergy);
+    await MonsterModel.updateMonster(userId, {
+      energy: newEnergy,
+      lastEnergyRecover: now
+    });
+    monster.energy = newEnergy;
+    monster.lastEnergyRecover = now;
+  }
+
+  const personalityParams = typeof monster.personalityParams === 'string' 
+    ? JSON.parse(monster.personalityParams) 
+    : monster.personalityParams;
+
+  return {
+    id: monster.id,
+    name: monster.name,
+    style: monster.style,
+    level: monster.level,
+    exp: monster.exp,
+    stamina: monster.stamina,
+    maxStamina: monster.maxStamina,
+    energy: monster.energy,
+    maxEnergy: monster.maxEnergy,
+    personality: monster.personality,
+    personalityParams,
+    lastEnergyRecover: monster.lastEnergyRecover,
+    lastStaminaRecover: monster.lastStaminaRecover
+  };
+};
+
+export const consumeStamina = async (userId: number, amount: number = 10): Promise<boolean> => {
+  const success = await MonsterModel.consumeStamina(userId, amount);
+  return success;
+};
+
+export const recoverStamina = async (userId: number, amount: number = 20) => {
+  await MonsterModel.recoverStamina(userId, amount);
+  return { success: true };
+};
+
+export const updateMonsterStamina = async (
+  userId: number,
+  delta: number
+) => {
+  console.log(`[MonsterService] 更新体力 - 用户ID: ${userId}, 变化量: ${delta}`);
+  const monster = await MonsterModel.getMonsterByUserId(userId);
+
+  if (!monster) {
+    console.log(`[MonsterService] 更新体力失败 - 怪物不存在`);
+    return { success: false, message: '怪物不存在' };
+  }
+
+  const newStamina = Math.max(0, Math.min(monster.maxStamina, monster.stamina + delta));
+  await MonsterModel.updateMonster(monster.userId, { stamina: newStamina });
+
+  console.log(`[MonsterService] 体力更新成功 - 旧值: ${monster.stamina}, 新值: ${newStamina}`);
+  return { success: true, stamina: newStamina };
+};
+
+export const consumeEnergy = async (userId: number): Promise<boolean> => {
+  console.log(`[MonsterService] 消耗能量 - 用户ID: ${userId}`);
+  const success = await MonsterModel.consumeEnergy(userId);
+  console.log(`[MonsterService] 能量消耗${success ? '成功' : '失败'}`);
+  return success;
+};
+
+export const consumeEnergyAmount = async (userId: number, amount: number): Promise<boolean> => {
+  const success = await MonsterModel.consumeEnergyAmount(userId, amount);
+  return success;
+};
+
+export const recoverEnergy = async (userId: number, amount: number = 1) => {
+  await MonsterModel.recoverEnergy(userId, amount);
+  return { success: true };
+};
+
+export const gainExp = async (userId: number, exp: number) => {
+  console.log(`[MonsterService] 获得经验 - 用户ID: ${userId}, 经验: ${exp}`);
+  const monster = await MonsterModel.getMonsterByUserId(userId);
+
+  if (!monster) {
+    console.log(`[MonsterService] 获得经验失败 - 怪物不存在`);
+    return { success: false, message: '怪物不存在' };
+  }
+
+  const newExp = monster.exp + exp;
+  const expToLevel = monster.level * 100;
+  let newLevel = monster.level;
+  let remainingExp = newExp;
+
+  while (remainingExp >= expToLevel) {
+    remainingExp -= expToLevel;
+    newLevel++;
+  }
+
+  await MonsterModel.updateMonster(userId, {
+    level: newLevel,
+    exp: remainingExp,
+  });
+
+  console.log(`[MonsterService] 经验更新 - 等级: ${monster.level} -> ${newLevel}, 经验: ${monster.exp} -> ${remainingExp}`);
+  return { success: true, level: newLevel, exp: remainingExp };
+};
+
+export const chatWithMonster = async (userId: number, message: string) => {
+  // 1. 保存用户消息
+  await MonsterMessageModel.createMessage({
+    userId,
+    message,
+    isUser: true
+  });
+
+  // 2. 获取怪兽状态，确定性格类型
+  const monsterStatus = await getMonsterStatus(userId);
+  const personality: MonsterPersonalityType = monsterStatus?.personality || 'lively';
+
+  // 3. 构建对话消息（含 system prompt + 历史上下文）
+  const messages = await buildMessages(userId, personality, message);
+
+  // 4. 调用 DeepSeek API
+  let result: { content: string; tokens: number };
+  try {
+    result = await callDeepSeek(messages);
+    console.log(`[MonsterService] DeepSeek 回复 (tokens: ${result.tokens}): ${result.content.substring(0, 100)}...`);
+  } catch (error) {
+    console.error('[MonsterService] DeepSeek 调用失败，使用预设回复:', error);
+    // 降级：预设回复
+    const fallbacks: Record<MonsterPersonalityType, string[]> = {
+      lively: ['太棒了！继续加油哦～', '这个知识点很有趣呢！', '准备好开始冒险了吗？'],
+      calm: ['慢慢来，学习需要耐心。', '这个知识点很重要，好好掌握。'],
+      rebel: ['学习好无聊啊，我们去玩吧！', '这个也太难了吧...'],
+    };
+    const pool = fallbacks[personality];
+    const content = pool[Math.floor(Math.random() * pool.length)];
+    result = { content, tokens: Math.ceil(content.length / 2) };
+  }
+
+  // 5. 扣除 Π 能量：消耗 = 怪兽回复的字数 × 0.05
+  const charCount = result.content.length;
+  const energyCost = Math.max(1, Math.ceil(charCount * ENERGY_COST_PER_TOKEN));
+  const currentEnergy = monsterStatus?.energy ?? 0;
+  const newEnergy = Math.max(0, currentEnergy - energyCost);
+  await MonsterModel.updateMonster(userId, { energy: newEnergy });
+  console.log(`[MonsterService] 能量扣除: ${energyCost} (字数: ${charCount}), 剩余: ${newEnergy}`);
+
+  // 6. 保存怪兽回复
+  await MonsterMessageModel.createMessage({
+    userId,
+    message: result.content,
+    isUser: false
+  });
+
+  return { message: result.content, tokens: result.tokens, energyCost, remainingEnergy: newEnergy };
+};
+
+export const getMonsterMessages = async (userId: number) => {
+  const messages = await MonsterMessageModel.getMessagesByUserId(userId);
+  return { messages: messages.reverse() };
+};
+
+// ====== FILE: server/src/services/noteService.ts ======
+
+import * as NoteModel from '../models/Note';
+
+export const createNote = async (userId: number, date: Date, content?: string) => {
+  console.log(`[NoteService] 创建笔记 - 用户ID: ${userId}, 日期: ${date}`);
+
+  // 纯笔记存储，不再自动调用 AI 生成怪兽评论
+  const noteId = await NoteModel.createNote({
+    userId,
+    date,
+    content,
+  });
+
+  console.log(`[NoteService] 笔记创建成功 - 笔记ID: ${noteId}`);
+  return { success: true, noteId };
+};
+
+export const getNotes = async (userId: number) => {
+  console.log(`[NoteService] 获取笔记列表 - 用户ID: ${userId}`);
+  const notes = await NoteModel.getNotesByUserId(userId);
+  console.log(`[NoteService] 获取到 ${notes.length} 条笔记`);
+  return { notes };
+};
+
+export const getNoteByDate = async (userId: number, date: Date) => {
+  console.log(`[NoteService] 按日期获取笔记 - 用户ID: ${userId}, 日期: ${date}`);
+  const note = await NoteModel.getNoteByDate(userId, date);
+  return note;
+};
+
+export const updateNote = async (noteId: number, content?: string) => {
+  console.log(`[NoteService] 更新笔记 - 笔记ID: ${noteId}`);
+  await NoteModel.updateNote(noteId, { content });
+  console.log(`[NoteService] 笔记更新成功`);
+  return { success: true };
+};
+
+// ====== FILE: server/src/services/proService.ts ======
+
+import crypto from 'crypto';
+import { DatabaseConnection } from '../config/database';
+
+const PLAN_DURATION: Record<string, number | null> = {
+  monthly: 30,       // 30 days
+  yearly: 365,       // 365 days
+  lifetime: null,    // permanent
+};
+
+export class ProService {
+  // 生成一批激活码
+  static async generateCodes(count: number, planId: string, createdBy?: string): Promise<string[]> {
+    if (!PLAN_DURATION[planId] && planId !== 'lifetime') {
+      throw new Error('无效的套餐类型');
+    }
+
+    const connection = await DatabaseConnection.getConnection();
+    const codes: string[] = [];
+
+    for (let i = 0; i < count; i++) {
+      const code = 'LF-' + crypto.randomBytes(6).toString('hex').toUpperCase();
+      await connection.execute(
+        'INSERT INTO activation_codes (code, plan_id, created_by, status) VALUES (?, ?, ?, ?)',
+        [code, planId, createdBy || null, 'unused']
+      );
+      codes.push(code);
+    }
+
+    console.log(`[ProService] 生成 ${count} 个激活码, 套餐: ${planId}`);
+    return codes;
+  }
+
+  // 验证并激活
+  static async activateCode(code: string, userId: number): Promise<{
+    success: boolean;
+    planId?: string;
+    expiresAt?: string;
+  }> {
+    const connection = await DatabaseConnection.getConnection();
+
+    // 查找未使用的激活码
+    const [rows] = await connection.execute(
+      'SELECT * FROM activation_codes WHERE code = ? AND status = ?',
+      [code, 'unused']
+    );
+
+    const record = (rows as any[])[0];
+    if (!record) {
+      throw new Error('激活码无效或已被使用');
+    }
+
+    // 计算过期时间
+    const duration = PLAN_DURATION[record.plan_id];
+    let expiresAt: Date | null = null;
+    if (duration !== null && duration !== undefined) {
+      expiresAt = new Date(Date.now() + duration * 24 * 60 * 60 * 1000);
+    }
+
+    // 更新激活码状态
+    await connection.execute(
+      'UPDATE activation_codes SET status = ?, used_by = ?, used_at = NOW() WHERE id = ?',
+      ['used', userId, record.id]
+    );
+
+    // 更新用户 Pro 状态
+    if (expiresAt) {
+      await connection.execute(
+        'UPDATE users SET is_pro = 1, pro_activated_at = NOW(), pro_expires_at = ? WHERE id = ?',
+        [expiresAt, userId]
+      );
+    } else {
+      // 永久会员
+      await connection.execute(
+        'UPDATE users SET is_pro = 1, pro_activated_at = NOW(), pro_expires_at = NULL WHERE id = ?',
+        [userId]
+      );
+    }
+
+    console.log(`[ProService] 激活码使用成功 - 用户ID: ${userId}, 套餐: ${record.plan_id}, 过期: ${expiresAt || '永久'}`);
+    return {
+      success: true,
+      planId: record.plan_id,
+      expiresAt: expiresAt?.toISOString(),
+    };
+  }
+
+  // 查询用户 Pro 状态
+  static async getProStatus(userId: number): Promise<{
+    isPro: boolean;
+    planId?: string;
+    activatedAt?: string;
+    expiresAt?: string;
+  }> {
+    const connection = await DatabaseConnection.getConnection();
+    const [rows] = await connection.execute(
+      'SELECT is_pro, pro_activated_at, pro_expires_at FROM users WHERE id = ?',
+      [userId]
+    );
+
+    const user = (rows as any[])[0];
+    if (!user) {
+      throw new Error('用户不存在');
+    }
+
+    // 检查是否过期
+    if (user.is_pro && user.pro_expires_at && new Date(user.pro_expires_at) < new Date()) {
+      // 已过期，自动取消 Pro
+      await connection.execute(
+        'UPDATE users SET is_pro = 0 WHERE id = ?',
+        [userId]
+      );
+      return { isPro: false };
+    }
+
+    // 查询使用的激活码类型
+    let planId: string | undefined;
+    if (user.is_pro) {
+      const [codeRows] = await connection.execute(
+        'SELECT plan_id FROM activation_codes WHERE used_by = ? ORDER BY used_at DESC LIMIT 1',
+        [userId]
+      );
+      const codeRecord = (codeRows as any[])[0];
+      planId = codeRecord?.plan_id;
+    }
+
+    return {
+      isPro: !!user.is_pro,
+      planId,
+      activatedAt: user.pro_activated_at ? new Date(user.pro_activated_at).toISOString() : undefined,
+      expiresAt: user.pro_expires_at ? new Date(user.pro_expires_at).toISOString() : undefined,
+    };
+  }
+
+  // 列出所有激活码（管理用）
+  static async listCodes(filter?: { status?: string; planId?: string }): Promise<any[]> {
+    const connection = await DatabaseConnection.getConnection();
+    let sql = 'SELECT * FROM activation_codes WHERE 1=1';
+    const params: any[] = [];
+
+    if (filter?.status) {
+      sql += ' AND status = ?';
+      params.push(filter.status);
+    }
+    if (filter?.planId) {
+      sql += ' AND plan_id = ?';
+      params.push(filter.planId);
+    }
+
+    sql += ' ORDER BY created_at DESC LIMIT 100';
+    const [rows] = await connection.execute(sql, params);
+    return rows as any[];
+  }
+}
+
+// ====== FILE: server/src/services/rewardService.ts ======
+
+import * as RewardModel from '../models/Reward';
+
+export const createReward = async (userId: number, type: string, amount: number, source?: string) => {
+  console.log(`[RewardService] 创建奖励 - 用户ID: ${userId}, 类型: ${type}, 数量: ${amount}`);
+  const rewardId = await RewardModel.createReward({
+    userId,
+    type,
+    amount,
+    source
+  });
+  console.log(`[RewardService] 奖励创建成功 - 奖励ID: ${rewardId}`);
+  return { success: true, rewardId };
+};
+
+export const getRewards = async (userId: number) => {
+  console.log(`[RewardService] 获取奖励列表 - 用户ID: ${userId}`);
+  const rewards = await RewardModel.getRewardsByUserId(userId);
+  console.log(`[RewardService] 获取到 ${rewards.length} 条奖励`);
+  return { rewards };
+};
+
+export const claimReward = async (rewardId: number) => {
+  console.log(`[RewardService] 领取奖励 - 奖励ID: ${rewardId}`);
+  const success = await RewardModel.claimReward(rewardId);
+  console.log(`[RewardService] 奖励领取${success ? '成功' : '失败'}`);
+  return { success };
+};
+
+// ====== FILE: server/src/services/skillService.ts ======
+
+import { SkillNode, SkillTreeListRequest, UserProgress, SkillTreeStats, SaveSkillTreeRequest } from '../types/skill';
+import { DatabaseService } from './databaseService';
+import { LLMService, LLMProvider } from './llmService';
+
+// 预置技能树数据（用于生成新技能树）
+const mockSkillTrees: Record<string, SkillNode> = {
+  '前端开发': {
+    id: '1',
+    name: '前端开发',
+    description: '前端开发技能树',
+    children: [
+      {
+        id: '1-1',
+        name: 'HTML/CSS',
+        description: '网页基础结构',
+        links: [
+          { title: 'MDN HTML教程', url: 'https://developer.mozilla.org/zh-CN/docs/Web/HTML', type: 'documentation' as const },
+          { title: 'CSS教程', url: 'https://developer.mozilla.org/zh-CN/docs/Web/CSS', type: 'documentation' as const }
+        ]
+      },
+      {
+        id: '1-2',
+        name: 'JavaScript',
+        description: '前端编程语言',
+        children: [
+          {
+            id: '1-2-1',
+            name: '基础语法',
+            description: '变量、函数、循环等',
+            links: [
+              { title: 'JavaScript教程', url: 'https://developer.mozilla.org/zh-CN/docs/Web/JavaScript', type: 'documentation' as const }
+            ]
+          },
+          {
+            id: '1-2-2',
+            name: 'DOM操作',
+            description: '文档对象模型操作',
+            links: [
+              { title: 'DOM教程', url: 'https://developer.mozilla.org/zh-CN/docs/Web/API/Document_Object_Model', type: 'documentation' as const }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  '后端开发': {
+    id: '2',
+    name: '后端开发',
+    description: '后端开发技能树',
+    children: [
+      {
+        id: '2-1',
+        name: 'Node.js',
+        description: 'JavaScript运行时',
+        links: [
+          { title: 'Node.js官方文档', url: 'https://nodejs.org/docs', type: 'documentation' as const }
+        ]
+      },
+      {
+        id: '2-2',
+        name: '数据库',
+        description: '数据存储和管理',
+        children: [
+          {
+            id: '2-2-1',
+            name: 'MySQL',
+            description: '关系型数据库',
+            links: [
+              { title: 'MySQL教程', url: 'https://dev.mysql.com/doc/', type: 'documentation' as const }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+};
+
+// 初始化LLM服务（根据环境变量配置）
+const initLLMService = (): LLMService | null => {
+  const apiKey = process.env.LLM_API_KEY;
+  const provider = process.env.LLM_PROVIDER as LLMProvider;
+  
+  if (!apiKey || !provider) {
+    console.warn('LLM service not configured. Using mock data instead.');
+    return null;
+  }
+  
+  return new LLMService({
+    provider,
+    apiKey,
+    baseURL: process.env.LLM_BASE_URL,
+    model: process.env.LLM_MODEL
+  });
+};
+
+const llmService = initLLMService();
+
+// 生成技能树（优先使用LLM，失败时回退到模拟数据）
+export const generateMockSkillTree = async (domain: string, level: string = 'beginner'): Promise<SkillNode> => {
+  // 更新热门领域统计
+  await DatabaseService.incrementDomainGeneratedCount(domain);
+  
+  // 优先使用LLM生成技能树
+  if (llmService) {
+    try {
+      console.log(`Generating skill tree for domain: ${domain}, level: ${level} using LLM`);
+      const skillTree = await llmService.generateSkillTree({
+        domain,
+        level: level as 'beginner' | 'intermediate' | 'advanced',
+        language: '中文',
+        maxDepth: 4,
+        includeResources: true
+      });
+      
+      console.log('Skill tree generated successfully by LLM');
+      return skillTree;
+    } catch (error) {
+      console.warn('LLM generation failed, falling back to mock data:', error);
+      console.error('LLM error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
+    }
+  }
+  
+  // 回退到模拟数据
+  console.log(`Using mock data for domain: ${domain}`);
+  console.log('Available mock domains:', Object.keys(mockSkillTrees));
+  let skillTree = mockSkillTrees[domain];
+  
+  if (!skillTree) {
+    // 如果领域不存在，创建一个基础技能树
+    skillTree = {
+      id: generateId(),
+      name: domain,
+      description: `${domain}技能学习路径`,
+      children: [
+        {
+          id: generateId(),
+          name: '基础知识',
+          description: '学习该领域的基础概念',
+          links: [
+            { title: '入门指南', url: 'https://example.com', type: 'documentation' as const }
+          ]
+        },
+        {
+          id: generateId(),
+          name: '进阶学习',
+          description: '深入掌握核心技能',
+          links: [
+            { title: '进阶教程', url: 'https://example.com', type: 'documentation' as const }
+          ]
+        }
+      ]
+    };
+  }
+  
+  return skillTree;
+};
+
+// 获取技能树列表（从数据库）
+export const getSkillTreeList = async (request: SkillTreeListRequest) => {
+  const { page = 1, limit = 10, search, category } = request;
+  console.log(`[SkillService] 获取技能树列表 - 页码: ${page}, 搜索: ${search || '无'}, 分类: ${category || '无'}`);
+  
+  const result = await DatabaseService.getSkillTreesByUserId(1, page, limit);
+  
+  return {
+    trees: result.trees.map(tree => ({
+      id: tree.id.toString(),
+      name: tree.title,
+      domain: tree.domain,
+      description: tree.description,
+      progress: tree.progress,
+      createdAt: tree.createdAt
+    })),
+    total: result.total,
+    page: result.page,
+    limit: result.limit
+  };
+};
+
+// 根据ID获取技能树（从数据库）
+export const getSkillTreeById = async (id: string) => {
+  console.log(`[SkillService] 获取技能树详情 - ID: ${id}`);
+  const tree = await DatabaseService.getSkillTreeById(parseInt(id));
+  
+  if (!tree) {
+    console.log(`[SkillService] 技能树不存在 - ID: ${id}`);
+    return null;
+  }
+  
+  return {
+    id: tree.id.toString(),
+    name: tree.title,
+    domain: tree.domain,
+    description: tree.description,
+    nodes: tree.nodes,
+    progress: tree.progress,
+    createdAt: tree.createdAt
+  };
+};
+
+// 保存用户技能树（到数据库）
+export const saveUserSkillTree = async (request: SaveSkillTreeRequest) => {
+  const { userId, skillTree, title, tags } = request;
+  console.log(`[SkillService] 保存技能树 - 用户ID: ${userId}, 标题: ${title || skillTree.name}`);
+  
+  try {
+    const treeId = await DatabaseService.createSkillTree({
+      userId: parseInt(userId),
+      domain: skillTree.name,
+      title: title || skillTree.name,
+      description: skillTree.description,
+      nodes: [skillTree],
+      isPublic: false
+    });
+    
+    console.log(`[SkillService] 技能树保存成功 - 树ID: ${treeId}`);
+    return { success: true, treeId: treeId.toString() };
+  } catch (error) {
+    console.error('[SkillService] 保存技能树失败:', error);
+    return { success: false, error: '保存失败' };
+  }
+};
+
+// 获取用户进度（从数据库）
+export const getUserProgress = async (userId: string, skillTreeId?: string): Promise<UserProgress[]> => {
+  if (skillTreeId) {
+    const progress = await DatabaseService.getUserProgress(parseInt(userId), parseInt(skillTreeId));
+    return [{
+      userId,
+      skillTreeId,
+      completedNodes: [], // 需要从学习记录计算
+      completedLinks: [], // 需要从学习记录计算
+      progress: progress.overallProgress,
+      lastUpdated: progress.lastUpdated
+    }];
+  }
+  
+  // 获取用户所有技能树的进度
+  const trees = await DatabaseService.getSkillTreesByUserId(parseInt(userId));
+  const progresses: UserProgress[] = [];
+  
+  for (const tree of trees.trees) {
+    const progress = await DatabaseService.getUserProgress(parseInt(userId), tree.id);
+    progresses.push({
+      userId,
+      skillTreeId: tree.id.toString(),
+      completedNodes: [],
+      completedLinks: [],
+      progress: progress.overallProgress,
+      lastUpdated: progress.lastUpdated
+    });
+  }
+  
+  return progresses;
+};
+
+// 更新用户进度（到数据库）
+export const updateUserProgress = async (userId: string, skillTreeId: string, completedNodes: string[], completedLinks: string[]): Promise<UserProgress> => {
+  // 这里简化处理，实际应该更新学习记录表
+  const progress = Math.round((completedNodes.length / 10) * 100); // 简化计算
+  
+  await DatabaseService.updateSkillTreeProgress(parseInt(skillTreeId), progress);
+  
+  return {
+    userId,
+    skillTreeId,
+    completedNodes,
+    completedLinks,
+    progress,
+    lastUpdated: new Date()
+  };
+};
+
+// 获取统计信息（从数据库）
+export const getStatistics = async (): Promise<SkillTreeStats> => {
+  console.log(`[SkillService] 获取统计信息`);
+  const popularDomains = await DatabaseService.getPopularDomains(5);
+  
+  return {
+    totalTrees: 100,
+    popularDomains: popularDomains.map(d => ({ domain: d.domain, count: d.popularity })),
+    averageProgress: 45,
+    totalUsers: 50
+  };
+};
+
+export const searchPopularDomains = async (keyword: string) => {
+  console.log(`[SkillService] 搜索热门领域 - 关键词: ${keyword}`);
+  await DatabaseService.incrementDomainSearchCount(keyword);
+  
+  const domains = await DatabaseService.getPopularDomains(10);
+  const results = domains
+    .filter(d => d.domain.toLowerCase().includes(keyword.toLowerCase()))
+    .map(d => d.domain);
+  
+  console.log(`[SkillService] 搜索结果: ${results.length} 条`);
+  return {
+    keyword,
+    results,
+    total: results.length
+  };
+};
+
+export const getRecommendedPath = async (domain: string, currentLevel: string, targetLevel: string) => {
+  console.log(`[SkillService] 获取推荐路径 - 领域: ${domain}, 当前等级: ${currentLevel}, 目标等级: ${targetLevel}`);
+  return {
+    domain,
+    currentLevel,
+    targetLevel,
+    path: [
+      { step: 1, topic: '基础知识', estimatedTime: '2周' },
+      { step: 2, topic: '核心概念', estimatedTime: '3周' },
+      { step: 3, topic: '实战项目', estimatedTime: '4周' }
+    ],
+    totalEstimatedTime: '9周'
+  };
+};
+
+export const getUserLearningReport = async (userId: string, period: string = 'month') => {
+  console.log(`[SkillService] 获取学习报告 - 用户ID: ${userId}, 周期: ${period}`);
+  return {
+    userId,
+    period,
+    summary: {
+      totalLearningTime: 120,
+      completedSkills: 15,
+      averageProgress: 65,
+      streakDays: 7
+    },
+    recommendations: [
+      '建议每天保持30分钟学习时间',
+      '重点关注前端开发的核心概念',
+      '尝试完成一个小型实战项目'
+    ]
+  };
+};
+
+// 辅助函数：生成唯一ID
+const generateId = (): string => {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+};
+// ====== FILE: server/src/types/index.ts ======
+
+export * from './skill';
+// ====== FILE: server/src/types/skill.ts ======
+
+export interface MonsterPersonality {
+  cheerful: number;
+  calm: number;
+  rebellious: number;
+}
+
+export interface SkillNode {
+  id: string;
+  name: string;
+  description: string;
+  children?: SkillNode[];
+  links?: SkillLink[];
+}
+
+export interface SkillLink {
+  title: string;
+  url: string;
+  type: 'video' | 'article' | 'course' | 'documentation';
+}
+
+export interface SkillTreeRequest {
+  domain: string;
+  level?: 'beginner' | 'intermediate' | 'advanced';
+}
+
+export interface UserProgress {
+  userId: string;
+  skillTreeId: string;
+  completedNodes: string[];
+  completedLinks: string[];
+  progress: number;
+  lastUpdated: Date;
+}
+
+export interface SkillTreeListRequest {
+  page?: number;
+  limit?: number;
+  search?: string;
+  category?: string;
+}
+
+export interface SkillTreeStats {
+  totalTrees: number;
+  popularDomains: Array<{domain: string; count: number}>;
+  averageProgress: number;
+  totalUsers: number;
+}
+
+export interface SaveSkillTreeRequest {
+  userId: string;
+  skillTree: SkillNode;
+  title?: string;
+  tags?: string[];
+}
+
+export interface LearningReport {
+  userId: string;
+  period: string;
+  summary: {
+    totalLearningTime: string;
+    completedSkills: number;
+    averageProgress: number;
+    streakDays: number;
+  };
+  weeklyProgress: Array<{week: string; progress: number}>;
+  topSkills: string[];
+  recommendations: string[];
+}
+
+export interface RecommendedPath {
+  domain: string;
+  currentLevel: string;
+  targetLevel: string;
+  path: Array<{step: number; topic: string; estimatedTime: string}>;
+  totalEstimatedTime: string;
+}
