@@ -102,7 +102,7 @@ export interface MonsterResponse {
   lastStaminaRecover?: Date;
 }
 
-// 聊天相关类型
+// 怪兽对话相关类型
 export interface MonsterChatRequest {
   userId: number;
   message: string;

@@ -13,6 +13,9 @@ import { API_BASE_URL, MONSTER_CONFIG } from '../src/utils/constants';
 import MonsterIcon from '../src/components/MonsterIcon';
 import { storage, STORAGE_KEYS } from '../src/utils/storage';
 import SubscriptionModal from '../src/components/SubscriptionModal';
+import { getCurrentUser } from '../src/utils/auth';
+import { proService } from '../src/services/api';
+import { SUBSCRIPTION_STORAGE_KEY } from '../src/utils/pricing';
 
 
 // ---- 平台选项（与 skill-tree 保持一致） ----
@@ -118,6 +121,8 @@ const ModuleSelectionScreen = () => {
         if (stored) {
           const parsed = JSON.parse(stored) as ModuleType[];
           setExistingModules(parsed);
+          // 进入添加模式时，初始选中已有模块，防止覆盖
+          setSelectedModules(parsed);
         }
       };
       loadExisting();
@@ -137,11 +142,11 @@ const ModuleSelectionScreen = () => {
   // ---- 预设模块：切换选中 ----
   const toggleModule = (id: ModuleType) => {
     if (isAddMode) {
-      // 添加模式下单选
+      // 添加模式下多选（追加已有模块）
       if (selectedModules.includes(id)) {
-        setSelectedModules([]);
+        setSelectedModules(selectedModules.filter(m => m !== id));
       } else {
-        setSelectedModules([id]);
+        setSelectedModules([...selectedModules, id]);
       }
     } else {
       // 初始选择模式下多选（最多3个）
@@ -160,12 +165,32 @@ const ModuleSelectionScreen = () => {
   useEffect(() => {
     const checkPro = async () => {
       try {
-        const subStr = await AsyncStorage.getItem('user_subscription');
+        // 先查服务端（以数据库为准）
+        const user = await getCurrentUser();
+        if (user?.id) {
+          const proStatus = await proService.getStatus(user.id);
+          if (proStatus.isPro) {
+            setIsPro(true);
+            await AsyncStorage.setItem(SUBSCRIPTION_STORAGE_KEY, JSON.stringify(proStatus));
+            return;
+          }
+        }
+        // 服务端不可用时降级到本地缓存
+        const subStr = await AsyncStorage.getItem(SUBSCRIPTION_STORAGE_KEY);
         if (subStr) {
           const sub = JSON.parse(subStr);
           setIsPro(!!sub.isPro);
         }
-      } catch {}
+      } catch {
+        // 网络失败时用本地缓存
+        try {
+          const subStr = await AsyncStorage.getItem(SUBSCRIPTION_STORAGE_KEY);
+          if (subStr) {
+            const sub = JSON.parse(subStr);
+            setIsPro(!!sub.isPro);
+          }
+        } catch {}
+      }
     };
     checkPro();
   }, []);
@@ -335,12 +360,24 @@ const ModuleSelectionScreen = () => {
     }
   };
 
-  /** 提交自定义模块：保存 SkillTree 结构 + 自定义模块信息 + 更新 selectedModules */
+  /** 提交自定义模块 */
   const handleCreateCustomModule = async () => {
     const error = validateCustomForm();
     if (error) {
       Alert.alert('提示', error);
       return;
+    }
+
+    // 免费用户：检查是否已有自定义模块
+    if (!isPro) {
+      const hasCustom = existingModules.some(id => id.startsWith('custom-'));
+      if (hasCustom) {
+        Alert.alert('提示', '免费额度已用完，请升级 Pro 无限畅用', [
+          { text: '取消', style: 'cancel' },
+          { text: '了解 Pro', onPress: () => setShowProModal(true) },
+        ]);
+        return;
+      }
     }
 
     const moduleId = `custom-${Date.now()}`;

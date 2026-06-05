@@ -7,10 +7,10 @@ import {
   UserResponse,
   AuthResponse,
   MonsterSetupRequest,
+  MonsterResponse,
   MonsterChatRequest,
   MonsterChatResponse,
   MonsterMessagesResponse,
-  MonsterResponse,
   // 新增：笔记相关类型
   CreateNoteRequest,
   UpdateNoteRequest,
@@ -144,6 +144,20 @@ export const authService = {
   },
 };
 
+export const proService = {
+  // 激活 Pro
+  activate: async (code: string, userId: number): Promise<{ success: boolean; planId?: string; expiresAt?: string }> => {
+    const response = await api.post('/pro/activate', { code, userId });
+    return response.data.data;
+  },
+
+  // 查询 Pro 状态
+  getStatus: async (userId: number): Promise<{ isPro: boolean; planId?: string; expiresAt?: string }> => {
+    const response = await api.get(`/pro/status/${userId}`);
+    return response.data.data;
+  },
+};
+
 export const skillService = {
   // 生成技能树
   generateSkillTree: async (request: SkillTreeRequest): Promise<SkillNode> => {
@@ -247,6 +261,12 @@ export const monsterService = {
   // 获取历史对话消息
   getMessages: async (userId: number): Promise<MonsterMessagesResponse> => {
     const response = await api.get(`/monster/messages/${userId}`);
+    return response.data;
+  },
+
+  // 获取怪兽状态
+  getMonsterStatus: async (userId: number): Promise<MonsterResponse> => {
+    const response = await api.get(`/monster/status/${userId}`);
     return response.data;
   },
 };

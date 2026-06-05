@@ -12,7 +12,9 @@ import { MONSTER_CONFIG } from '../../src/utils/constants';
 import { formatTimer } from '../../src/utils/helpers';
 import { useFocusEffect, router } from 'expo-router';
 import { noteService, rewardService, monsterService } from '../../src/services/api';
+import { proService } from '../../src/services/api';
 import { getCurrentUser } from '../../src/utils/auth';
+import { SUBSCRIPTION_STORAGE_KEY } from '../../src/utils/pricing';
 
 type ActiveTab = 'tasks' | 'notes' | 'chat';
 type MonsterMessageItem = { id: number; userId: string; message: string; isUser: boolean; createdAt: string; energyCost?: number };
@@ -266,6 +268,7 @@ const MonsterManageScreen = () => {
   const [chatMessages, setChatMessages] = useState<MonsterMessageItem[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [isPro, setIsPro] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   useFocusEffect(
@@ -278,9 +281,50 @@ const MonsterManageScreen = () => {
   useEffect(() => {
     loadData();
     loadChatMessages();
+    checkProStatus();
   }, []);
 
+  // 检查 Pro 状态
+  const checkProStatus = async () => {
+    try {
+      const user = await getCurrentUser();
+      if (user?.id) {
+        const status = await proService.getStatus(user.id);
+        setIsPro(status.isPro);
+        if (status.isPro) {
+          await AsyncStorage.setItem(SUBSCRIPTION_STORAGE_KEY, JSON.stringify(status));
+        }
+      }
+    } catch {
+      // 服务端不可用时降级
+      try {
+        const subStr = await AsyncStorage.getItem(SUBSCRIPTION_STORAGE_KEY);
+        if (subStr) {
+          setIsPro(!!JSON.parse(subStr).isPro);
+        }
+      } catch {}
+    }
+  };
+
   const pomodoroTimeLeft = selectedTime * 60;
+
+  // Pro 激活时更新怪兽上限
+  useEffect(() => {
+    if (!isPro || !monsterData) return;
+    const proStaminaMax = MONSTER_CONFIG.STAMINA.PRO_MAX;
+    const proEnergyMax = MONSTER_CONFIG.ENERGY.PRO_MAX;
+    if (monsterData.maxStamina === proStaminaMax && monsterData.maxPaiEnergy === proEnergyMax) return;
+
+    const updated = {
+      ...monsterData,
+      stamina: Math.min(monsterData.stamina + (proStaminaMax - monsterData.maxStamina), proStaminaMax),
+      maxStamina: proStaminaMax,
+      paiEnergy: Math.min(monsterData.paiEnergy + (proEnergyMax - monsterData.maxPaiEnergy), proEnergyMax),
+      maxPaiEnergy: proEnergyMax,
+    };
+    setMonsterData(updated);
+    storage.setItem(STORAGE_KEYS.MONSTER, updated);
+  }, [isPro]);
 
   const loadData = async () => {
     try {
@@ -291,15 +335,18 @@ const MonsterManageScreen = () => {
         setMonsterData(resetData);
       } else {
         console.log('[Monster] 无怪物数据，创建默认怪物');
+        const proChecked = isPro; // 读取当前已加载的 pro 状态
+        const staminaMax = proChecked ? MONSTER_CONFIG.STAMINA.PRO_MAX : MONSTER_CONFIG.STAMINA.BASE_MAX + MONSTER_CONFIG.STAMINA.CALM_BONUS;
+        const energyMax = proChecked ? MONSTER_CONFIG.ENERGY.PRO_MAX : MONSTER_CONFIG.ENERGY.BASE_MAX;
         const newMonster = {
           name: '小怪兽',
           type: MONSTER_CONFIG.TYPES.CALM,
           level: 1,
           exp: 0,
-          stamina: MONSTER_CONFIG.STAMINA.BASE_MAX + MONSTER_CONFIG.STAMINA.CALM_BONUS,
-          maxStamina: MONSTER_CONFIG.STAMINA.BASE_MAX + MONSTER_CONFIG.STAMINA.CALM_BONUS,
-          paiEnergy: MONSTER_CONFIG.ENERGY.BASE_MAX,
-          maxPaiEnergy: MONSTER_CONFIG.ENERGY.BASE_MAX,
+          stamina: staminaMax,
+          maxStamina: staminaMax,
+          paiEnergy: energyMax,
+          maxPaiEnergy: energyMax,
           knowledgePoints: 0,
           createdAt: new Date().toISOString(),
         };
@@ -307,8 +354,22 @@ const MonsterManageScreen = () => {
         await storage.setItem(STORAGE_KEYS.MONSTER, newMonster);
       }
 
-      const saved = await storage.getItem<any[]>(STORAGE_KEYS.NOTES);
-      if (saved) setSavedNotes(saved);
+      // 从服务端加载笔记（按用户ID）
+      try {
+        const user = await getCurrentUser();
+        if (user?.id) {
+          const serverNotes = await noteService.getNotes(user.id);
+          if (serverNotes && serverNotes.length > 0) {
+            setSavedNotes(serverNotes.map((n: any) => ({
+              id: n.id,
+              content: n.content,
+              date: n.createdAt || n.date,
+            })));
+          }
+        }
+      } catch {
+        console.log('[Monster] 笔记从服务端加载失败');
+      }
 
       const savedTasks = await storage.getItem<any[]>(STORAGE_KEYS.TASKS);
       if (savedTasks) setTasks(savedTasks);
@@ -365,26 +426,23 @@ const MonsterManageScreen = () => {
     if (!notes.trim()) return;
 
     const newNote = { id: Date.now(), content: notes, date: new Date().toISOString() };
-    const updated = [newNote, ...savedNotes];
-    setSavedNotes(updated);
-    await storage.setItem(STORAGE_KEYS.NOTES, updated);
-    console.log('[Monster] 笔记已保存，总数:', updated.length);
+    setSavedNotes(prev => [newNote, ...prev]);
     setNotes('');
 
     try {
       const user = await getCurrentUser();
       if (user?.id) {
         await noteService.createNote({ userId: user.id, date: newNote.date, content: newNote.content });
-        console.log('[Monster] 笔记已同步至服务端');
+        console.log('[Monster] 笔记已保存至服务端');
       }
     } catch (error) {
-      console.warn('[Monster] 笔记同步服务端失败，仅本地存储:', error);
+      console.warn('[Monster] 笔记保存至服务端失败:', error);
     }
   };
 
   const handlePlayGame = () => {
     if (!monsterData) return;
-    const dailyGameLimit = MONSTER_CONFIG.GAME.DAILY_LIMIT;
+    const dailyGameLimit = isPro ? MONSTER_CONFIG.GAME.PRO_DAILY_LIMIT : MONSTER_CONFIG.GAME.DAILY_LIMIT;
     if (dailyPlays >= dailyGameLimit) {
       Alert.alert('提示', '今日体力补充已达上限，明天再来吧');
       return;
@@ -659,8 +717,17 @@ const MonsterManageScreen = () => {
           <View style={staticStyles.notesList}>
             {savedNotes.map((note) => (
               <View key={note.id} style={[staticStyles.savedNote, dynamicStyles.savedNote]}>
-                <Text style={dynamicStyles.savedNoteContent}>{note.content}</Text>
-                <Text style={dynamicStyles.savedNoteDate}>{new Date(note.date).toLocaleString('zh-CN')}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={dynamicStyles.savedNoteContent}>{note.content}</Text>
+                  <Text style={dynamicStyles.savedNoteDate}>{new Date(note.date).toLocaleString('zh-CN')}</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setSavedNotes(prev => prev.filter(n => n.id !== note.id))}
+                  style={{ padding: 8 }}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
+                </TouchableOpacity>
               </View>
             ))}
           </View>
@@ -670,22 +737,103 @@ const MonsterManageScreen = () => {
   );
 
   const renderChatTab = () => (
-    <View style={staticStyles.tabContent}>
-      <View style={[staticStyles.chatCard, dynamicStyles.chatCard]}>
-        <View style={staticStyles.chatMonsterIcon}>
-          <MonsterIcon type={monsterData.type} size={80} />
-        </View>
-        <Text style={dynamicStyles.chatTitle}>对话功能即将开放</Text>
-        <Text style={dynamicStyles.chatDescription}>与 {monsterData.name} 聊天，获得学习建议和鼓励</Text>
-        <View style={[staticStyles.proBadge, dynamicStyles.proBadge]}>
-          <Text style={dynamicStyles.proText}>🚀 PRO 功能</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
+      {/* 聊天头部：返回按钮 + 怪兽名称 */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.hairline, backgroundColor: colors.surface }}>
+        <TouchableOpacity
+          onPress={() => setActiveTab('tasks')}
+          style={{ width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.borderLight }}
+        >
+          <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
+        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 12 }}>
+          <MonsterIcon type={monsterData.type} size={28} />
+          <Text style={{ color: colors.textPrimary, fontSize: 16, fontWeight: '600' }}>{monsterData.name}</Text>
         </View>
       </View>
-    </View>
+
+      <FlatList
+        ref={flatListRef}
+        data={chatMessages}
+        keyExtractor={(item) => item.id.toString()}
+        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        style={{ flex: 1 }}
+        contentContainerStyle={[staticStyles.chatListContent, { flexGrow: 1 }]}
+        ListEmptyComponent={
+          <View style={staticStyles.chatEmpty}>
+            <MonsterIcon type={monsterData.type} size={60} />
+            <Text style={[staticStyles.chatEmptyText, dynamicStyles.chatEmptyText]}>
+              和 {monsterData.name} 打个招呼吧～
+            </Text>
+            <Text style={[staticStyles.chatEmptyHint, dynamicStyles.chatEmptyHint]}>
+              聊聊学习、吐槽烦恼、求安慰都行
+            </Text>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <View style={[
+            staticStyles.messageBubble,
+            item.isUser ? staticStyles.messageUser : staticStyles.messageMonster,
+          ]}>
+            {!item.isUser && (
+              <View style={staticStyles.messageAvatar}>
+                <MonsterIcon type={monsterData.type} size={28} />
+              </View>
+            )}
+            <View style={[
+              staticStyles.messageContent,
+              item.isUser ? staticStyles.messageContentUser : staticStyles.messageContentMonster,
+              item.isUser ? { backgroundColor: colors.primary } : dynamicStyles.messageContentMonster,
+            ]}>
+              <Text style={[
+                staticStyles.messageText,
+                { color: item.isUser ? '#FFFFFF' : colors.textPrimary },
+              ]}>
+                {item.message}
+              </Text>
+            </View>
+          </View>
+        )}
+      />
+      <View style={[staticStyles.chatInputBar, dynamicStyles.chatInputBar]}>
+        <TextInput
+          style={[staticStyles.chatTextInput, dynamicStyles.chatTextInput]}
+          value={chatInput}
+          onChangeText={setChatInput}
+          placeholder={`和 ${monsterData.name} 说点什么...`}
+          placeholderTextColor={colors.textTertiary}
+          multiline
+          maxLength={500}
+          returnKeyType="send"
+          onSubmitEditing={sendMessage}
+          editable={!isSending}
+        />
+        <TouchableOpacity
+          style={[staticStyles.sendButton, dynamicStyles.sendButton, (!chatInput.trim() || isSending) && staticStyles.sendButtonDisabled]}
+          onPress={sendMessage}
+          disabled={!chatInput.trim() || isSending}
+        >
+          {isSending ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Ionicons name="send" size={18} color="#FFFFFF" />
+          )}
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
   );
 
   return (
     <SafeAreaView style={[staticStyles.safeArea, dynamicStyles.container]} edges={['top']}>
+      {activeTab === 'chat' ? (
+        renderChatTab()
+      ) : (
       <ScrollView contentContainerStyle={staticStyles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={staticStyles.header}>
           <View style={dynamicStyles.pixelBackground} />
@@ -710,15 +858,15 @@ const MonsterManageScreen = () => {
 
                 <View style={staticStyles.monsterActionRow}>
                   <TouchableOpacity
-                    style={[staticStyles.gameButton, dynamicStyles.gameButton, dailyPlays >= MONSTER_CONFIG.GAME.DAILY_LIMIT && staticStyles.gameButtonDisabled]}
+                    style={[staticStyles.gameButton, dynamicStyles.gameButton, dailyPlays >= (isPro ? MONSTER_CONFIG.GAME.PRO_DAILY_LIMIT : MONSTER_CONFIG.GAME.DAILY_LIMIT) && staticStyles.gameButtonDisabled]}
                     onPress={handlePlayGame}
                     activeOpacity={0.7}
                   >
                     <Ionicons name="game-controller-outline" size={20} color={dailyPlays >= MONSTER_CONFIG.GAME.DAILY_LIMIT ? colors.textTertiary : colors.orange} />
                     <View style={staticStyles.gameButtonContent}>
-                      <Text style={[staticStyles.gameButtonText, { color: dailyPlays >= MONSTER_CONFIG.GAME.DAILY_LIMIT ? colors.textTertiary : colors.orange }]}>游戏</Text>
+                      <Text style={[staticStyles.gameButtonText, { color: dailyPlays >= (isPro ? MONSTER_CONFIG.GAME.PRO_DAILY_LIMIT : MONSTER_CONFIG.GAME.DAILY_LIMIT) ? colors.textTertiary : colors.orange }]}>游戏</Text>
                       <Text style={[staticStyles.gameButtonSubText, dynamicStyles.infoText]}>
-                        剩余: {MONSTER_CONFIG.GAME.DAILY_LIMIT - dailyPlays}次
+                        剩余: {(isPro ? MONSTER_CONFIG.GAME.PRO_DAILY_LIMIT : MONSTER_CONFIG.GAME.DAILY_LIMIT) - dailyPlays}次
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -814,10 +962,9 @@ const MonsterManageScreen = () => {
 
         {activeTab === 'tasks' && renderTasksTab()}
         {activeTab === 'notes' && renderNotesTab()}
-        {activeTab === 'chat' && renderChatTab()}
-
         <View style={staticStyles.bottomPadding} />
       </ScrollView>
+      )}
 
       <Modal visible={showGameModal} animationType="slide" statusBarTranslucent onRequestClose={() => setShowGameModal(false)}>
         <View style={staticStyles.modalFullScreen}>

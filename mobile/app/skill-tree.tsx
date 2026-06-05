@@ -27,7 +27,10 @@ import { SkillTree, PlatformType, StageType, SkillNode, SkillStage } from '../sr
 import { useTheme } from '../src/contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { monsterService } from '../src/services/api';
+import { proService } from '../src/services/api';
 import { getCurrentUser } from '../src/utils/auth';
+import { SUBSCRIPTION_STORAGE_KEY } from '../src/utils/pricing';
+import { MONSTER_CONFIG } from '../src/utils/constants';
 
 // ---- 本地类型定义 ----
 
@@ -52,6 +55,29 @@ interface CustomNode {
 const SkillTreeScreen = () => {
   const { domain } = useLocalSearchParams();
   const { colors } = useTheme();
+  const [isPro, setIsPro] = useState(false);
+
+  // 加载 Pro 状态
+  useEffect(() => {
+    (async () => {
+      try {
+        const user = await getCurrentUser();
+        if (user?.id) {
+          const status = await proService.getStatus(user.id);
+          setIsPro(status.isPro);
+          if (status.isPro) await AsyncStorage.setItem(SUBSCRIPTION_STORAGE_KEY, JSON.stringify(status));
+          return;
+        }
+        const subStr = await AsyncStorage.getItem(SUBSCRIPTION_STORAGE_KEY);
+        if (subStr) setIsPro(!!JSON.parse(subStr).isPro);
+      } catch {
+        try {
+          const subStr = await AsyncStorage.getItem(SUBSCRIPTION_STORAGE_KEY);
+          if (subStr) setIsPro(!!JSON.parse(subStr).isPro);
+        } catch {}
+      }
+    })();
+  }, []);
 
   // ---- 样式表（依赖 colors） ----
   const s = useMemo(() => StyleSheet.create({
@@ -286,15 +312,17 @@ const SkillTreeScreen = () => {
         const monster = await AsyncStorage.getItem('monster');
         if (monster) {
           const data = JSON.parse(monster);
-          setMonsterStamina(typeof data.stamina === 'number' ? data.stamina : 100);
-          setMaxStamina(data.type === 'calm' ? 120 : 100);
+          const proChecked = isPro; // 使用当前已加载的状态
+          const staminaMax = proChecked ? MONSTER_CONFIG.STAMINA.PRO_MAX : (data.type === 'calm' ? 120 : 100);
+          setMonsterStamina(typeof data.stamina === 'number' ? Math.min(data.stamina, staminaMax) : staminaMax);
+          setMaxStamina(staminaMax);
         }
       };
       loadStamina();
     }, [visible]);
 
     const durations = [15, 25, 30, 45, 60];
-    const staminaCost = Math.ceil(selectedDuration / 5);
+    const staminaCost = isPro ? 0 : Math.ceil(selectedDuration / 5);
 
     const handleConfirm = async () => {
       if (monsterStamina < staminaCost) {
@@ -354,7 +382,7 @@ const SkillTreeScreen = () => {
               ))}
             </View>
             <View style={s.costInfo}>
-              <Text style={s.costText}>预计消耗体力: {staminaCost} 点</Text>
+              <Text style={s.costText}>{isPro ? 'Pro 会员 · 无限次跳转' : `预计消耗体力: ${staminaCost} 点`}</Text>
               <Text style={[s.suggestedText, { color: colors.textSecondary }]}>建议学习时长: {suggestedDuration}小时</Text>
             </View>
             <TouchableOpacity style={[s.modalConfirmBtn, { backgroundColor: colors.primary }]} onPress={handleConfirm}>
@@ -839,7 +867,6 @@ const SkillTreeScreen = () => {
         nodeName={selectedNode.name}
         url={selectedNode.url}
         suggestedDuration={selectedNode.suggestedDuration}
-        colors={colors}
       />
 
       {/* 添加大标题 */}

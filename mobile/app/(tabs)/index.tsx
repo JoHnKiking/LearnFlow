@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
@@ -6,6 +6,9 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import SubscriptionModal from '../../src/components/SubscriptionModal';
+import { proService } from '../../src/services/api';
+import { SUBSCRIPTION_STORAGE_KEY } from '../../src/utils/pricing';
+import { getCurrentUser } from '../../src/utils/auth';
 
 interface Module {
   id: string;
@@ -113,6 +116,22 @@ const MapScreen = () => {
   const { isDark, colors } = useTheme();
   const [modules, setModules] = useState<Module[]>([]);
   const [showProModal, setShowProModal] = useState(false);
+  const [isPro, setIsPro] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const user = await getCurrentUser();
+        if (user?.id) {
+          const status = await proService.getStatus(user.id);
+          setIsPro(status.isPro);
+          return;
+        }
+        const subStr = await AsyncStorage.getItem(SUBSCRIPTION_STORAGE_KEY);
+        if (subStr) setIsPro(!!JSON.parse(subStr).isPro);
+      } catch {}
+    })();
+  }, []);
 
   // 动态样式
   const dynamicStyles = useMemo(() => ({
@@ -267,18 +286,18 @@ const MapScreen = () => {
             <Text style={dynamicStyles.subtitle}>选择一个模块开始学习</Text>
           </View>
           <TouchableOpacity
-            onPress={() => setShowProModal(true)}
-            activeOpacity={0.7}
+            onPress={() => { if (!isPro) setShowProModal(true); }}
+            activeOpacity={isPro ? 1 : 0.7}
             style={{
               flexDirection: 'row', alignItems: 'center', gap: 4,
               paddingHorizontal: 10, paddingVertical: 6,
-              backgroundColor: colors.proBg,
+              backgroundColor: isPro ? colors.pro : colors.proBg,
               borderWidth: 1.5, borderColor: colors.proBorder,
               borderRadius: 2,
             }}
           >
-            <Ionicons name="diamond" size={14} color={colors.pro} />
-            <Text style={{ fontSize: 11, fontWeight: '700' as const, color: colors.pro, fontFamily: 'Courier' }}>Pro</Text>
+            <Ionicons name="diamond" size={14} color={isPro ? '#FFFFFF' : colors.pro} />
+            <Text style={{ fontSize: 11, fontWeight: '700' as const, color: isPro ? '#FFFFFF' : colors.pro, fontFamily: 'Courier' }}>{isPro ? 'PRO' : 'Pro'}</Text>
           </TouchableOpacity>
         </View>
 
@@ -364,7 +383,7 @@ const MapScreen = () => {
         <View style={staticStyles.bottomPadding} />
       </ScrollView>
 
-      <SubscriptionModal visible={showProModal} onClose={() => setShowProModal(false)} />
+      <SubscriptionModal visible={showProModal} onClose={() => setShowProModal(false)} onProActivated={() => setIsPro(true)} />
     </SafeAreaView>
   );
 };

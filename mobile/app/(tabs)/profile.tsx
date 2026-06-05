@@ -5,8 +5,11 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { getCurrentUser, clearAuthData } from '../../src/utils/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import HelpModal from '../../src/components/HelpModal';
 import SubscriptionModal from '../../src/components/SubscriptionModal';
+import { proService } from '../../src/services/api';
+import { SUBSCRIPTION_STORAGE_KEY } from '../../src/utils/pricing';
 
 const ProfileScreen = () => {
   const { isDark, colors, toggleTheme } = useTheme();
@@ -21,6 +24,7 @@ const ProfileScreen = () => {
   const [daysSinceJoin, setDaysSinceJoin] = useState(0);
   const [domainCount, setDomainCount] = useState(0);
   const [showProModal, setShowProModal] = useState(false);
+  const [isPro, setIsPro] = useState(false);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -37,7 +41,27 @@ const ProfileScreen = () => {
     };
 
     loadUserData();
+    checkPro();
   }, []);
+
+  const checkPro = async () => {
+    try {
+      const user = await getCurrentUser();
+      if (user?.id) {
+        const status = await proService.getStatus(user.id);
+        setIsPro(status.isPro);
+        if (status.isPro) await AsyncStorage.setItem(SUBSCRIPTION_STORAGE_KEY, JSON.stringify(status));
+        return;
+      }
+      const subStr = await AsyncStorage.getItem(SUBSCRIPTION_STORAGE_KEY);
+      if (subStr) setIsPro(!!JSON.parse(subStr).isPro);
+    } catch {
+      try {
+        const subStr = await AsyncStorage.getItem(SUBSCRIPTION_STORAGE_KEY);
+        if (subStr) setIsPro(!!JSON.parse(subStr).isPro);
+      } catch {}
+    }
+  };
 
   const userData = {
     name: user?.username || 'LearnFlow用户',
@@ -640,6 +664,11 @@ const ProfileScreen = () => {
                       <View style={styles.userInfo}>
                         <View style={styles.nameRow}>
                           <Text style={styles.userName}>{userData.name}</Text>
+                          {isPro && (
+                            <View style={{ backgroundColor: colors.proBg, borderWidth: 1, borderColor: colors.proBorder, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
+                              <Text style={{ color: colors.pro, fontSize: 10, fontWeight: '700' }}>PRO</Text>
+                            </View>
+                          )}
                         </View>
                         <View style={{ flexDirection: 'row', gap: 16, marginTop: 6 }}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>

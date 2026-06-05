@@ -170,12 +170,16 @@ export const MONSTER_CONFIG = {
     COST_PER_JUMP: 10,
     GAME_BONUS: 20,
     REBEL_MULTIPLIER: 2,
+    // Pro 版体力上限（远超正常消耗）
+    PRO_MAX: 1000,
   } as const,
 
   ENERGY: {
     BASE_MAX: 50,
     COST_PER_TOKEN: 0.05,
     GAME_BONUS: 5,
+    // Pro 版每日能量上限
+    PRO_MAX: 500,
   } as const,
 
   DAILY_RESET: {
