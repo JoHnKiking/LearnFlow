@@ -276,6 +276,7 @@ const MonsterManageScreen = () => {
     useCallback(() => {
       loadData();
       loadChatMessages();
+      checkProStatus();
     }, [])
   );
 
@@ -1096,7 +1097,7 @@ const MonsterManageScreen = () => {
         </SafeAreaView>
       </Modal>
 
-      <SubscriptionModal visible={showProModal} onClose={() => setShowProModal(false)} />
+      <SubscriptionModal visible={showProModal} onClose={() => setShowProModal(false)} onProActivated={() => { checkProStatus(); }} />
     </SafeAreaView>
   );
 };
