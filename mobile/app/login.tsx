@@ -14,60 +14,72 @@ import { FloatingInputBar, InputFieldConfig } from '../src/components/FloatingIn
 const LoginScreen = () => {
   const { colors } = useTheme();
   const [loginType, setLoginType] = useState<'login' | 'register'>('login');
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [activeFieldId, setActiveFieldId] = useState<string | null>(null);
 
   const handleSubmit = async () => {
-    console.log(`[Login] handleSubmit - 类型: ${loginType}, 手机号: ${phone}`);
-    if (loginType === 'register' && (!name || !phone || !password)) {
-      Alert.alert('错误', '请填写完整信息');
+    console.log(`[Login] handleSubmit - 类型: ${loginType}, 邮箱: ${email}`);
+    if (!email || !password) {
+      Alert.alert('错误', '请输入邮箱和密码');
       return;
     }
-    if (loginType === 'login' && (!phone || !password)) {
-      Alert.alert('错误', '请输入手机号和密码');
+
+    // 邮箱格式校验
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('错误', '请输入有效的邮箱地址');
       return;
+    }
+
+    if (loginType === 'register') {
+      if (!username.trim()) {
+        Alert.alert('错误', '请输入用户名');
+        return;
+      }
+      if (password.length < 6) {
+        Alert.alert('错误', '密码长度至少6位');
+        return;
+      }
     }
 
     setLoading(true);
     try {
-      let authResponse;
       
       if (loginType === 'register') {
-        console.log('[Login] 开始注册 - 用户名:', name);
-        authResponse = await authService.register({
-          username: name,
-          email: phone,
+        console.log('[Login] 开始注册 - 用户名:', username, '邮箱:', email);
+        await authService.register({
+          username: username.trim(),
+          email,
           password
         });
-      } else {
-        console.log('[Login] 开始登录 - 手机号:', phone);
-        authResponse = await authService.login({
-          email: phone,
-          password,
-          deviceId: 'mobile-device',
-          type: 'email',
-          deviceType: 'android',
-          deviceName: '移动设备'
-        });
+        // 注册成功，跳转验证码页面
+        setLoading(false);
+        router.push({ pathname: '/verify-email', params: { email, username: username.trim() } });
+        return;
       }
+
+      // 登录
+      console.log('[Login] 开始登录 - 邮箱:', email);
+      const authResponse = await authService.login({
+        email,
+        password,
+        deviceId: 'mobile-device',
+        type: 'email',
+        deviceType: 'android',
+        deviceName: '移动设备'
+      });
       
-      console.log(`[Login] ${loginType === 'register' ? '注册' : '登录'}成功`);
+      // 登录成功
+      console.log(`[Login] 登录成功`);
       await saveAuthData(authResponse);
       
       setLoading(false);
-      
-      if (loginType === 'register') {
-        await AsyncStorage.setItem(STORAGE_KEYS.IS_NEW_USER, 'true');
-        Alert.alert('注册成功', '欢迎加入 LearnFlow！');
-        router.replace('/onboarding');
-      } else {
-          Alert.alert('登录成功', '欢迎回来！');
-          router.replace('/(tabs)');
-      }
+      Alert.alert('登录成功', '欢迎回来！');
+      router.replace('/(tabs)');
     } catch (error) {
       console.error(`[Login] ${loginType === 'register' ? '注册' : '登录'}失败:`, error);
       setLoading(false);
@@ -80,15 +92,26 @@ const LoginScreen = () => {
 
   // ---- 浮动输入栏字段配置 ----
   const inputFields: InputFieldConfig[] = useMemo(() => {
-    const fields: InputFieldConfig[] = [
+    const fields: InputFieldConfig[] = [];
+    if (loginType === 'register') {
+      fields.push({
+        id: 'username',
+        label: '用户名',
+        icon: 'person',
+        value: username,
+        onChangeText: setUsername,
+        placeholder: '请输入用户名',
+      });
+    }
+    fields.push(
       {
-        id: 'phone',
-        label: '手机号',
-        icon: 'phone-portrait',
-        value: phone,
-        onChangeText: setPhone,
-        keyboardType: 'phone-pad',
-        placeholder: '请输入手机号',
+        id: 'email',
+        label: '邮箱',
+        icon: 'mail',
+        value: email,
+        onChangeText: setEmail,
+        keyboardType: 'email-address',
+        placeholder: '请输入邮箱',
       },
       {
         id: 'password',
@@ -97,21 +120,11 @@ const LoginScreen = () => {
         value: password,
         onChangeText: setPassword,
         secureTextEntry: !showPassword,
-        placeholder: '请输入密码',
+        placeholder: loginType === 'register' ? '至少6位密码' : '请输入密码',
       },
-    ];
-    if (loginType === 'register') {
-      fields.unshift({
-        id: 'name',
-        label: '名字',
-        icon: 'person',
-        value: name,
-        onChangeText: setName,
-        placeholder: '你的名字',
-      });
-    }
+    );
     return fields;
-  }, [loginType, phone, password, name, showPassword]);
+  }, [loginType, username, email, password, showPassword]);
 
   const styles = useMemo(() => StyleSheet.create({
   container: {
@@ -351,29 +364,29 @@ const LoginScreen = () => {
               <TouchableOpacity 
                 style={styles.inputContainer}
                 activeOpacity={0.7}
-                onPress={() => setActiveFieldId('name')}
+                onPress={() => setActiveFieldId('username')}
               >
                 <Ionicons name="person" size={20} color={colors.primary} style={styles.inputIcon} />
                 <Text 
-                  style={[styles.displayText, name ? { color: colors.textPrimary } : { color: colors.textSecondary }]}
+                  style={[styles.displayText, username ? { color: colors.textPrimary } : { color: colors.textSecondary }]}
                   numberOfLines={1}
                 >
-                  {name || '你的名字'}
+                  {username || '用户名'}
                 </Text>
               </TouchableOpacity>
             )}
-            
+
             <TouchableOpacity 
               style={styles.inputContainer}
               activeOpacity={0.7}
-              onPress={() => setActiveFieldId('phone')}
+              onPress={() => setActiveFieldId('email')}
             >
-              <Ionicons name="phone-portrait" size={20} color={colors.primary} style={styles.inputIcon} />
+              <Ionicons name="mail" size={20} color={colors.primary} style={styles.inputIcon} />
               <Text 
-                style={[styles.displayText, phone ? { color: colors.textPrimary } : { color: colors.textSecondary }]}
+                style={[styles.displayText, email ? { color: colors.textPrimary } : { color: colors.textSecondary }]}
                 numberOfLines={1}
               >
-                {phone || '手机号'}
+                {email || '邮箱'}
               </Text>
             </TouchableOpacity>
             

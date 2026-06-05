@@ -14,8 +14,6 @@ interface SkillTreeViewProps {
 
 
 const SkillTreeView: React.FC<SkillTreeViewProps> = ({ skillTree }) => {
-  return (
-
   const { colors } = useTheme();
 
 const getPlatformIcon = (platform: PlatformType) => {
@@ -253,6 +251,8 @@ const StageNode: React.FC<{ name: string; duration: number; stageColor: { bg: st
       bottom: 12,
     },
   }), [colors]);
+
+  return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>{skillTree.title}</Text>

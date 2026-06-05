@@ -3,10 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-<<<<<<< Updated upstream
-=======
 import MonsterIcon from '../src/components/MonsterIcon';
->>>>>>> Stashed changes
+
 import { useTheme } from '../src/contexts/ThemeContext';
 
 const ROUTES = {

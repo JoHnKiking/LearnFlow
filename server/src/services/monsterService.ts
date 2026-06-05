@@ -1,5 +1,7 @@
 import * as MonsterModel from '../models/Monster';
 import * as MonsterMessageModel from '../models/MonsterMessage';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const ENERGY_RECOVERY_HOURS = 6;
 
@@ -7,9 +9,7 @@ type MonsterPersonalityType = 'lively' | 'calm' | 'rebel';
 
 const DEFAULT_MONSTER_STYLE = 'default';
 const DEFAULT_MONSTER_ENERGY = 50;
-<<<<<<< Updated upstream
-=======
-const ENERGY_COST_PER_CHAR = 0.05; // Π能量消耗系数：每字符消耗 0.05
+const ENERGY_COST_PER_TOKEN = 0.05; // Π能量消耗系数：每 token 消耗 0.05
 
 // API 配置
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
@@ -169,7 +169,6 @@ const callDeepSeek = async (
     tokens: data.usage?.total_tokens ?? Math.ceil(data.choices[0].message.content.length / 2),
   };
 };
->>>>>>> Stashed changes
 
 const buildPersonalityParams = (
   personality: MonsterPersonalityType
@@ -332,77 +331,57 @@ export const gainExp = async (userId: number, exp: number) => {
 };
 
 export const chatWithMonster = async (userId: number, message: string) => {
+  // 1. 保存用户消息
   await MonsterMessageModel.createMessage({
     userId,
     message,
     isUser: true
   });
 
+  // 2. 获取怪兽状态，确定性格类型
   const monsterStatus = await getMonsterStatus(userId);
-  const personality = monsterStatus?.personalityParams;
-  let response = '';
+  const personality: MonsterPersonalityType = monsterStatus?.personality || 'lively';
 
-  const cheerfulResponses = [
-    '太棒了！继续加油哦～',
-    '这个知识点很有趣呢！',
-    '准备好开始冒险了吗？',
-    '我相信你一定可以的！'
-  ];
+  // 3. 构建对话消息（含 system prompt + 历史上下文）
+  const messages = await buildMessages(userId, personality, message);
 
-  const calmResponses = [
-    '慢慢来，学习需要耐心。',
-    '这个知识点很重要，好好掌握。',
-    '保持专注，你会有所收获的。',
-    '学习是一个渐进的过程。'
-  ];
-
-  const rebelliousResponses = [
-    '学习好无聊啊，我们去玩吧！',
-    '这个也太难了吧...',
-    '要不休息一下？',
-    '真的要学这个吗？'
-  ];
-
-  let responsePool: string[];
-  if (personality?.cheerful > personality?.calm && personality?.cheerful > personality?.rebellious) {
-    responsePool = cheerfulResponses;
-  } else if (personality?.calm > personality?.cheerful && personality?.calm > personality?.rebellious) {
-    responsePool = calmResponses;
-  } else {
-    responsePool = rebelliousResponses;
+  // 4. 调用 DeepSeek API
+  let result: { content: string; tokens: number };
+  try {
+    result = await callDeepSeek(messages);
+    console.log(`[MonsterService] DeepSeek 回复 (tokens: ${result.tokens}): ${result.content.substring(0, 100)}...`);
+  } catch (error) {
+    console.error('[MonsterService] DeepSeek 调用失败，使用预设回复:', error);
+    // 降级：预设回复
+    const fallbacks: Record<MonsterPersonalityType, string[]> = {
+      lively: ['太棒了！继续加油哦～', '这个知识点很有趣呢！', '准备好开始冒险了吗？'],
+      calm: ['慢慢来，学习需要耐心。', '这个知识点很重要，好好掌握。'],
+      rebel: ['学习好无聊啊，我们去玩吧！', '这个也太难了吧...'],
+    };
+    const pool = fallbacks[personality];
+    const content = pool[Math.floor(Math.random() * pool.length)];
+    result = { content, tokens: Math.ceil(content.length / 2) };
   }
 
-<<<<<<< Updated upstream
-  response = responsePool[Math.floor(Math.random() * responsePool.length)];
-=======
   // 5. 扣除 Π 能量：消耗 = 怪兽回复的字数 × 0.05
   const charCount = result.content.length;
-  const energyCost = Math.max(1, Math.round(charCount * ENERGY_COST_PER_CHAR * 10) / 10); // 保留1位小数
+  const energyCost = Math.max(1, Math.ceil(charCount * ENERGY_COST_PER_TOKEN));
   const currentEnergy = monsterStatus?.energy ?? 0;
   const newEnergy = Math.max(0, currentEnergy - energyCost);
   await MonsterModel.updateMonster(userId, { energy: newEnergy });
   console.log(`[MonsterService] 能量扣除: ${energyCost} (字数: ${charCount}), 剩余: ${newEnergy}`);
->>>>>>> Stashed changes
 
+  // 6. 保存怪兽回复
   await MonsterMessageModel.createMessage({
     userId,
-    message: response,
+    message: result.content,
     isUser: false
   });
 
-  return { message: response };
+  return { message: result.content, tokens: result.tokens, energyCost, remainingEnergy: newEnergy };
 };
 
 export const getMonsterMessages = async (userId: number) => {
   const messages = await MonsterMessageModel.getMessagesByUserId(userId);
-  // 字段映射：数据库 snake_case → 前端 camelCase，补上 energyCost
-  const mapped = messages.map((msg: any) => ({
-    id: msg.id,
-    userId: msg.user_id ?? msg.userId,
-    message: msg.message,
-    isUser: !!(msg.is_user ?? msg.isUser),
-    energyCost: msg.energy_cost ?? undefined,
-    createdAt: msg.created_at ?? msg.createdAt,
-  }));
-  return { messages: mapped.reverse() };
+  return { messages: messages.reverse() };
 };

@@ -78,21 +78,7 @@ function buildPrompt(moduleName: string, moduleDescription: string): string {
 - 直接输出JSON对象，不要包装在数组中`;
 }
 
-<<<<<<< Updated upstream
-export async function fillModule(moduleName: string): Promise<FillModuleResponse> {
-=======
-/** 返回降级响应（AI 不可用时） */
-function buildFallbackResponse(): FillModuleResponse {
-  return {
-    moduleDescription: '',
-    nodes: [],
-    fallback: true,
-    fallbackMessage: FALLBACK_MESSAGE,
-  };
-}
-
 export async function fillModule(moduleName: string, moduleDescription: string): Promise<FillModuleResponse> {
->>>>>>> Stashed changes
   console.log(`[AIFillService] 开始为模块「${moduleName}」生成内容...`);
 
   if (!DEEPSEEK_API_KEY) {

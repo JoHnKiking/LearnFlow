@@ -47,7 +47,7 @@ const RegisterScreen = () => {
       value: password,
       onChangeText: setPassword,
       secureTextEntry: !showPassword,
-      placeholder: '请输入密码',
+      placeholder: '至少6位密码',
     },
     {
       id: 'confirmPassword',
@@ -68,6 +68,17 @@ const RegisterScreen = () => {
       return;
     }
 
+    if (username.trim().length < 2) {
+      Alert.alert('错误', '用户名至少2个字符');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('错误', '请输入有效的邮箱地址');
+      return;
+    }
+
     if (password !== confirmPassword) {
       console.log('[Register] 验证失败 - 密码不一致');
       Alert.alert('错误', '两次输入的密码不一致');
@@ -82,16 +93,12 @@ const RegisterScreen = () => {
 
     setLoading(true);
     try {
-      const authResponse = await authService.register({ username, email, password });
+      await authService.register({ username: username.trim(), email, password });
       
-      console.log('[Register] 注册成功 - 用户ID:', authResponse.user?.id);
-      await saveAuthData(authResponse);
-      await AsyncStorage.setItem(STORAGE_KEYS.IS_NEW_USER, 'true');
-      
+      console.log('[Register] 注册成功，跳转验证码页面 - 邮箱:', email);
       setLoading(false);
-      Alert.alert('注册成功', '账号创建成功！');
       
-      router.replace('/onboarding');
+      router.push({ pathname: '/verify-email', params: { email, username: username.trim() } });
     } catch (error) {
       console.error('[Register] 注册失败:', error);
       setLoading(false);

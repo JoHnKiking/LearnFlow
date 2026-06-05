@@ -9,14 +9,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../src/contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PlatformType } from '../src/types/skill';
-<<<<<<< Updated upstream
-import { API_BASE_URL } from '../src/utils/constants';
-=======
 import { API_BASE_URL, MONSTER_CONFIG } from '../src/utils/constants';
 import MonsterIcon from '../src/components/MonsterIcon';
 import { storage, STORAGE_KEYS } from '../src/utils/storage';
 import SubscriptionModal from '../src/components/SubscriptionModal';
->>>>>>> Stashed changes
+
 
 // ---- 平台选项（与 skill-tree 保持一致） ----
 const PLATFORM_OPTIONS: { key: PlatformType; label: string; icon: string; color: string }[] = [

@@ -98,7 +98,6 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
     content: {
       paddingHorizontal: 20,
       paddingTop: 8,
-      paddingBottom: 40,
     },
     section: { marginBottom: 28 },
     sectionTitle: {
@@ -116,7 +115,7 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
       color: colors.textSecondary,
       fontSize: 13,
       marginBottom: 14,
-      lineHeight: 1.5,
+      lineHeight: 20,
     },
     helpItem: {
       backgroundColor: colors.borderLight,
@@ -133,7 +132,7 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
     helpText: {
       color: colors.textSecondary,
       fontSize: 13,
-      lineHeight: 1.7,
+      lineHeight: 22,
     },
     examplesList: { marginBottom: 18 },
     exampleItem: {
@@ -177,7 +176,7 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
     exampleDesc: {
       color: colors.textSecondary,
       fontSize: 12,
-      lineHeight: 1.6,
+      lineHeight: 20,
     },
     feedbackInputContainer: { marginBottom: 18 },
     feedbackLabel: {
@@ -193,7 +192,7 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
       fontSize: 14,
       minHeight: 100,
       textAlignVertical: 'top',
-      lineHeight: 1.6,
+      lineHeight: 22,
     },
     submitBtn: {
       backgroundColor: colors.primary,
@@ -209,7 +208,7 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
     contactText: {
       color: colors.textSecondary,
       fontSize: 13,
-      lineHeight: 1.7,
+      lineHeight: 22,
       marginBottom: 14,
     },
     contactCard: {
@@ -220,7 +219,7 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
     contactItem: {
       color: colors.textPrimary,
       fontSize: 13,
-      lineHeight: 1.7,
+      lineHeight: 22,
       marginBottom: 8,
     },
     contactItemLast: { marginBottom: 0 },
@@ -239,7 +238,7 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
         </View>
 
         {/* 滚动内容区域 */}
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
           {/* 使用帮助 */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>📋 使用帮助</Text>

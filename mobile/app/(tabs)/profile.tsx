@@ -14,8 +14,6 @@ const ProfileScreen = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [showHelpModal, setShowHelpModal] = useState(false);
-<<<<<<< Updated upstream
-=======
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [avatarType, setAvatarType] = useState<'male' | 'female' | 'monster'>('male');
@@ -23,7 +21,6 @@ const ProfileScreen = () => {
   const [daysSinceJoin, setDaysSinceJoin] = useState(0);
   const [domainCount, setDomainCount] = useState(0);
   const [showProModal, setShowProModal] = useState(false);
->>>>>>> Stashed changes
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -206,14 +203,9 @@ const ProfileScreen = () => {
   },
   headerTitle: {
     color: colors.textPrimary,
-<<<<<<< Updated upstream
-    fontWeight: '800',
-    fontSize: 20,
-=======
     fontWeight: '600',
     fontSize: 28,
     marginBottom: 4,
->>>>>>> Stashed changes
   },
   settingsButton: {
     width: 40,
@@ -226,14 +218,6 @@ const ProfileScreen = () => {
     justifyContent: 'center',
   },
   profileCard: {
-<<<<<<< Updated upstream
-    borderRadius: 20,
-    backgroundColor: colors.card,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
-=======
     borderRadius: 16,
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -242,7 +226,6 @@ const ProfileScreen = () => {
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 3,
->>>>>>> Stashed changes
     elevation: 2,
   },
   profileCardDark: {
@@ -273,15 +256,12 @@ const ProfileScreen = () => {
     shadowOpacity: 0.04, shadowRadius: 3, elevation: 2,
   },
   avatarEmoji: { fontSize: 32 },
-<<<<<<< Updated upstream
-=======
   avatarEditBadge: {
     position: 'absolute', bottom: -2, right: -2,
     width: 22, height: 22, borderRadius: 6,
     backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1.5, borderColor: colors.background,
   },
->>>>>>> Stashed changes
   levelBadge: {
     position: 'absolute', bottom: -4, right: -4,
     width: 24, height: 24, borderRadius: 6,
@@ -411,13 +391,8 @@ const ProfileScreen = () => {
   settingIconContainer: {
     width: 32,
     height: 32,
-<<<<<<< Updated upstream
-    borderRadius: 12,
-    backgroundColor: 'rgba(123,117,216,0.12)',
-=======
     borderRadius: 8,
     backgroundColor: colors.borderLight,
->>>>>>> Stashed changes
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -505,8 +480,6 @@ const ProfileScreen = () => {
     fontWeight: '600',
     fontSize: 15,
   },
-<<<<<<< Updated upstream
-=======
   // ---- Pro 升级板块 ----
   proSection: {
     marginHorizontal: 24,
@@ -633,7 +606,6 @@ const ProfileScreen = () => {
   modalConfirmBtn: {
     flex: 1, paddingVertical: 12, borderRadius: 14, alignItems: 'center',
   },
->>>>>>> Stashed changes
   bottomPadding: {
     height: 100,
   },
@@ -668,10 +640,6 @@ const ProfileScreen = () => {
                       <View style={styles.userInfo}>
                         <View style={styles.nameRow}>
                           <Text style={styles.userName}>{userData.name}</Text>
-<<<<<<< Updated upstream
-                          <View style={[styles.titleBadge, isDark && styles.titleBadgeDark]}>
-                            <Text style={styles.titleBadgeText}>{userData.title}</Text>
-=======
                         </View>
                         <View style={{ flexDirection: 'row', gap: 16, marginTop: 6 }}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -681,7 +649,6 @@ const ProfileScreen = () => {
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                             <Ionicons name="grid" size={13} color={colors.textSecondary} />
                             <Text style={{ color: colors.textSecondary, fontSize: 12,  }}>{domainCount} 个领域</Text>
->>>>>>> Stashed changes
                           </View>
                         </View>
                         <View style={styles.userMeta}>
@@ -718,35 +685,6 @@ const ProfileScreen = () => {
           </View>
         </View>
 
-<<<<<<< Updated upstream
-        {isLoggedIn && (
-          <View style={styles.statsRow}>
-            {[
-              { label: '技能', value: userData.completedSkills, icon: 'diamond', color: colors.primary },
-              { label: '小时', value: userData.studyHours, icon: 'flame', color: colors.warning },
-              { label: '等级', value: userData.level, icon: 'ribbon', color: colors.success },
-            ].map((stat) => (
-              <View key={stat.label} style={styles.statCard}>
-                <Ionicons name={stat.icon as any} size={20} color={stat.color} />
-                <Text style={[styles.statValue, { color: stat.color }]}>{stat.value}</Text>
-                <Text style={styles.statLabel}>{stat.label}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        <View style={styles.tabsContainer}>
-          <View style={styles.tabs}>
-            <TouchableOpacity
-              style={styles.tabButtonActive}
-            >
-              <Text style={styles.tabButtonTextActive}>⚙️ 设置</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-=======
->>>>>>> Stashed changes
         {renderSettings()}
 
         <View style={styles.bottomPadding} />
@@ -756,8 +694,6 @@ const ProfileScreen = () => {
         visible={showHelpModal}
         onClose={() => setShowHelpModal(false)}
       />
-<<<<<<< Updated upstream
-=======
 
       {/* LearnFlow 指南弹窗 —— 样式与 HelpModal 保持一致 */}
       {showGuideModal && (
@@ -826,7 +762,6 @@ const ProfileScreen = () => {
 
       {/* Pro 付费弹窗 */}
       <SubscriptionModal visible={showProModal} onClose={() => setShowProModal(false)} />
->>>>>>> Stashed changes
     </SafeAreaView>
   );
 

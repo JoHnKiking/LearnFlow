@@ -25,15 +25,15 @@ export class AuthController {
       }
       
       console.log(`[AuthController] 调用注册服务...`);
-      // 调用注册服务
-      const authResponse = await AuthService.registerUser(registerRequest);
+      // 调用注册服务（邮箱验证模式，返回提示信息）
+      const result = await AuthService.registerUser(registerRequest);
       
       const duration = Date.now() - startTime;
       console.log(`[AuthController] 用户注册成功 - 用户名: ${username}, 耗时: ${duration}ms`);
       
       res.json({
         success: true,
-        data: authResponse
+        data: result
       });
     } catch (error) {
       const duration = Date.now() - startTime;
@@ -41,6 +41,57 @@ export class AuthController {
       res.status(400).json({
         success: false,
         error: error instanceof Error ? error.message : '注册失败'
+      });
+    }
+  }
+
+  // 验证邮箱
+  static async verifyEmail(req: Request, res: Response) {
+    try {
+      const { email, token } = req.body;
+      
+      if (!email || !token) {
+        return res.status(400).json({ error: '邮箱和验证码不能为空' });
+      }
+
+      console.log(`[AuthController] 开始验证邮箱 - 邮箱: ${email}`);
+      const authResponse = await AuthService.verifyEmail(email, token);
+      
+      console.log(`[AuthController] 邮箱验证成功 - 用户ID: ${authResponse.user.id}`);
+      res.json({
+        success: true,
+        data: authResponse
+      });
+    } catch (error) {
+      console.error(`[AuthController] 邮箱验证失败 - 错误: ${error}`);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : '验证失败'
+      });
+    }
+  }
+
+  // 重新发送验证码
+  static async resendVerification(req: Request, res: Response) {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: '邮箱不能为空' });
+      }
+
+      console.log(`[AuthController] 重新发送验证码 - 邮箱: ${email}`);
+      const result = await AuthService.resendVerificationCode(email);
+      
+      res.json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      console.error(`[AuthController] 重发验证码失败 - 错误: ${error}`);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : '重发失败'
       });
     }
   }

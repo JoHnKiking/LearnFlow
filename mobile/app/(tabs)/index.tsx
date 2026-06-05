@@ -116,6 +116,7 @@ const MapScreen = () => {
 
   // 动态样式
   const dynamicStyles = useMemo(() => ({
+    container: { flex: 1, backgroundColor: colors.background },
     greeting: { fontSize: 28, fontWeight: '600' as const, color: colors.textPrimary, marginBottom: 6 },
     subtitle: { fontSize: 15, color: colors.textSecondary },
     moduleName: { fontSize: 17, fontWeight: '600' as const, color: colors.textPrimary },

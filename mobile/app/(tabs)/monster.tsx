@@ -193,6 +193,7 @@ const MonsterManageScreen = () => {
   const { colors, isDark } = useTheme();
 
   const dynamicStyles = useMemo(() => ({
+    container: { flex: 1, backgroundColor: colors.background },
     loadingText: { color: colors.textSecondary },
     title: { color: colors.textPrimary },
     monsterCard: { backgroundColor: colors.surface, borderColor: colors.hairline },
@@ -825,17 +826,17 @@ const MonsterManageScreen = () => {
       </Modal>
 
       <Modal visible={showChatFullscreen} animationType="slide" statusBarTranslucent onRequestClose={() => setShowChatFullscreen(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }} edges={['top']}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(34,240,248,0.15)' }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.hairline }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <MonsterIcon type={monsterData.type} size={28} />
-              <Text style={{ color: '#E8E8FF', fontSize: 16, fontWeight: '600' }}>{monsterData.name}</Text>
+              <Text style={{ color: colors.textPrimary, fontSize: 16, fontWeight: '600' }}>{monsterData.name}</Text>
             </View>
             <TouchableOpacity
               style={{ width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.borderLight }}
               onPress={() => setShowChatFullscreen(false)}
             >
-              <Ionicons name="close" size={20} color="#E8E8FF" />
+              <Ionicons name="close" size={20} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
           <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -851,8 +852,8 @@ const MonsterManageScreen = () => {
               ListEmptyComponent={
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80 }}>
                   <MonsterIcon type={monsterData.type} size={80} />
-                  <Text style={{ color: '#66CCFF', fontSize: 14, marginTop: 16 }}>和 {monsterData.name} 打个招呼吧～</Text>
-                  <Text style={{ color: '#6080A8', fontSize: 12, marginTop: 8 }}>聊聊学习、吐槽烦恼、求安慰都行</Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: 14, marginTop: 16 }}>和 {monsterData.name} 打个招呼吧～</Text>
+                  <Text style={{ color: colors.textTertiary, fontSize: 12, marginTop: 8 }}>聊聊学习、吐槽烦恼、求安慰都行</Text>
                 </View>
               }
               renderItem={({ item }) => (
@@ -863,8 +864,8 @@ const MonsterManageScreen = () => {
                         <MonsterIcon type={monsterData.type} size={28} />
                       </View>
                     )}
-                    <View style={[staticStyles.messageContent, item.isUser ? staticStyles.messageContentUser : staticStyles.messageContentMonster]}>
-                      <Text style={[staticStyles.messageText, { color: item.isUser ? '#FFFFFF' : '#E8E8FF' }]}>{item.message}</Text>
+                    <View style={[staticStyles.messageContent, item.isUser ? staticStyles.messageContentUser : staticStyles.messageContentMonster, item.isUser ? { backgroundColor: colors.primary } : dynamicStyles.messageContentMonster]}>
+                      <Text style={[staticStyles.messageText, { color: item.isUser ? colors.onPrimary : colors.textPrimary }]}>{item.message}</Text>
                     </View>
                   </View>
                   {!item.isUser && typeof item.energyCost === 'number' && (
@@ -873,7 +874,7 @@ const MonsterManageScreen = () => {
                 </View>
               )}
             />
-            <View style={[staticStyles.chatInputBar, dynamicStyles.chatInputBar, { borderTopWidth: 1, borderTopColor: 'rgba(34,240,248,0.15)' }]}>
+            <View style={[staticStyles.chatInputBar, dynamicStyles.chatInputBar]}>
               <TextInput
                 style={[staticStyles.chatTextInput, dynamicStyles.chatTextInput]}
                 value={chatInput}
