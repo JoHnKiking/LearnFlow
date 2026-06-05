@@ -1,49 +1,87 @@
 import React, { useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView,
-  Dimensions,
+  Dimensions, TextInput, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import {
-  PRICING_PLANS, PRO_FEATURES, PAYMENT_METHODS,
-  type PlanId, type PaymentMethod,
+  PRICING_PLANS, PRO_FEATURES,
+  type PlanId,
 } from '../utils/pricing';
+import { proService } from '../services/api';
+import { getCurrentUser } from '../utils/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SUBSCRIPTION_STORAGE_KEY } from '../utils/pricing';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface SubscriptionModalProps {
   visible: boolean;
   onClose: () => void;
+  onProActivated?: () => void;
 }
 
-const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ visible, onClose }) => {
+const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ visible, onClose, onProActivated }) => {
   const { colors, isDark } = useTheme();
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('monthly');
-  const [showPayment, setShowPayment] = useState(false);
-  const [selectedPay, setSelectedPay] = useState<PaymentMethod>('alipay');
+  const [showActivate, setShowActivate] = useState(false);
+  const [activateCode, setActivateCode] = useState('');
+  const [activating, setActivating] = useState(false);
 
   const selectedPlanData = PRICING_PLANS.find(p => p.id === selectedPlan)!;
 
-  const handleSelectPlan = (id: PlanId) => {
-    setSelectedPlan(id);
-  };
-
   const handleSubscribe = () => {
-    setShowPayment(true);
+    setShowActivate(true);
   };
 
-  const handlePay = () => {
-    // TODO: 接入真实支付 SDK
-    // 当前仅做演示提示
-    setShowPayment(false);
-    onClose();
+  const handleActivate = async () => {
+    const code = activateCode.trim().toUpperCase();
+    if (!code) {
+      Alert.alert('提示', '请输入激活码');
+      return;
+    }
+
+    setActivating(true);
+    try {
+      const user = await getCurrentUser();
+      if (!user?.id) {
+        Alert.alert('提示', '请先登录');
+        return;
+      }
+
+      const result = await proService.activate(code, user.id);
+      
+      // 存入本地缓存
+      await AsyncStorage.setItem(SUBSCRIPTION_STORAGE_KEY, JSON.stringify({
+        isPro: true,
+        planId: result.planId,
+        expiresAt: result.expiresAt,
+        activatedAt: new Date().toISOString(),
+      }));
+
+      Alert.alert('激活成功', `恭喜！Pro 会员已激活${result.expiresAt ? '' : '（永久）'}`, [
+        {
+          text: '太好了',
+          onPress: () => {
+            setShowActivate(false);
+            setActivateCode('');
+            onClose();
+            onProActivated?.();
+          },
+        },
+      ]);
+    } catch (error: any) {
+      Alert.alert('激活失败', error?.message || '激活码无效，请检查后重试');
+    } finally {
+      setActivating(false);
+    }
   };
 
   const cardWidth = useMemo(() => {
-    const padding = 32; // 16 * 2
-    const gaps = 20; // 10 * 2
+    const padding = 32;
+    const gaps = 20;
     return Math.floor((SCREEN_WIDTH - padding - gaps) / 3);
   }, []);
 
@@ -102,7 +140,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ visible, onClose 
       fontWeight: '600' as const,
       color: colors.pro,
     },
-    // ---- 定价卡片 ----
+    // 定价卡片
     plansContainer: {
       flexDirection: 'row',
       justifyContent: 'center',
@@ -119,14 +157,8 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ visible, onClose 
       height: 150,
       justifyContent: 'center',
     },
-    planSelected: {
-      borderColor: colors.pro,
-      backgroundColor: colors.proBg,
-    },
-    planUnselected: {
-      borderColor: colors.hairline,
-      backgroundColor: colors.surface,
-    },
+    planSelected: { borderColor: colors.pro, backgroundColor: colors.proBg },
+    planUnselected: { borderColor: colors.hairline, backgroundColor: colors.surface },
     planBadge: {
       position: 'absolute',
       top: -1,
@@ -156,7 +188,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ visible, onClose 
     planPriceSymbol: {
       fontSize: 16,
       fontWeight: '700' as const,
-      color: selectedPlanData ? colors.pro : colors.textPrimary,
+      color: colors.pro,
     },
     planPrice: {
       fontSize: 28,
@@ -174,49 +206,68 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ visible, onClose 
       color: colors.muted,
       marginTop: 2,
     },
-    // ---- 权益对比 ----
-    featureItem: {
-      flexDirection: 'row',
-      paddingVertical: 14,
+    // 激活码输入区域
+    activateSection: {
       paddingHorizontal: 24,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.hairline,
+      paddingVertical: 20,
       alignItems: 'center',
     },
-    featureIconWrap: {
-      width: 36,
-      height: 36,
-      borderRadius: 10,
-      backgroundColor: colors.proBg,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginRight: 12,
-    },
-    featureBody: {
-      flex: 1,
-    },
-    featureTitle: {
+    activateHint: {
       fontSize: 14,
-      fontWeight: '600' as const,
-      color: colors.textPrimary,
-      marginBottom: 2,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginBottom: 16,
+      lineHeight: 20,
     },
-    featureDesc: {
-      fontSize: 12,
-      color: colors.textTertiary,
+    activateHintBold: {
+      fontWeight: '600',
+      color: colors.primary,
     },
-    freeTag: {
-      fontSize: 12,
-      color: colors.stone,
-      textAlign: 'right',
+    codeInputWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      width: '100%',
+      marginBottom: 20,
     },
-    proTag: {
-      fontSize: 12,
-      fontWeight: '600' as const,
+    codeInput: {
+      flex: 1,
+      height: 50,
+      borderRadius: 12,
+      borderWidth: 1.5,
+      borderColor: colors.proBorder,
+      backgroundColor: colors.proBg,
+      paddingHorizontal: 16,
+      fontSize: 18,
+      fontWeight: '700',
       color: colors.pro,
-      textAlign: 'right',
+      textAlign: 'center',
+      letterSpacing: 3,
     },
-    // ---- 底部按钮 ----
+    // 对比表
+    compareHeader: {
+      flexDirection: 'row',
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderColor: colors.hairline,
+      backgroundColor: colors.background,
+    },
+    compareHeaderCell: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: '600' as const,
+      color: colors.textSecondary,
+      textAlign: 'center',
+    },
+    compareRow: {
+      flexDirection: 'row',
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      alignItems: 'center',
+    },
+    compareCell: { flex: 1, textAlign: 'center' },
+    // 底部
     bottomArea: {
       paddingHorizontal: 24,
       paddingTop: 16,
@@ -260,9 +311,8 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ visible, onClose 
       justifyContent: 'center',
       zIndex: 10,
     },
-
-    // ---- 支付方式选择（第二屏） ----
-    paymentHeader: {
+    // 支付页头部
+    activateHeader: {
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: 24,
@@ -278,53 +328,12 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ visible, onClose 
       alignItems: 'center',
       justifyContent: 'center',
     },
-    paymentTitle: {
+    activateTitle: {
       fontSize: 18,
       fontWeight: '600' as const,
       color: colors.textPrimary,
     },
-    payMethodItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 24,
-      paddingVertical: 16,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.hairline,
-      gap: 14,
-    },
-    payRadio: {
-      width: 22,
-      height: 22,
-      borderRadius: 11,
-      borderWidth: 2,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    payRadioSelected: {
-      borderColor: colors.pro,
-    },
-    payRadioUnselected: {
-      borderColor: colors.stone,
-    },
-    payRadioDot: {
-      width: 12,
-      height: 12,
-      borderRadius: 6,
-      backgroundColor: colors.pro,
-    },
-    payMethodInfo: {
-      flex: 1,
-    },
-    payMethodLabel: {
-      fontSize: 15,
-      fontWeight: '600' as const,
-      color: colors.textPrimary,
-    },
-    payMethodHint: {
-      fontSize: 12,
-      color: colors.textTertiary,
-      marginTop: 2,
-    },
+    // 价格摘要
     summaryCard: {
       marginHorizontal: 24,
       marginVertical: 16,
@@ -339,95 +348,70 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ visible, onClose 
       justifyContent: 'space-between',
       alignItems: 'center',
     },
-    summaryLabel: {
-      fontSize: 14,
-      color: colors.textSecondary,
-    },
-    summaryValue: {
-      fontSize: 18,
-      fontWeight: '700' as const,
-      color: colors.textPrimary,
-    },
-    // 对比表
-    compareHeader: {
-      flexDirection: 'row',
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-    },
-    compareHeaderCell: {
-      flex: 1,
+    summaryLabel: { fontSize: 14, color: colors.textSecondary },
+    summaryValue: { fontSize: 18, fontWeight: '700' as const, color: colors.textPrimary },
+    summaryContact: {
       fontSize: 13,
-      fontWeight: '600' as const,
-      color: colors.textSecondary,
+      color: colors.primary,
       textAlign: 'center',
+      marginTop: 12,
+      lineHeight: 20,
     },
-    compareRow: {
-      flexDirection: 'row',
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-      alignItems: 'center',
-    },
-    compareCell: {
-      flex: 1,
-      textAlign: 'center',
-    },
-  }), [colors, isDark, selectedPlanData]);
+  }), [colors, isDark, cardWidth]);
 
-  if (showPayment) {
+  // ---- 激活码输入弹窗 ----
+  if (showActivate) {
     return (
       <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
         <View style={s.overlay}>
         <View style={s.container}>
           <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
-            {/* 支付页头部 */}
-            <View style={s.paymentHeader}>
-              <TouchableOpacity style={s.backBtn} onPress={() => setShowPayment(false)}>
+            <View style={s.activateHeader}>
+              <TouchableOpacity style={s.backBtn} onPress={() => setShowActivate(false)}>
                 <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
               </TouchableOpacity>
-              <Text style={s.paymentTitle}>确认支付</Text>
+              <Text style={s.activateTitle}>激活 Pro 会员</Text>
             </View>
 
-            {/* 已选方案摘要 */}
             <View style={s.summaryCard}>
               <View style={[s.summaryRow, { marginBottom: 10 }]}>
-                <Text style={s.summaryLabel}>{selectedPlanData.label}</Text>
-                <Text style={s.summaryValue}>¥{selectedPlanData.price}</Text>
+                <Text style={s.summaryLabel}>已选套餐</Text>
+                <Text style={s.summaryValue}>{selectedPlanData.label} · ¥{selectedPlanData.price}</Text>
               </View>
+              <Text style={s.summaryContact}>
+                请通过以下方式联系获取激活码：{'\n'}
+                QQ：2067567633 / 微信：JohnKiKing
+              </Text>
             </View>
 
-            {/* 支付方式 */}
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {PAYMENT_METHODS.map(method => (
-                <TouchableOpacity
-                  key={method.id}
-                  style={s.payMethodItem}
-                  onPress={() => setSelectedPay(method.id)}
-                  activeOpacity={0.7}
-                >
-                  <View style={[s.payRadio, selectedPay === method.id ? s.payRadioSelected : s.payRadioUnselected]}>
-                    {selectedPay === method.id && <View style={s.payRadioDot} />}
-                  </View>
-                  <View style={s.payMethodInfo}>
-                    <Text style={s.payMethodLabel}>{method.label}</Text>
-                    <Text style={s.payMethodHint}>
-                      {method.id === 'alipay' && '推荐使用支付宝快捷支付'}
-                      {method.id === 'wechat' && '使用微信扫码支付'}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            <View style={s.activateSection}>
+              <Text style={s.activateHint}>
+                付款后请将<Text style={s.activateHintBold}>支付截图</Text>发送给我，
+                我会将激活码发送给你
+              </Text>
 
-            {/* 确认支付 */}
-            <View style={s.bottomArea}>
+              <View style={s.codeInputWrap}>
+                <TextInput
+                  style={s.codeInput}
+                  value={activateCode}
+                  onChangeText={setActivateCode}
+                  placeholder="输入激活码"
+                  placeholderTextColor={colors.textTertiary}
+                  autoCapitalize="characters"
+                  maxLength={16}
+                />
+              </View>
+
               <TouchableOpacity
-                style={[s.subscribeBtn, { backgroundColor: colors.pro }]}
-                onPress={handlePay}
+                style={[s.subscribeBtn, { backgroundColor: colors.pro, width: '100%' }, (!activateCode.trim() || activating) && { opacity: 0.4 }]}
+                onPress={handleActivate}
+                disabled={!activateCode.trim() || activating}
                 activeOpacity={0.85}
               >
-                <Ionicons name="shield-checkmark" size={20} color="#FFF" />
-                <Text style={s.subscribeBtnText}>确认支付 ¥{selectedPlanData.price}</Text>
+                <Ionicons name="key" size={18} color="#FFF" />
+                <Text style={s.subscribeBtnText}>
+                  {activating ? '激活中...' : '激活 Pro'}
+                </Text>
               </TouchableOpacity>
             </View>
           </SafeAreaView>
@@ -437,6 +421,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ visible, onClose 
     );
   }
 
+  // ---- 主弹窗：套餐选择 ----
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={s.overlay}>
@@ -448,7 +433,6 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ visible, onClose 
 
           <View style={s.handleBar} />
 
-          {/* 头部 */}
           <View style={s.header}>
             <Text style={s.title}>解锁 LearnFlow Pro</Text>
             <Text style={s.subtitle}>释放全部学习潜力</Text>
@@ -465,11 +449,8 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ visible, onClose 
               return (
                 <TouchableOpacity
                   key={plan.id}
-                  style={[
-                    s.planCard,
-                    isSelected ? s.planSelected : s.planUnselected,
-                  ]}
-                  onPress={() => handleSelectPlan(plan.id)}
+                  style={[s.planCard, isSelected ? s.planSelected : s.planUnselected]}
+                  onPress={() => setSelectedPlan(plan.id)}
                   activeOpacity={0.85}
                 >
                   {(plan.badge || plan.isPopular) && (
@@ -478,7 +459,6 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ visible, onClose 
                     </View>
                   )}
                   <Text style={s.planLabel}>{plan.label}</Text>
-                  {/* 连续包月：显示首月 + 续月两个价格 */}
                   {plan.renewPrice ? (
                     <>
                       <View style={s.planPriceRow}>
@@ -506,8 +486,8 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ visible, onClose 
             })}
           </ScrollView>
 
-          {/* 权益对比 — 左右列表 */}
-          <View style={[s.compareHeader, { borderBottomWidth: 1, borderColor: colors.hairline, backgroundColor: colors.background }]}>
+          {/* 权益对比 */}
+          <View style={s.compareHeader}>
             <Text style={[s.compareHeaderCell, { flex: 1.2 }]}>功能</Text>
             <Text style={s.compareHeaderCell}>免费版</Text>
             <View style={[s.compareHeaderCell, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 }]}>
@@ -535,9 +515,9 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ visible, onClose 
               onPress={handleSubscribe}
               activeOpacity={0.85}
             >
-              <Ionicons name="diamond" size={18} color="#FFF" />
+              <Ionicons name="key" size={18} color="#FFF" />
               <Text style={s.subscribeBtnText}>
-                立即开通 · ¥{selectedPlanData.price}/{selectedPlanData.unit}
+                输入激活码 · ¥{selectedPlanData.price}/{selectedPlanData.unit}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity style={s.restoreBtn} onPress={onClose} activeOpacity={0.7}>
@@ -546,7 +526,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ visible, onClose 
           </View>
         </SafeAreaView>
         </View>
-        </View>
+      </View>
     </Modal>
   );
 };

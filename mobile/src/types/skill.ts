@@ -102,6 +102,34 @@ export interface MonsterResponse {
   lastStaminaRecover?: Date;
 }
 
+// 怪兽对话相关类型
+export interface MonsterChatRequest {
+  userId: number;
+  message: string;
+}
+
+export interface MonsterChatResponse {
+  success: boolean;
+  data: {
+    message: string;
+  };
+}
+
+export interface MonsterMessageItem {
+  id: number;
+  userId: number;
+  message: string;
+  isUser: boolean;
+  createdAt: string;
+}
+
+export interface MonsterMessagesResponse {
+  success: boolean;
+  data: {
+    messages: MonsterMessageItem[];
+  };
+}
+
 // ============================================================
 // 笔记相关类型
 // 对应服务端 noteController / noteRoutes（POST/GET/PUT /api/notes/*）

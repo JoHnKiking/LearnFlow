@@ -359,10 +359,142 @@ export const englishCommunicationTree: SkillTree = {
   ],
 };
 
+export const programmingBasicsTree: SkillTree = {
+  id: 'programming-basics',
+  domain: 'programming-basics',
+  title: '编程基础',
+  description: 'Python入门→算法思维→项目实战，三阶通关编程',
+  totalDuration: 21,
+  learningMethod: '1. B站零基础Python视频跟练；2. MOOC《程序设计基础》系统学数据结构；3. LeetCode每周刷3道简单题；4. 最终独立完成一个命令行小项目',
+  learningGoal: '能独立编写Python脚本解决实际问题、理解基础算法与数据结构、具备自学其他编程语言的能力',
+  frameworkExplanation: '一阶：Python语法+环境配置+基础IO → 二阶：数据结构+算法入门+面向对象 → 三阶：项目实战+代码规范+Git协作',
+  stages: [
+    {
+      id: 'beginner',
+      name: 'Python语法入门',
+      duration: 20,
+      nodes: [
+        { id: 'python-zero', name: '零基础Python快速入门', description: '从安装到写出第一个程序', stage: 'beginner', platform: PLATFORM_MAP['B站'], url: 'https://www.bilibili.com/video/BV1wD4y1o7AS', duration: 7 },
+        { id: 'cs-fundamentals', name: '计算机科学基础导论', description: '理解计算机工作原理', stage: 'beginner', platform: PLATFORM_MAP['中国大学MOOC'], url: 'https://www.icourse163.org/course/HIT-1001517001', duration: 7 },
+        { id: 'python-practice', name: 'Python基础编程练习30题', description: '通过习题巩固语法基础', stage: 'beginner', platform: PLATFORM_MAP['B站'], url: 'https://www.bilibili.com/video/BV1c4411e77t', duration: 6 },
+      ],
+    },
+    {
+      id: 'intermediate',
+      name: '数据结构与算法',
+      duration: 20,
+      nodes: [
+        { id: 'data-structures', name: '数据结构入门：列表/栈/队列/树', description: '掌握基础数据结构', stage: 'intermediate', platform: PLATFORM_MAP['中国大学MOOC'], url: 'https://www.icourse163.org/course/ZJU-93001', duration: 7 },
+        { id: 'algorithms-basic', name: '基础算法：排序/查找/递归', description: '学习经典算法思想', stage: 'intermediate', platform: PLATFORM_MAP['B站'], url: 'https://www.bilibili.com/video/BV1uA411N7c5', duration: 7 },
+        { id: 'oop-python', name: 'Python面向对象编程', description: '掌握类/继承/多态', stage: 'intermediate', platform: PLATFORM_MAP['B站'], url: 'https://www.bilibili.com/video/BV1v7411R7mp', duration: 6 },
+      ],
+    },
+    {
+      id: 'advanced',
+      name: '项目实战与工程化',
+      duration: 20,
+      nodes: [
+        { id: 'project-crawler', name: '实战：Python爬虫+数据分析', description: '完成一个数据爬取分析项目', stage: 'advanced', platform: PLATFORM_MAP['B站'], url: 'https://www.bilibili.com/video/BV12E411A7ZQ', duration: 7 },
+        { id: 'project-flask', name: '实战：Flask搭建简易Web应用', description: '用Python框架构建Web服务', stage: 'advanced', platform: PLATFORM_MAP['B站'], url: 'https://www.bilibili.com/video/BV17r4y1y7jG', duration: 7 },
+        { id: 'git-github', name: 'Git版本控制+GitHub协作', description: '掌握团队协作开发工具', stage: 'advanced', platform: PLATFORM_MAP['B站'], url: 'https://www.bilibili.com/video/BV1pW411A7a5', duration: 6 },
+      ],
+    },
+  ],
+};
+
+export const financeBasicsTree: SkillTree = {
+  id: 'finance-basics',
+  domain: 'finance-basics',
+  title: '理财入门',
+  description: '记账→储蓄→基础投资，从零管好每一笔钱',
+  totalDuration: 21,
+  learningMethod: '1. 下载记账App坚持记一个月；2. 读《小狗钱钱》建立理财思维；3. 支付宝体验货币基金；4. 制定个人月度预算表',
+  learningGoal: '养成记账习惯、建立3-6个月应急金、了解货币基金/定期存款等低风险产品、能制定个人预算并每月复盘',
+  frameworkExplanation: '一阶：理财观念+记账实操 → 二阶：储蓄策略+防御性资产 → 三阶：指数基金入门+财务规划',
+  stages: [
+    {
+      id: 'beginner',
+      name: '理财启蒙+记账习惯',
+      duration: 20,
+      nodes: [
+        { id: 'money-mindset', name: '《小狗钱钱》财商思维入门', description: '建立正确金钱观与理财心态', stage: 'beginner', platform: PLATFORM_MAP['B站'], url: 'https://www.bilibili.com/video/BV1Lt411o7AB', duration: 7 },
+        { id: 'accounting-101', name: '记账实操：收支分类+预算制定', description: '学会系统记账与预算管理', stage: 'beginner', platform: PLATFORM_MAP['小红书'], url: 'https://www.xiaohongshu.com/search_result/记账方法', duration: 7 },
+        { id: 'consumer-psychology', name: '消费心理学：区分需要和想要', description: '避免冲动消费，理性购物', stage: 'beginner', platform: PLATFORM_MAP['B站'], url: 'https://www.bilibili.com/video/BV1oi4y1s7dr', duration: 6 },
+      ],
+    },
+    {
+      id: 'intermediate',
+      name: '储蓄策略+安全资产',
+      duration: 20,
+      nodes: [
+        { id: 'emergency-fund-101', name: '应急金规划：3-6个月生活费', description: '建立人生第一笔安全垫', stage: 'intermediate', platform: PLATFORM_MAP['B站'], url: 'https://www.bilibili.com/video/BV13t411o7BA', duration: 7 },
+        { id: 'saving-tools', name: '定期/大额存单/货币基金入门', description: '了解银行的存款类产品', stage: 'intermediate', platform: PLATFORM_MAP['中国大学MOOC'], url: 'https://www.icourse163.org/course/JLU-1001777003', duration: 7 },
+        { id: 'credit-card', name: '信用卡正确使用+征信科普', description: '学会用信用卡而非被用', stage: 'intermediate', platform: PLATFORM_MAP['B站'], url: 'https://www.bilibili.com/video/BV1Ut411o7aA', duration: 6 },
+      ],
+    },
+    {
+      id: 'advanced',
+      name: '投资入门+财务规划',
+      duration: 20,
+      nodes: [
+        { id: 'index-fund-101', name: '指数基金入门：定投策略实操', description: '开始你的第一笔基金定投', stage: 'advanced', platform: PLATFORM_MAP['B站'], url: 'https://www.bilibili.com/video/BV1kx411U7bh', duration: 7 },
+        { id: 'insurance-101', name: '保险入门：四大险种怎么买', description: '了解基础保险配置', stage: 'advanced', platform: PLATFORM_MAP['B站'], url: 'https://www.bilibili.com/video/BV1Vt411o72w', duration: 7 },
+        { id: 'financial-plan', name: '个人年度财务规划+复盘模板', description: '制定并执行个人理财计划', stage: 'advanced', platform: PLATFORM_MAP['小红书'], url: 'https://www.xiaohongshu.com/search_result/年度财务规划', duration: 6 },
+      ],
+    },
+  ],
+};
+
+export const cetExamTree: SkillTree = {
+  id: 'cet-exam',
+  domain: 'cet-exam',
+  title: '四六级备考',
+  description: '单词→真题→技巧，高效通关四六级',
+  totalDuration: 21,
+  learningMethod: '1. 每天墨墨背单词打卡50个高频词；2. 华研外语真题每周2套精做；3. B站听力真题精听磨耳朵；4. 考前一周背诵作文万能模板',
+  learningGoal: '四级425+或六级425+通过，掌握考试核心词汇、听力常考场景、阅读快速定位技巧、作文高分模板',
+  frameworkExplanation: '一阶：高频词汇+语法补漏 → 二阶：分项突破听力/阅读/翻译 → 三阶：真题模考+作文模板背诵',
+  stages: [
+    {
+      id: 'beginner',
+      name: '词汇积累+语法补漏',
+      duration: 20,
+      nodes: [
+        { id: 'cet-vocabulary', name: '四六级高频核心词汇突破', description: '掌握考试必考高频词', stage: 'beginner', platform: PLATFORM_MAP['B站'], url: 'https://www.bilibili.com/video/BV1C5411w7QK', duration: 7 },
+        { id: 'english-grammar-cet', name: '四六级语法考点速通', description: '快速过一遍常考语法点', stage: 'beginner', platform: PLATFORM_MAP['中国大学MOOC'], url: 'https://www.icourse163.org/course/CPU-1002345001', duration: 7 },
+        { id: 'reading-skills', name: '长篇阅读快速定位技巧', description: '10分钟做完匹配题', stage: 'beginner', platform: PLATFORM_MAP['B站'], url: 'https://www.bilibili.com/video/BV1Ar4y1U7sV', duration: 6 },
+      ],
+    },
+    {
+      id: 'intermediate',
+      name: '分项突破听力+翻译',
+      duration: 20,
+      nodes: [
+        { id: 'listening-cet', name: '四六级听力真题精听训练', description: '系统提升听力分数', stage: 'intermediate', platform: PLATFORM_MAP['B站'], url: 'https://www.bilibili.com/video/BV1Jr4y1A7Fm', duration: 7 },
+        { id: 'translation-cet', name: '汉译英翻译模板+高频句型', description: '掌握翻译得分套路', stage: 'intermediate', platform: PLATFORM_MAP['B站'], url: 'https://www.bilibili.com/video/BV18N4y1U7gN', duration: 7 },
+        { id: 'writing-template', name: '作文万能模板+高分替换词', description: '背诵即可上考场', stage: 'intermediate', platform: PLATFORM_MAP['B站'], url: 'https://www.bilibili.com/video/BV1jv4y1K7qW', duration: 6 },
+      ],
+    },
+    {
+      id: 'advanced',
+      name: '真题模考+考前冲刺',
+      duration: 20,
+      nodes: [
+        { id: 'mock-exam', name: '四六级真题全真模考', description: '限时模拟真实考试', stage: 'advanced', platform: PLATFORM_MAP['B站'], url: 'https://www.bilibili.com/video/BV1b94y1Z7xK', duration: 7 },
+        { id: 'final-review', name: '考前7天冲刺计划', description: '临门一脚拿下425+', stage: 'advanced', platform: PLATFORM_MAP['B站'], url: 'https://www.bilibili.com/video/BV1LM4y1w7AJ', duration: 7 },
+        { id: 'error-review', name: '错题回顾+高频易错点复盘', description: '避免考场重复踩坑', stage: 'advanced', platform: PLATFORM_MAP['小红书'], url: 'https://www.xiaohongshu.com/search_result/四六级错题', duration: 6 },
+      ],
+    },
+  ],
+};
+
 export const skillTrees: SkillTree[] = [
   aiProductManagerTree,
+  programmingBasicsTree,
   personalFinanceTree,
+  financeBasicsTree,
   englishCommunicationTree,
+  cetExamTree,
 ];
 
 export const getSkillTreeByDomain = (domain: string): SkillTree | undefined => {
