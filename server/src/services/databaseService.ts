@@ -227,16 +227,6 @@ export class DatabaseService {
     return user ? this.mapUserFromDB(user) : null;
   }
 
-  static async getUserByWechatOpenId(openId: string): Promise<User | null> {
-    const connection = await DatabaseConnection.getConnection();
-    const [rows] = await connection.execute(
-      'SELECT * FROM users WHERE wechat_openid = ? AND status = "active"',
-      [openId]
-    );
-    const user = (rows as mysql.RowDataPacket[])[0];
-    return user ? this.mapUserFromDB(user) : null;
-  }
-
   static async updateUserLoginInfo(userId: number): Promise<boolean> {
     const connection = await DatabaseConnection.getConnection();
     const [result] = await connection.execute(
@@ -301,8 +291,6 @@ export class DatabaseService {
       username: row.username,
       email: row.email,
       phone: row.phone,
-      wechatOpenId: row.wechat_openid,
-      wechatUnionId: row.wechat_unionid,
       passwordHash: row.password_hash,
       nickname: row.nickname,
       avatarUrl: row.avatar_url,

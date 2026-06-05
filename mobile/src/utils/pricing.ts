@@ -76,7 +76,7 @@ export const PRO_FEATURES: ProFeature[] = [
     icon: 'diamond-outline',
     title: '每日基础能量 Π',
     freeLimit: '50 点',
-    proBenefit: '500 点',
+    proBenefit: '1000 点/天',
   },
   {
     icon: 'shirt-outline',

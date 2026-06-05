@@ -442,7 +442,6 @@ const RegisterScreen = () => {
             {[
               { name: 'Google', icon: 'logo-google', color: '#EA4335' },
               { name: 'Apple', icon: 'logo-apple', color: '#ffffff' },
-              { name: '微信', icon: 'logo-wechat', color: '#3AE374' },
             ].map((provider) => (
               <TouchableOpacity
                 key={provider.name}

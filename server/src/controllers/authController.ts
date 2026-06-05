@@ -112,8 +112,6 @@ export class AuthController {
       
       if (loginRequest.type === 'email') {
         authResponse = await AuthService.emailLogin(loginRequest);
-      } else if (loginRequest.type === 'wechat') {
-        authResponse = await AuthService.wechatLogin(loginRequest);
       } else {
         console.log(`[AuthController] 登录验证失败 - 不支持的登录类型: ${loginRequest.type}`);
         return res.status(400).json({ error: '不支持的登录类型' });

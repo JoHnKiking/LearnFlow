@@ -202,7 +202,7 @@ export const createMonster = async (
     stamina: maxStamina,
     maxStamina,
     energy: DEFAULT_MONSTER_ENERGY,
-    maxEnergy: DEFAULT_MONSTER_ENERGY,
+    maxEnergy: 1000000, // 能量无上限，设为极大值
     personalityParams,
   });
 
@@ -226,8 +226,8 @@ export const getMonsterStatus = async (userId: number) => {
   const hoursSinceRecover = (now.getTime() - lastRecover.getTime()) / (1000 * 60 * 60);
   const energyToRecover = Math.floor(hoursSinceRecover / ENERGY_RECOVERY_HOURS);
 
-  if (energyToRecover > 0 && monster.energy < monster.maxEnergy) {
-    const newEnergy = Math.min(monster.energy + energyToRecover, monster.maxEnergy);
+  if (energyToRecover > 0) {
+    const newEnergy = monster.energy + energyToRecover;
     await MonsterModel.updateMonster(userId, {
       energy: newEnergy,
       lastEnergyRecover: now
@@ -249,7 +249,7 @@ export const getMonsterStatus = async (userId: number) => {
     stamina: monster.stamina,
     maxStamina: monster.maxStamina,
     energy: monster.energy,
-    maxEnergy: monster.maxEnergy,
+    maxEnergy: 1000000, // 能量无上限，前端使用本地 maxPaiEnergy 逻辑
     personality: monster.personality,
     personalityParams,
     lastEnergyRecover: monster.lastEnergyRecover,

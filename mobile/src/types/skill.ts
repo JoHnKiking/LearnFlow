@@ -51,10 +51,9 @@ export interface CreateUserRequest {
 }
 
 export interface LoginRequest {
-  type: 'email' | 'wechat';
+  type: 'email';
   email?: string;
   password?: string;
-  wechatCode?: string;
   deviceId: string;
   deviceType: 'ios' | 'android' | 'web';
   deviceName?: string;

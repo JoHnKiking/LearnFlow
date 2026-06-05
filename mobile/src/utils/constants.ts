@@ -175,11 +175,11 @@ export const MONSTER_CONFIG = {
   } as const,
 
   ENERGY: {
-    BASE_MAX: 50,
+    DAILY_FREE: 50,
     COST_PER_TOKEN: 0.05,
     GAME_BONUS: 5,
-    // Pro 版每日能量上限
-    PRO_MAX: 500,
+    // Pro 版每日能量增加量
+    DAILY_PRO: 1000,
   } as const,
 
   DAILY_RESET: {

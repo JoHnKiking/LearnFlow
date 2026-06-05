@@ -3,8 +3,6 @@ export interface User {
   username?: string;
   email?: string;
   phone?: string;
-  wechatOpenId?: string;
-  wechatUnionId?: string;
   passwordHash?: string;
   nickname?: string;
   avatarUrl?: string;
@@ -18,18 +16,15 @@ export interface User {
 export interface CreateUserRequest {
   username?: string;
   email?: string;
-  wechatOpenId?: string;
-  wechatUnionId?: string;
   password?: string;
   nickname?: string;
   avatarUrl?: string;
 }
 
 export interface LoginRequest {
-  type: 'email' | 'wechat';
+  type: 'email';
   email?: string;
   password?: string;
-  wechatCode?: string;
   deviceId: string;
   deviceType: 'ios' | 'android' | 'web';
   deviceName?: string;

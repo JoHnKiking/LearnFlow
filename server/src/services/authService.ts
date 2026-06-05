@@ -1,7 +1,5 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import axios from 'axios';
-import crypto from 'crypto';
 import { DatabaseConnection } from '../config/database';
 import { DatabaseService } from './databaseService';
 import { EmailService } from './emailService';
@@ -13,12 +11,6 @@ export class AuthService {
   private static JWT_SECRET = process.env.JWT_SECRET || 'learnflow-secret-key';
   private static JWT_EXPIRES_IN = '7d';
   private static REFRESH_TOKEN_EXPIRES_IN = '30d';
-
-  // 微信配置
-  private static WECHAT_CONFIG = {
-    appId: process.env.WECHAT_APP_ID || '',
-    appSecret: process.env.WECHAT_APP_SECRET || '',
-  };
 
   // 邮箱登录
   static async emailLogin(request: LoginRequest): Promise<AuthResponse> {
@@ -259,83 +251,6 @@ export class AuthService {
     return { message: '验证码已发送至邮箱' };
   }
 
-  // 微信登录
-  static async wechatLogin(request: LoginRequest): Promise<AuthResponse> {
-    const { wechatCode, deviceId, deviceType, deviceName } = request;
-    
-    if (!wechatCode) {
-      throw new Error('微信授权码不能为空');
-    }
-
-    // 获取微信access_token和用户信息
-    const wechatUserInfo = await this.getWechatUserInfo(wechatCode);
-    
-    // 查找或创建用户
-    const user = await this.findOrCreateWechatUser(wechatUserInfo);
-
-    return this.generateAuthResponse(user, deviceId, deviceType, deviceName);
-  }
-
-  // 获取微信用户信息
-  private static async getWechatUserInfo(code: string): Promise<any> {
-    try {
-      // 获取access_token
-      const tokenResponse = await axios.get(
-        `https://api.weixin.qq.com/sns/oauth2/access_token?appid=${this.WECHAT_CONFIG.appId}&secret=${this.WECHAT_CONFIG.appSecret}&code=${code}&grant_type=authorization_code`
-      );
-
-      const { access_token, openid } = tokenResponse.data;
-
-      // 获取用户信息
-      const userInfoResponse = await axios.get(
-        `https://api.weixin.qq.com/sns/userinfo?access_token=${access_token}&openid=${openid}`
-      );
-
-      return userInfoResponse.data;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '未知错误';
-      throw new Error('微信登录失败：' + errorMessage);
-    }
-  }
-
-  // 查找或创建微信用户
-  private static async findOrCreateWechatUser(wechatUserInfo: any): Promise<User> {
-    const { openid, unionid, nickname, headimgurl } = wechatUserInfo;
-
-    const connection = await DatabaseConnection.getConnection();
-    
-    // 查找用户
-    const [rows] = await connection.execute(
-      'SELECT * FROM users WHERE wechat_openid = ? OR wechat_unionid = ?',
-      [openid, unionid]
-    );
-
-    let user = (rows as any[])[0];
-
-    if (user) {
-      // 更新用户信息
-      await connection.execute(
-        'UPDATE users SET nickname = ?, avatar_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-        [nickname, headimgurl, user.id]
-      );
-    } else {
-      // 创建新用户
-      const [result] = await connection.execute(
-        'INSERT INTO users (wechat_openid, wechat_unionid, nickname, avatar_url) VALUES (?, ?, ?, ?)',
-        [openid, unionid, nickname, headimgurl]
-      );
-      
-      const [newUserRows] = await connection.execute(
-        'SELECT * FROM users WHERE id = ?',
-        [(result as any).insertId]
-      );
-      
-      user = (newUserRows as any[])[0];
-    }
-
-    return this.mapUserFromDB(user);
-  }
-
   // 生成认证响应
   private static async generateAuthResponse(
     user: User, 
@@ -449,8 +364,6 @@ export class AuthService {
       username: row.username,
       email: row.email,
       phone: row.phone,
-      wechatOpenId: row.wechat_openid,
-      wechatUnionId: row.wechat_unionid,
       passwordHash: row.password_hash,
       nickname: row.nickname,
       avatarUrl: row.avatar_url,

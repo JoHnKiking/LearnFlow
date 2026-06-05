@@ -303,15 +303,22 @@ const MonsterManageScreen = () => {
   useEffect(() => {
     if (!isPro || !monsterData) return;
     const proStaminaMax = MONSTER_CONFIG.STAMINA.PRO_MAX;
-    const proEnergyMax = MONSTER_CONFIG.ENERGY.PRO_MAX;
-    if (monsterData.maxStamina === proStaminaMax && monsterData.maxPaiEnergy === proEnergyMax) return;
+    const proEnergyDaily = MONSTER_CONFIG.ENERGY.DAILY_PRO;
+    // 如果已经是 Pro 上限，则跳过
+    if (monsterData.maxStamina === proStaminaMax && monsterData.maxPaiEnergy === proEnergyDaily) return;
 
+    // 体力：提升到 Pro 上限，并补满差值
+    const stamina = Math.min(monsterData.stamina + (proStaminaMax - monsterData.maxStamina), proStaminaMax);
+    // 能量：没有上限，但给 Pro 用户一次性奖励（补足到至少 DAILY_PRO），并移除上限
+    const energyBonus = proEnergyDaily - (monsterData.maxPaiEnergy || MONSTER_CONFIG.ENERGY.DAILY_FREE);
+    const paiEnergy = Math.max(monsterData.paiEnergy, proEnergyDaily) + Math.max(energyBonus, 0);
     const updated = {
       ...monsterData,
-      stamina: Math.min(monsterData.stamina + (proStaminaMax - monsterData.maxStamina), proStaminaMax),
+      stamina,
       maxStamina: proStaminaMax,
-      paiEnergy: Math.min(monsterData.paiEnergy + (proEnergyMax - monsterData.maxPaiEnergy), proEnergyMax),
-      maxPaiEnergy: proEnergyMax,
+      paiEnergy,
+      // 移除能量上限，设为极大值表示无限
+      maxPaiEnergy: paiEnergy,
     };
     setMonsterData(updated);
     storage.setItem(STORAGE_KEYS.MONSTER, updated);
@@ -322,13 +329,13 @@ const MonsterManageScreen = () => {
       console.log('[Monster] 开始加载数据');
       const monster = await storage.getItem(STORAGE_KEYS.MONSTER);
       if (monster) {
-        const resetData = await checkAndResetDaily(monster);
+        const resetData = await checkAndResetDaily(monster, isPro);
         setMonsterData(resetData);
       } else {
         console.log('[Monster] 无怪物数据，创建默认怪物');
         const proChecked = isPro; // 读取当前已加载的 pro 状态
         const staminaMax = proChecked ? MONSTER_CONFIG.STAMINA.PRO_MAX : MONSTER_CONFIG.STAMINA.BASE_MAX + MONSTER_CONFIG.STAMINA.CALM_BONUS;
-        const energyMax = proChecked ? MONSTER_CONFIG.ENERGY.PRO_MAX : MONSTER_CONFIG.ENERGY.BASE_MAX;
+        const energyMax = proChecked ? MONSTER_CONFIG.ENERGY.DAILY_PRO : MONSTER_CONFIG.ENERGY.DAILY_FREE;
         const newMonster = {
           name: '小怪兽',
           type: MONSTER_CONFIG.TYPES.CALM,
@@ -381,7 +388,7 @@ const MonsterManageScreen = () => {
     }
   };
 
-  const checkAndResetDaily = async (data: any) => {
+  const checkAndResetDaily = async (data: any, isPro: boolean) => {
     try {
       const lastResetStr = await storage.getItem<string>(STORAGE_KEYS.LAST_RESET);
       const lastReset = lastResetStr ? new Date(lastResetStr) : null;
@@ -393,13 +400,17 @@ const MonsterManageScreen = () => {
         ? MONSTER_CONFIG.STAMINA.BASE_MAX + MONSTER_CONFIG.STAMINA.CALM_BONUS
         : MONSTER_CONFIG.STAMINA.BASE_MAX;
 
+      // 每日能量增加量：Pro 用户 1000，免费用户 50
+      const dailyEnergyGrant = isPro ? MONSTER_CONFIG.ENERGY.DAILY_PRO : MONSTER_CONFIG.ENERGY.DAILY_FREE;
+
       if (!lastReset || lastReset < today5AM) {
         const resetData = {
           ...data,
           stamina: maxStamina,
           maxStamina,
-          paiEnergy: MONSTER_CONFIG.ENERGY.BASE_MAX,
-          maxPaiEnergy: MONSTER_CONFIG.ENERGY.BASE_MAX,
+          paiEnergy: (data.paiEnergy || 0) + dailyEnergyGrant,
+          // 不再有 maxPaiEnergy 上限，但保留字段以兼容现有代码，设为当前能量值（表示无限）
+          maxPaiEnergy: (data.paiEnergy || 0) + dailyEnergyGrant,
         };
         await storage.setItem(STORAGE_KEYS.MONSTER, resetData);
         await storage.setItem(STORAGE_KEYS.LAST_RESET, now.toISOString());
@@ -466,7 +477,7 @@ const MonsterManageScreen = () => {
     }
 
     const newStamina = Math.min(latestData.stamina + staminaBonus, latestData.maxStamina);
-    const newPai = Math.min(latestData.paiEnergy + energyBonus, latestData.maxPaiEnergy);
+    const newPai = latestData.paiEnergy + energyBonus; // 能量无上限，直接累加
     const updated = { ...latestData, stamina: newStamina, paiEnergy: newPai };
 
     setMonsterData(updated);
@@ -589,7 +600,7 @@ const MonsterManageScreen = () => {
   }
 
   const staminaPercent = (monsterData.stamina / monsterData.maxStamina) * 100;
-  const paiPercent = (monsterData.paiEnergy / monsterData.maxPaiEnergy) * 100;
+  const paiPercent = 100; // 能量无上限，进度条始终满格（已隐藏）
 
   const renderTasksTab = () => (
     <View style={staticStyles.tabContent}>
@@ -732,33 +743,6 @@ const MonsterManageScreen = () => {
   );
 
   const renderChatTab = () => {
-    // 非 Pro 用户：显示升级提示
-    if (!isPro) {
-      return (
-        <View style={{ flex: 1 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.hairline, backgroundColor: colors.surface }}>
-            <TouchableOpacity
-              onPress={() => setActiveTab('tasks')}
-              style={{ width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.borderLight }}
-            >
-              <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
-            </TouchableOpacity>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 12 }}>
-              <MonsterIcon type={monsterData.type} size={28} />
-              <Text style={{ color: colors.textPrimary, fontSize: 16, fontWeight: '600' }}>{monsterData.name}</Text>
-            </View>
-          </View>
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-            <MonsterIcon type={monsterData.type} size={80} />
-            <Text style={[dynamicStyles.chatTitle, { marginTop: 16 }]}>对话功能即将开放</Text>
-            <Text style={[dynamicStyles.chatDescription, { marginTop: 8 }]}>与 {monsterData.name} 聊天，获得学习建议和鼓励</Text>
-            <TouchableOpacity style={[staticStyles.proBadge, dynamicStyles.proBadge, { marginTop: 20 }]} onPress={() => setShowProModal(true)}>
-              <Text style={dynamicStyles.proText}>升级 Pro 解锁更多功能</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      );
-    }
 
     // Pro 用户：完整聊天界面
     return (
@@ -780,6 +764,21 @@ const MonsterManageScreen = () => {
           <Text style={{ color: colors.textPrimary, fontSize: 16, fontWeight: '600' }}>{monsterData.name}</Text>
         </View>
       </View>
+
+      {/* 非 Pro 用户提示条 */}
+      {!isPro && (
+        <View style={{ paddingHorizontal: 16, paddingVertical: 12, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.hairline }}>
+          <Text style={{ color: colors.textSecondary, fontSize: 14, textAlign: 'center' }}>
+            每日能量 +50，升级 Pro 可领取 <Text style={{ color: colors.primary, fontWeight: '600' }}>1000 点/天</Text>
+          </Text>
+          <TouchableOpacity 
+            style={{ marginTop: 8, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: colors.primary, borderRadius: 8, alignSelf: 'center' }}
+            onPress={() => setShowProModal(true)}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '600' }}>升级 Pro</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <FlatList
         ref={flatListRef}
@@ -970,11 +969,15 @@ const MonsterManageScreen = () => {
                         <Text style={dynamicStyles.statLabel}>能量</Text>
                       </View>
                       <Text style={[dynamicStyles.statValue, { color: colors.purple }]}>
-                        {Number(monsterData.paiEnergy).toFixed(1)}/{monsterData.maxPaiEnergy}
+                        {Number(monsterData.paiEnergy).toFixed(1)}
+                        <Text style={{ fontSize: 12, color: colors.textTertiary }}>
+                          {isPro ? ' (每日 +1000)' : ' (每日 +50)'}
+                        </Text>
                       </Text>
                     </View>
+                    {/* 能量无上限，移除进度条 */}
                     <View style={staticStyles.statBar}>
-                      <View style={[staticStyles.statBarFill, { width: `${paiPercent}%`, backgroundColor: colors.purple }]} />
+                      <View style={[staticStyles.statBarFill, { width: '100%', backgroundColor: colors.purple, opacity: 0.2 }]} />
                     </View>
                   </View>
                 </View>
@@ -987,8 +990,8 @@ const MonsterManageScreen = () => {
           <View style={[staticStyles.tabs, dynamicStyles.tabs]}>
             {[
               { id: 'tasks' as ActiveTab, label: '任务', icon: 'layers' },
-              { id: 'notes' as ActiveTab, label: '笔记', icon: 'document-text' },
               { id: 'chat' as ActiveTab, label: '对话', icon: 'chatbubbles' },
+              { id: 'notes' as ActiveTab, label: '笔记', icon: 'document-text' },
             ].map((tab) => (
               <TouchableOpacity
                 key={tab.id}

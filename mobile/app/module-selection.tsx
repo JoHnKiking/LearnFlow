@@ -8,6 +8,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../src/contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import MonsterIcon from '../src/components/MonsterIcon';
 import { PlatformType } from '../src/types/skill';
 import { API_BASE_URL, MONSTER_CONFIG } from '../src/utils/constants';
 import MonsterIcon from '../src/components/MonsterIcon';
@@ -142,11 +143,21 @@ const ModuleSelectionScreen = () => {
   // ---- 预设模块：切换选中 ----
   const toggleModule = (id: ModuleType) => {
     if (isAddMode) {
-      // 添加模式下多选（追加已有模块）
-      if (selectedModules.includes(id)) {
-        setSelectedModules(selectedModules.filter(m => m !== id));
+      // 添加模式：官方领域 tab 下只能单选，AI自定义 tab 下可多选
+      if (activeAddTab === 'official') {
+        // 单选：点击已选中的取消，点击新的替换
+        if (selectedModules.includes(id)) {
+          setSelectedModules(selectedModules.filter(m => m !== id));
+        } else {
+          setSelectedModules([id]);
+        }
       } else {
-        setSelectedModules([...selectedModules, id]);
+        // AI自定义 tab 下多选（追加已有模块）
+        if (selectedModules.includes(id)) {
+          setSelectedModules(selectedModules.filter(m => m !== id));
+        } else {
+          setSelectedModules([...selectedModules, id]);
+        }
       }
     } else {
       // 初始选择模式下多选（最多3个）
@@ -888,16 +899,7 @@ const ModuleSelectionScreen = () => {
 
   // ---- 小怪兽头像（复用） ----
   const MonsterAvatar = () => (
-    <View style={styles.monsterAvatar}>
-      <View style={styles.monsterHeadAvatar}>
-        <View style={styles.monsterEyesAvatar}>
-          <View style={styles.eyeAvatar}><View style={styles.pupilAvatar} /></View>
-          <View style={styles.eyeAvatar}><View style={styles.pupilAvatar} /></View>
-        </View>
-        <View style={styles.mouthAvatar} />
-      </View>
-      <View style={styles.bodyAvatar} />
-    </View>
+    <MonsterIcon type="calm" size={80} />
   );
 
   return (
