@@ -23,6 +23,7 @@ const ProfileScreen = () => {
   const [pendingAvatarType, setPendingAvatarType] = useState<'male' | 'female' | 'monster'>('male');
   const [daysSinceJoin, setDaysSinceJoin] = useState(0);
   const [domainCount, setDomainCount] = useState(0);
+  const [activeDomainCount, setActiveDomainCount] = useState(0);
   const [showProModal, setShowProModal] = useState(false);
   const [isPro, setIsPro] = useState(false);
 
@@ -153,7 +154,7 @@ const ProfileScreen = () => {
 
       <View style={styles.settingsGroup}>
         {[
-          { label: '关于 LearnFlow', icon: 'star' as const, onPress: undefined },
+          { label: 'Learnflow指南', icon: 'star' as const, onPress: () => setShowGuideModal(true) },
           { label: '使用帮助', icon: 'help-circle' as const, onPress: () => setShowHelpModal(true) },
         ].map((item, i) => (
           <TouchableOpacity 
@@ -634,9 +635,6 @@ const ProfileScreen = () => {
           <View style={styles.headerContent}>
             <View style={styles.headerTop}>
               <Text style={styles.headerTitle}>个人中心</Text>
-              <TouchableOpacity style={styles.settingsButton}>
-                <Ionicons name="settings" size={18} color={colors.textSecondary} />
-              </TouchableOpacity>
             </View>
 
             <View style={[styles.profileCard, isDark && styles.profileCardDark]}>
@@ -720,7 +718,7 @@ const ProfileScreen = () => {
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, alignItems: 'center', justifyContent: 'center' }}>
           <View style={{ width: '90%', maxHeight: '80%', backgroundColor: colors.background, borderRadius: 4, overflow: 'hidden' }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: 32, borderBottomWidth: 1, borderBottomColor: colors.borderDark }}>
-              <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '600',  }}>📖 LearnFlow 指南</Text>
+              <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '600',  }}>📖 Learnflow指南</Text>
               <TouchableOpacity onPress={() => setShowGuideModal(false)} style={{ padding: 8 }}>
                 <Ionicons name="close" size={28} color={colors.textSecondary} />
               </TouchableOpacity>
@@ -734,6 +732,7 @@ const ProfileScreen = () => {
                 '⏰ 番茄钟：专注计时页面可点怪兽图标对话答疑。',
                 '🦊 小怪兽：活力型学习减时，沉稳型多体力，叛逆型双倍。',
                 '📝 自定义模块：创建专属领域，向左滑动可删除。',
+                '🖐️ 首页模块：长按模块卡片可删除，轻点进入学习。',
                 '🕐 每日凌晨5点重置游戏次数和每日数据。',
               ].map((tip, i) => (
                 <Text key={i} style={{ color: colors.textSecondary, fontSize: 13,  lineHeight: 26, marginBottom: 14 }}>{tip}</Text>

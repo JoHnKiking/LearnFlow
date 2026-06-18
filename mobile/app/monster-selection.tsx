@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Animated, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -14,6 +14,17 @@ type MonsterType = 'lively' | 'calm' | 'rebel';
 
 const MonsterSelectionScreen = () => {
   const { colors } = useTheme();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const user = await getCurrentUser();
+      if (!user) {
+        router.replace('/login');
+      }
+    };
+    checkAuth();
+  }, []);
+
   const [selectedType, setSelectedType] = useState<MonsterType>('calm');
   const [monsterName, setMonsterName] = useState('');
   const [step, setStep] = useState<'select' | 'name'>('select');
@@ -35,8 +46,8 @@ const MonsterSelectionScreen = () => {
       name: '沉稳小怪',
       personality: '冷静沉着',
       color: MONSTER_CONFIG.COLORS.calm.primary,
-      // 选中背景用实色中蓝，与怪兽的深天蓝拉开差异
-      selectedBg: '#81c3e1ff',
+      // 选中背景用实色浅粉，与怪兽本身的粉色调拉开差异
+      selectedBg: '#f1c0d0ff',
       description: '擅长深度思考',
       trait: '专属特权：每日额外赠送 20 点体力，可多 2 次跳转',
     },
@@ -45,8 +56,8 @@ const MonsterSelectionScreen = () => {
       name: '叛逆小怪',
       personality: '个性独立',
       color: MONSTER_CONFIG.COLORS.rebel.primary,
-      // 选中背景用实色中粉，与怪兽的玫红拉开差异
-      selectedBg: '#f8b2dbff',
+      // 选中背景用实色浅紫，与怪兽本身的紫色调拉开差异
+      selectedBg: '#d0c0e8ff',
       description: '有主见爱探索、敢于挑战',
       trait: '专属特权：小游戏获得的体力、能量双倍',
     },

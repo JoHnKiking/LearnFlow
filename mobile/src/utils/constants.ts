@@ -216,7 +216,7 @@ export const MONSTER_CONFIG = {
 
   COLORS: {
     lively: { primary: '#D4A058', secondary: '#B08040' },
-    calm: { primary: '#7B75D8', secondary: '#5A54B0' },
-    rebel: { primary: '#D07090', secondary: '#A05068' },
+    calm: { primary: '#D07090', secondary: '#A05068' },
+    rebel: { primary: '#7B75D8', secondary: '#5A54B0' },
   } as const,
 };

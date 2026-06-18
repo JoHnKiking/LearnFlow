@@ -17,7 +17,7 @@ import { getCurrentUser } from '../../src/utils/auth';
 import { SUBSCRIPTION_STORAGE_KEY } from '../../src/utils/pricing';
 
 type ActiveTab = 'tasks' | 'notes' | 'chat';
-type MonsterMessageItem = { id: number; userId: string; message: string; isUser: boolean; createdAt: string; energyCost?: number };
+type MonsterMessageItem = { id: number; userId: number; message: string; isUser: boolean; createdAt: string; energyCost?: number };
 
 const staticStyles = StyleSheet.create({
   safeArea: { flex: 1 },
@@ -25,10 +25,10 @@ const staticStyles = StyleSheet.create({
   scrollContent: { flexGrow: 1 },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loadingText: { fontSize: 14 },
-  header: { position: 'relative', paddingTop: 48, paddingBottom: 24, overflow: 'hidden' },
+  header: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 20 },
   pixelBackground: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.95 },
-  headerContent: { paddingHorizontal: 20, position: 'relative', zIndex: 1 },
-  title: { fontWeight: '600', fontSize: 28, marginBottom: 4 },
+  headerContent: { position: 'relative', zIndex: 1 },
+  title: { fontSize: 28, fontWeight: '600', marginBottom: 4 },  subtitle: { fontSize: 15, marginBottom: 20 },
   monsterCard: {
     borderRadius: 24, padding: 24, position: 'relative', overflow: 'hidden',
     borderWidth: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
@@ -44,9 +44,9 @@ const staticStyles = StyleSheet.create({
   },
   monsterInfo: { flex: 1, justifyContent: 'center', gap: 8 },
   gameButton: {
-    paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10,
-    borderWidth: 2, flexDirection: 'row', alignItems: 'center', gap: 6,
-    flexShrink: 0, shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10,
+    borderWidth: 2, flexDirection: 'row', alignItems: 'center', gap: 4,
+    flex: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04, shadowRadius: 3, elevation: 2,
   },
   gameButtonDisabled: { opacity: 0.5 },
@@ -103,20 +103,26 @@ const staticStyles = StyleSheet.create({
   },
   taskCheckboxDone: { borderColor: 'transparent' },
   taskCheckboxInner: { width: 12, height: 12, backgroundColor: '#FFFFFF', borderRadius: 0 },
-  taskName: { flex: 1, fontSize: 13, lineHeight: 18 },
+  taskName: { flex: 1, flexShrink: 1, fontSize: 13, lineHeight: 18, flexWrap: 'wrap' },
   taskNameDone: { textDecorationLine: 'line-through' },
+  editTaskInput: {
+    flex: 1, flexShrink: 1, fontSize: 13, lineHeight: 18, paddingVertical: 2,
+    paddingHorizontal: 6, borderRadius: 6, borderWidth: 1,
+  },
+  editActions: { flexDirection: 'row', flexShrink: 0, gap: 4 },
   deleteTaskButton: { flexShrink: 0, padding: 4 },
+  editTaskButton: { flexShrink: 0, padding: 4 },
   timeOptionsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
   timeOption: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
   timeOptionText: { fontSize: 12, fontWeight: '600' },
   pomodoroContainer: { alignItems: 'center', gap: 16 },
   pomodoroTimer: {
-    width: 120, height: 120, borderRadius: 60, borderWidth: 1,
+    width: 140, height: 140, borderRadius: 70, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
   },
-  pomodoroTime: { fontSize: 28, fontWeight: '600' },
+  pomodoroTime: { fontSize: 36, fontWeight: '700' },
   pomodoroButtons: { width: '100%' },
   pomodoroButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -197,9 +203,10 @@ const MonsterManageScreen = () => {
   const dynamicStyles = useMemo(() => ({
     container: { flex: 1, backgroundColor: colors.background },
     loadingText: { color: colors.textSecondary },
-    title: { color: colors.textPrimary },
+    title: { color: colors.textPrimary, fontSize: 28, fontWeight: '600' as const, marginBottom: 6 },
+    subtitle: { color: colors.textSecondary },
     monsterCard: { backgroundColor: colors.surface, borderColor: colors.hairline },
-    monsterIconContainer: { backgroundColor: colors.borderLight, borderColor: colors.borderDark },
+    monsterIconContainer: { borderColor: colors.borderDark },
     gameButton: { backgroundColor: colors.borderLight, borderColor: colors.borderDark },
     infoButton: { backgroundColor: colors.borderLight, borderColor: colors.border },
     infoCard: { backgroundColor: colors.borderLight, borderColor: colors.borderDark },
@@ -259,6 +266,8 @@ const MonsterManageScreen = () => {
   const [showProModal, setShowProModal] = useState(false);
   const [tasks, setTasks] = useState<any[]>([]);
   const [newTaskText, setNewTaskText] = useState('');
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+  const [editTaskText, setEditTaskText] = useState('');
   const [selectedTime, setSelectedTime] = useState(MONSTER_CONFIG.POMODORO.TIME_OPTIONS[0]);
   const [showGameModal, setShowGameModal] = useState(false);
   const [showChatFullscreen, setShowChatFullscreen] = useState(false);
@@ -520,6 +529,27 @@ const MonsterManageScreen = () => {
     ]);
   };
 
+  const startEditTask = (taskId: number, text: string) => {
+    setEditingTaskId(taskId);
+    setEditTaskText(text);
+  };
+
+  const saveEditTask = async (taskId: number) => {
+    if (!editTaskText.trim()) return;
+    const updatedTasks = tasks.map(task =>
+      task.id === taskId ? { ...task, text: editTaskText.trim() } : task
+    );
+    setTasks(updatedTasks);
+    await storage.setItem(STORAGE_KEYS.TASKS, updatedTasks);
+    setEditingTaskId(null);
+    setEditTaskText('');
+  };
+
+  const cancelEdit = () => {
+    setEditingTaskId(null);
+    setEditTaskText('');
+  };
+
   // 聊天功能
   const loadChatMessages = async () => {
     try {
@@ -640,10 +670,38 @@ const MonsterManageScreen = () => {
                 >
                   {task.completed ? <View style={staticStyles.taskCheckboxInner} /> : null}
                 </TouchableOpacity>
-                <Text style={[dynamicStyles.taskName, task.completed && dynamicStyles.taskNameDone]}>{task.text}</Text>
-                <TouchableOpacity style={staticStyles.deleteTaskButton} onPress={() => deleteTask(task.id)}>
-                  <Ionicons name="trash-outline" size={18} color="#FF6B6B" />
-                </TouchableOpacity>
+                {editingTaskId === task.id ? (
+                  <>
+                    <TextInput
+                      style={[staticStyles.editTaskInput, { backgroundColor: colors.inputBg, borderColor: colors.primary, color: colors.textPrimary }]}
+                      value={editTaskText}
+                      onChangeText={setEditTaskText}
+                      onSubmitEditing={() => saveEditTask(task.id)}
+                      autoFocus
+                    />
+                    <View style={staticStyles.editActions}>
+                      <TouchableOpacity style={staticStyles.editTaskButton} onPress={() => saveEditTask(task.id)}>
+                        <Ionicons name="checkmark" size={18} color={colors.success} />
+                      </TouchableOpacity>
+                      <TouchableOpacity style={staticStyles.editTaskButton} onPress={cancelEdit}>
+                        <Ionicons name="close" size={18} color={colors.textTertiary} />
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    <Text
+                      style={[dynamicStyles.taskName, task.completed && dynamicStyles.taskNameDone]}
+                      numberOfLines={3}
+                    >{task.text}</Text>
+                    <TouchableOpacity style={staticStyles.editTaskButton} onPress={() => startEditTask(task.id, task.text)}>
+                      <Ionicons name="pencil" size={16} color={colors.textTertiary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={staticStyles.deleteTaskButton} onPress={() => deleteTask(task.id)}>
+                      <Ionicons name="trash-outline" size={18} color="#FF6B6B" />
+                    </TouchableOpacity>
+                  </>
+                )}
               </View>
             ))
           )}
@@ -886,9 +944,10 @@ const MonsterManageScreen = () => {
       ) : (
       <ScrollView contentContainerStyle={staticStyles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={staticStyles.header}>
-          <View style={dynamicStyles.pixelBackground} />
+          <View style={staticStyles.pixelBackground} />
           <View style={staticStyles.headerContent}>
             <Text style={dynamicStyles.title}>我的怪兽</Text>
+            <Text style={[staticStyles.subtitle, dynamicStyles.subtitle]}>查看你的学习伙伴</Text>
             <View style={[staticStyles.monsterCard, dynamicStyles.monsterCard]}>
               <View style={staticStyles.monsterPixelPattern} />
               <View style={staticStyles.monsterCardContent}>
@@ -912,7 +971,7 @@ const MonsterManageScreen = () => {
                     onPress={handlePlayGame}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="game-controller-outline" size={20} color={dailyPlays >= MONSTER_CONFIG.GAME.DAILY_LIMIT ? colors.textTertiary : colors.orange} />
+                    <Ionicons name="game-controller-outline" size={16} color={dailyPlays >= MONSTER_CONFIG.GAME.DAILY_LIMIT ? colors.textTertiary : colors.orange} />
                     <View style={staticStyles.gameButtonContent}>
                       <Text style={[staticStyles.gameButtonText, { color: dailyPlays >= (isPro ? MONSTER_CONFIG.GAME.PRO_DAILY_LIMIT : MONSTER_CONFIG.GAME.DAILY_LIMIT) ? colors.textTertiary : colors.orange }]}>游戏</Text>
                       <Text style={[staticStyles.gameButtonSubText, dynamicStyles.infoText]}>

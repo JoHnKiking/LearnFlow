@@ -111,6 +111,7 @@ export interface MonsterChatResponse {
   success: boolean;
   data: {
     message: string;
+    remainingEnergy?: number;
   };
 }
 

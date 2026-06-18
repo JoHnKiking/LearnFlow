@@ -5,9 +5,9 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { authService } from '../src/services/api';
-import { saveAuthData } from '../src/utils/auth';
+import { saveAuthData, getCurrentUser } from '../src/utils/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { STORAGE_KEYS } from '../src/utils/storage';
+import { storage, STORAGE_KEYS } from '../src/utils/storage';
 import { showErrorAlert, toErrorMessage } from '../src/utils';
 import { FloatingInputBar, InputFieldConfig } from '../src/components/FloatingInputBar';
 
@@ -78,8 +78,14 @@ const LoginScreen = () => {
       await saveAuthData(authResponse);
       
       setLoading(false);
-      Alert.alert('登录成功', '欢迎回来！');
-      router.replace('/(tabs)');
+      const monsterData = await storage.getItem(STORAGE_KEYS.MONSTER);
+      if (!monsterData) {
+        Alert.alert('登录成功', '欢迎来到 LearnFlow！');
+        router.replace('/story');
+      } else {
+        Alert.alert('登录成功', '欢迎回来！');
+        router.replace('/(tabs)');
+      }
     } catch (error) {
       console.error(`[Login] ${loginType === 'register' ? '注册' : '登录'}失败:`, error);
       setLoading(false);

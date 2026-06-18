@@ -11,7 +11,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import MonsterIcon from '../src/components/MonsterIcon';
 import { PlatformType } from '../src/types/skill';
 import { API_BASE_URL, MONSTER_CONFIG } from '../src/utils/constants';
-import MonsterIcon from '../src/components/MonsterIcon';
 import { storage, STORAGE_KEYS } from '../src/utils/storage';
 import SubscriptionModal from '../src/components/SubscriptionModal';
 import { getCurrentUser } from '../src/utils/auth';
@@ -30,7 +29,7 @@ const PLATFORM_OPTIONS: { key: PlatformType; label: string; icon: string; color:
 
 type ModuleType = 'ai-product-manager' | 'personal-finance' | 'english-communication' | string;
 
-type ModuleCategory = 'professional' | 'life' | 'language';
+type ModuleCategory = 'student' | 'summer' | 'work';
 
 interface Module {
   id: ModuleType;
@@ -58,21 +57,25 @@ interface CustomNodeDraft {
 
 // ---- 预设模块列表 ----
 const predefinedModules: Module[] = [
-  // 专业技能类（primary）
-  { id: 'ai-product-manager', name: 'AI产品经理', icon: 'hardware-chip',
-    category: 'professional', description: '掌握AI产品设计与落地', difficulty: '中级' },
-  { id: 'programming-basics', name: '编程基础', icon: 'code-slash',
-    category: 'professional', description: '从零开始学编程', difficulty: '初级' },
-  // 生活技能类（success）
-  { id: 'personal-finance', name: '理财进阶', icon: 'trending-up',
-    category: 'life', description: '深入投资理财实战', difficulty: '中级' },
-  { id: 'finance-basics', name: '理财入门', icon: 'wallet',
-    category: 'life', description: '从0到1管好钱', difficulty: '初级' },
-  // 语言学习类（orange）
+  // ---- 学生专区 ----
   { id: 'english-communication', name: '英语沟通', icon: 'language',
-    category: 'language', description: '提升英语听说能力', difficulty: '初级' },
+    category: 'student', description: '提升英语听说能力，达到日常流利对话水平', difficulty: '初级' },
   { id: 'cet-exam', name: '四六级过关', icon: 'school',
-    category: 'language', description: '高效备战四六级', difficulty: '初级' },
+    category: 'student', description: '高效备战四六级，目标一次性通过并取得高分', difficulty: '初级' },
+  // ---- 暑假专区 ----
+  { id: 'office-skills', name: '基础办公技能', icon: 'desktop',
+    category: 'summer', description: '熟练使用Word/Excel/PPT，达到独立完成办公文档与数据处理水平', difficulty: '初级' },
+  { id: 'coding-starter', name: '编程启蒙', icon: 'code-slash',
+    category: 'summer', description: '从零开始学编程，完成一个个人项目并具备自学新语言能力', difficulty: '初级' },
+  { id: 'speech-expression', name: '演讲表达', icon: 'mic',
+    category: 'summer', description: '克服演讲恐惧，能独立完成10分钟有逻辑、有感染力的公开演讲', difficulty: '初级' },
+  { id: 'video-editing', name: '视频剪辑', icon: 'videocam',
+    category: 'summer', description: '掌握剪辑全流程，能独立产出高质量短视频作品', difficulty: '初级' },
+  // ---- 工作专区 ----
+  { id: 'ai-product-manager', name: 'AI产品经理', icon: 'hardware-chip',
+    category: 'work', description: '掌握AI产品设计与落地，达到独立负责AI产品模块的能力', difficulty: '中级' },
+  { id: 'programming-basics', name: '编程基础', icon: 'code-slash',
+    category: 'work', description: '从零开始学编程，达到能独立开发简单后端服务的能力', difficulty: '初级' },
 ];
 
 // ---- 工具函数 ----
@@ -82,12 +85,22 @@ const generateDraftId = () => `draft_${Date.now()}_${draftIdCounter++}`;
 const ModuleSelectionScreen = () => {
   const { colors } = useTheme();
 
+  useEffect(() => {
+    const checkAuth = async () => {
+      const user = await getCurrentUser();
+      if (!user) {
+        router.replace('/login');
+      }
+    };
+    checkAuth();
+  }, []);
+
   // 根据分类获取颜色
   const getCategoryColor = (category: ModuleCategory): string => {
     switch (category) {
-      case 'professional': return colors.primary;
-      case 'life': return colors.success;
-      case 'language': return colors.orange;
+      case 'student': return '#5D9BFA';
+      case 'summer': return '#4A9840';
+      case 'work': return '#D4A058';
     }
   };
   const { mode } = useLocalSearchParams<{ mode?: string }>();
@@ -457,6 +470,10 @@ const ModuleSelectionScreen = () => {
       color: colors.textPrimary, fontSize: 16, fontWeight: '600',
       marginBottom: 12, marginTop: 8,
     },
+    zoneTitle: {
+      color: colors.textPrimary, fontSize: 15, fontWeight: '700',
+      marginBottom: 10, marginTop: 4,
+    },
     sectionHint: {
       color: colors.textTertiary, fontSize: 12,
       marginBottom: 16, marginTop: -8,
@@ -663,64 +680,85 @@ const ModuleSelectionScreen = () => {
     },
   }), [colors]);
 
-  // ---- 渲染：预设模块选择界面（主页风格，水平卡片） ----
-  const renderPresetSelection = () => (
-    <View style={styles.modulesContainer}>
-      {availableModules.length === 0 && isAddMode ? (
-        <Text style={styles.emptyHint}>所有预设模块已添加</Text>
-      ) : (
-        availableModules.map((module) => {
-          const isSelected = selectedModules.includes(module.id);
-          const catColor = getCategoryColor(module.category);
-          return (
-            <TouchableOpacity
-              key={module.id}
-              onPress={() => toggleModule(module.id)}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.moduleCard,
-                  {
-                    backgroundColor: isSelected ? catColor : colors.surface,
-                    borderColor: catColor,
-                    shadowColor: isSelected ? catColor : colors.shadow,
-                    shadowOffset: { width: isSelected ? 3 : 0, height: isSelected ? 3 : 0 },
-                    shadowOpacity: isSelected ? 0.5 : 0,
-                    shadowRadius: 0,
-                    elevation: isSelected ? 3 : 0,
-                  },
-                ]}
+  // ---- 渲染：预设模块选择界面（按分区展示） ----
+  const renderPresetSelection = () => {
+    const zones: { key: ModuleCategory; title: string }[] = [
+      { key: 'student', title: '学生专区' },
+      { key: 'summer', title: '暑假专区' },
+      { key: 'work', title: '工作专区' },
+    ];
+
+    const renderModuleCard = (module: Module) => {
+      const isSelected = selectedModules.includes(module.id);
+      const catColor = getCategoryColor(module.category);
+      return (
+        <TouchableOpacity
+          key={module.id}
+          onPress={() => toggleModule(module.id)}
+          activeOpacity={0.7}
+        >
+          <View
+            style={[
+              styles.moduleCard,
+              {
+                backgroundColor: isSelected ? catColor : colors.surface,
+                borderColor: catColor,
+                shadowColor: isSelected ? catColor : colors.shadow,
+                shadowOffset: { width: isSelected ? 3 : 0, height: isSelected ? 3 : 0 },
+                shadowOpacity: isSelected ? 0.5 : 0,
+                shadowRadius: 0,
+                elevation: isSelected ? 3 : 0,
+              },
+            ]}
+          >
+            <View style={[styles.moduleCardIcon, {
+              backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : catColor,
+            }]}>
+              <Ionicons name={module.icon as any} size={22} color={isSelected ? '#FFFFFF' : colors.background} />
+            </View>
+            <View style={styles.moduleCardInfo}>
+              <Text
+                style={[styles.moduleCardName, { color: isSelected ? '#FFFFFF' : colors.textPrimary }]}
               >
-                <View style={[styles.moduleCardIcon, {
-                  backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : catColor,
-                }]}>
-                  <Ionicons name={module.icon as any} size={22} color={isSelected ? '#FFFFFF' : colors.background} />
-                </View>
-                <View style={styles.moduleCardInfo}>
-                  <Text
-                    style={[styles.moduleCardName, { color: isSelected ? '#FFFFFF' : colors.textPrimary }]}
-                  >
-                    {module.name}
-                  </Text>
-                  <Text
-                    style={[styles.moduleCardCategory, { color: isSelected ? 'rgba(255,255,255,0.8)' : colors.textTertiary }]}
-                  >
-                    {module.category === 'professional' ? '专业技能' : module.category === 'life' ? '生活技能' : '语言学习'}
-                  </Text>
-                </View>
-                {isSelected && (
-                  <View style={[styles.moduleCardCheck, { backgroundColor: 'rgba(255,255,255,0.3)' }]}>
-                    <Ionicons name="checkmark" size={16} color="#FFFFFF" />
-                  </View>
-                )}
+                {module.name}
+              </Text>
+              <Text
+                style={[styles.moduleCardCategory, { color: isSelected ? 'rgba(255,255,255,0.8)' : colors.textTertiary }]}
+              >
+                {module.category === 'student' ? '学生专区' : module.category === 'summer' ? '暑假专区' : '工作专区'}
+              </Text>
+            </View>
+            {isSelected && (
+              <View style={[styles.moduleCardCheck, { backgroundColor: 'rgba(255,255,255,0.3)' }]}>
+                <Ionicons name="checkmark" size={16} color="#FFFFFF" />
               </View>
-            </TouchableOpacity>
-          );
-        })
-      )}
-    </View>
-  );
+            )}
+          </View>
+        </TouchableOpacity>
+      );
+    };
+
+    return (
+      <View style={styles.modulesContainer}>
+        {availableModules.length === 0 && isAddMode ? (
+          <Text style={styles.emptyHint}>所有预设模块已添加</Text>
+        ) : (
+          zones.map((zone) => {
+            const zoneModules = availableModules.filter((m) => m.category === zone.key);
+            if (zoneModules.length === 0) return null;
+            return (
+              <View key={zone.key} style={{ marginBottom: 16 }}>
+                <Text style={[styles.zoneTitle, { color: colors.textPrimary }]}>
+                  {zone.title}
+                </Text>
+                {zoneModules.map((module) => renderModuleCard(module))}
+              </View>
+            );
+          })
+        )}
+      </View>
+    );
+  };
 
   // ---- 渲染：自定义模块创建表单 ----
   const renderCustomForm = () => (

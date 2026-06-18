@@ -7,10 +7,10 @@ function AppContent() {
   return (
     <>
       <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="story" />
         <Stack.Screen name="login" />
         <Stack.Screen name="register" />
         <Stack.Screen name="onboarding" />
-        <Stack.Screen name="story" />
         <Stack.Screen name="monster-selection" />
         <Stack.Screen name="module-selection" />
         <Stack.Screen name="(tabs)" />

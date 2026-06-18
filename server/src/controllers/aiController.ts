@@ -19,16 +19,9 @@ export const fillModuleContent = async (req: Request, res: Response) => {
         data: null,
       });
     }
-    if (!moduleDescription || typeof moduleDescription !== 'string' || !moduleDescription.trim()) {
-      return res.status(400).json({
-        code: 400,
-        message: '模块介绍不能为空',
-        data: null,
-      });
-    }
 
     const trimmedName = moduleName.trim();
-    const trimmedDesc = moduleDescription.trim();
+    const trimmedDesc = typeof moduleDescription === 'string' ? moduleDescription.trim() : '';
     console.log(`[AIController] 收到 AI 填充请求 - 模块: ${trimmedName}`);
 
     const result = await fillModule(trimmedName, trimmedDesc);

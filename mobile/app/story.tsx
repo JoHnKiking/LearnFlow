@@ -1,11 +1,11 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import MonsterIcon from '../src/components/MonsterIcon';
-
 import { useTheme } from '../src/contexts/ThemeContext';
+import { getCurrentUser } from '../src/utils/auth';
 
 const ROUTES = {
   MONSTER_SELECTION: '/monster-selection',
@@ -34,19 +34,20 @@ const useStoryAnimation = (totalFrames: number) => {
   const slideAnimation = useState(new Animated.Value(0))[0];
 
   const switchFrame = useCallback((nextFrame: number) => {
-    Animated.sequence([
-      Animated.timing(slideAnimation, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
+    // 先淡出旧帧
+    Animated.timing(slideAnimation, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      // 不可见时切换内容，避免闪烁
+      setCurrentFrame(nextFrame);
+      // 新帧淡入
       Animated.timing(slideAnimation, {
         toValue: 0,
-        duration: 0,
+        duration: 300,
         useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setCurrentFrame(nextFrame);
+      }).start();
     });
   }, [slideAnimation]);
 
@@ -70,13 +71,12 @@ const useStoryAnimation = (totalFrames: number) => {
     slideAnimation,
     goToNextFrame,
     skipToSelection,
-    switchFrame,
   };
 };
 
 const StoryScreen = () => {
   const { colors } = useTheme();
-  const { currentFrame, slideAnimation, goToNextFrame, skipToSelection, switchFrame } = useStoryAnimation(STORY_FRAMES.length);
+  const { currentFrame, slideAnimation, goToNextFrame, skipToSelection } = useStoryAnimation(STORY_FRAMES.length);
   const currentStory = STORY_FRAMES[currentFrame];
   const isLastFrame = currentFrame === STORY_FRAMES.length - 1;
 
@@ -166,6 +166,11 @@ const StoryScreen = () => {
       width: 180,
       height: 180,
       position: 'relative',
+    },
+    monsterIconContainer: {
+      position: 'absolute',
+      bottom: -10,
+      right: -20,
     },
     title: {
       color: colors.textPrimary,
@@ -416,7 +421,7 @@ const StoryScreen = () => {
     },
     staminaBarFill: {
       height: '100%',
-      backgroundColor: '#D4A574',
+      backgroundColor: '#c2d474ff',
       borderRadius: 12,
       justifyContent: 'center',
       alignItems: 'center',
@@ -456,9 +461,13 @@ const StoryScreen = () => {
       <View style={styles.monsterStage}>
         {/* 怪兽们 — 站在泥土上方 */}
         <View style={styles.monsterRow}>
+          {/* 沉稳小怪 */}
+          <View style={styles.monsterSlot}>
+            <MonsterIcon type="calm" size={64} />
+          </View>
           {/* 活力小怪 */}
           <View style={styles.monsterSlot}>
-            <MonsterIcon type="calm" size={68} />
+            <MonsterIcon type="lively" size={68} />
           </View>
           {/* 叛逆小怪 */}
           <View style={styles.monsterSlot}>
@@ -576,6 +585,9 @@ const StoryScreen = () => {
           >
             <View style={styles.illustrationContainer}>
               <StoryIllustration frameIndex={currentFrame} />
+              <View style={styles.monsterIconContainer}>
+                <MonsterIcon type={currentFrame === 1 ? 'rebel' : currentFrame === 2 ? 'calm' : 'lively'} size={60} />
+              </View>
             </View>
 
             <Text style={styles.title}>{currentStory.title}</Text>
