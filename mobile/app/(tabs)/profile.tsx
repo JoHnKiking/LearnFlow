@@ -58,15 +58,7 @@ const ProfileScreen = () => {
   const userData = {
     name: user?.username || 'LearnFlow用户',
     title: '学习探索者',
-    level: 5,
-    xp: 2450,
-    xpToNextLevel: 5000,
-    streak: 7,
-    completedSkills: 12,
-    studyHours: 48,
   };
-
-  const xpPercent = Math.round((userData.xp / userData.xpToNextLevel) * 100);
 
   const settings = [
     { icon: 'notifications' as const, label: '学习提醒', value: notifications, toggle: () => setNotifications(!notifications) },
@@ -206,7 +198,7 @@ const ProfileScreen = () => {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: colors.backgroundDark,
+    backgroundColor: colors.background,
   },
   headerContent: {
     paddingHorizontal: 20,
@@ -234,7 +226,7 @@ const ProfileScreen = () => {
     justifyContent: 'center',
   },
   profileCard: {
-    borderRadius: 16,
+    borderRadius: 20,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.hairline,
@@ -285,11 +277,11 @@ const ProfileScreen = () => {
     borderWidth: 1.5, borderColor: colors.background,
   },
   levelBadgeDark: {
-    borderColor: '#0D0D1A',
+    borderColor: colors.background,
     shadowColor: colors.primary, shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4, shadowRadius: 8, elevation: 4,
   },
-  levelBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '600',  },
+  levelBadgeText: { color: colors.onPrimary, fontSize: 10, fontWeight: '600',  },
   userInfo: { flex: 1, paddingTop: 4 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   userName: { color: colors.textPrimary, fontSize: 22, fontWeight: '600',  },
@@ -553,7 +545,7 @@ const ProfileScreen = () => {
   proCardBadgeText: {
     fontSize: 11,
     fontWeight: '700' as const,
-    color: '#FFFFFF',
+    color: colors.onPrimary,
   },
   proFeatureList: {
     gap: 10,
@@ -587,7 +579,7 @@ const ProfileScreen = () => {
   proUpgradeBtnText: {
     fontSize: 15,
     fontWeight: '700' as const,
-    color: '#FFFFFF',
+    color: colors.onPrimary,
   },
   // 头像选择弹窗
   modalOverlay: {
@@ -646,9 +638,6 @@ const ProfileScreen = () => {
                         <View style={[styles.avatar, isDark && styles.avatarDark]}>
                           <Text style={styles.avatarEmoji}>🧑</Text>
                         </View>
-                        <View style={[styles.levelBadge, isDark && styles.levelBadgeDark]}>
-                          <Text style={styles.levelBadgeText}>{userData.level}</Text>
-                        </View>
                       </View>
                       <View style={styles.userInfo}>
                         <View style={styles.nameRow}>
@@ -669,24 +658,9 @@ const ProfileScreen = () => {
                             <Text style={{ color: colors.textSecondary, fontSize: 12,  }}>{domainCount} 个领域</Text>
                           </View>
                         </View>
-                        <View style={styles.userMeta}>
-                          <Ionicons name="flame" size={14} color={colors.warning} />
-                          <Text style={styles.streakText}> {userData.streak}天连续</Text>
-                          <Text style={styles.metaSeparator}>·</Text>
-                          <Text style={styles.levelText}>Lv.{userData.level}</Text>
-                        </View>
                       </View>
                     </View>
 
-                    <View style={styles.xpSection}>
-                      <View style={styles.xpHeader}>
-                        <Text style={styles.xpText}>{userData.xp.toLocaleString()} / {userData.xpToNextLevel.toLocaleString()} XP</Text>
-                        <Text style={styles.xpPercent}>{xpPercent}%</Text>
-                      </View>
-                      <View style={[styles.xpBar, isDark && styles.xpBarDark]}>
-                        <View style={[styles.xpProgress, { width: `${xpPercent}%` }]} />
-                      </View>
-                    </View>
                   </>
                 ) : (
                   <View style={styles.loginPrompt}>
@@ -772,7 +746,7 @@ const ProfileScreen = () => {
                 <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>取消</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.modalConfirmBtn, { backgroundColor: colors.primary }]} onPress={handleAvatarConfirm}>
-                <Text style={{ color: '#FFFFFF', fontWeight: '600' }}>确认修改</Text>
+                <Text style={{ color: colors.onPrimary, fontWeight: '600' }}>确认修改</Text>
               </TouchableOpacity>
             </View>
           </View>

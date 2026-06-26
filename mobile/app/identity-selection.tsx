@@ -36,6 +36,24 @@ const STUDENT_DOMAINS: DomainOption[] = [
     description: '词汇→听力→阅读→写作→翻译，全攻略备考',
     icon: 'school',
   },
+  {
+    id: 'advanced-math',
+    name: '高等数学',
+    description: '微分、积分、级数与微分方程，掌握核心方法',
+    icon: 'calculator',
+  },
+  {
+    id: 'college-cs',
+    name: '大学生计算机基础',
+    description: '计算机原理、操作系统、网络基础',
+    icon: 'laptop',
+  },
+  {
+    id: 'linear-algebra',
+    name: '线性代数',
+    description: '矩阵运算、向量空间、特征值，掌握基本工具',
+    icon: 'grid',
+  },
 ];
 
 const WORKER_DOMAINS: DomainOption[] = [
@@ -94,6 +112,18 @@ const IdentitySelectionScreen = () => {
       'cet-exam': {
         color: colors.orange,
         cardBg: isDark ? 'rgba(212,160,88,0.08)' : 'rgba(196,154,96,0.12)',
+      },
+      'advanced-math': {
+        color: colors.brandPurple,
+        cardBg: isDark ? 'rgba(184,146,200,0.10)' : 'rgba(166,120,176,0.12)',
+      },
+      'college-cs': {
+        color: colors.brandPurple,
+        cardBg: isDark ? 'rgba(184,146,200,0.10)' : 'rgba(166,120,176,0.12)',
+      },
+      'linear-algebra': {
+        color: colors.brandPurple,
+        cardBg: isDark ? 'rgba(184,146,200,0.10)' : 'rgba(166,120,176,0.12)',
       },
     };
     return CATEGORY_MAP[domainId] || { color: colors.primary, cardBg: colors.card };
@@ -232,7 +262,7 @@ const IdentitySelectionScreen = () => {
     domainIconContainer: {
       width: 52,
       height: 52,
-      borderRadius: 16,
+      borderRadius: 18,
       alignItems: 'center',
       justifyContent: 'center',
       flexShrink: 0,
@@ -279,13 +309,13 @@ const IdentitySelectionScreen = () => {
     },
     startButton: {
       paddingVertical: 16,
-      borderRadius: 16,
+      borderRadius: 18,
       alignItems: 'center',
       justifyContent: 'center',
       marginTop: 24,
     },
     startButtonText: {
-      color: '#FFFFFF',
+      color: colors.onPrimary,
       fontSize: 16,
       fontWeight: '600',
 

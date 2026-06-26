@@ -61,7 +61,7 @@ const OnboardingScreen = () => {
     position: 'absolute',
     top: 45,
     left: 0,
-    width: 120,
+    width: 180,
     height: 30,
     borderWidth: 4,
     borderColor: 'rgba(255,255,255,0.3)',

@@ -87,3 +87,11 @@ design.md
 
 # image
 # image/
+
+# Windows 保留设备名
+nul
+prn
+con
+aux
+lpt[0-9]
+com[0-9]

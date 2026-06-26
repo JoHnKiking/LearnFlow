@@ -167,7 +167,7 @@ const MonsterSelectionScreen = () => {
       gap: 16,
     },
     monsterCard: {
-      borderRadius: 16,
+      borderRadius: 20,
       borderWidth: 2,
       overflow: 'hidden',
     },
@@ -257,7 +257,7 @@ const MonsterSelectionScreen = () => {
     checkMark: {
       width: 32,
       height: 32,
-      borderRadius: 16,
+      borderRadius: 20,
       backgroundColor: 'rgba(255,255,255,0.3)',
       alignItems: 'center',
       justifyContent: 'center',
@@ -294,7 +294,7 @@ const MonsterSelectionScreen = () => {
     continueButton: {
       backgroundColor: colors.primary,
       paddingVertical: 16,
-      borderRadius: 16,
+      borderRadius: 20,
       alignItems: 'center',
       justifyContent: 'center',
       marginTop: 24,

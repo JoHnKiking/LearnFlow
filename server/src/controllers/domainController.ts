@@ -5,7 +5,9 @@ import {
   getDomainById as getDomainByIdService,
   updateNodeProgress as updateNodeProgressService,
   startLearning as startLearningService,
-  finishLearning as finishLearningService
+  finishLearning as finishLearningService,
+  getNodeProgressesByDomain as getNodeProgressesByDomainService,
+  getNodeStudyCount as getNodeStudyCountService,
 } from '../services';
 
 export const createDomain = async (req: Request, res: Response) => {
@@ -179,11 +181,57 @@ export const finishLearning = async (req: Request, res: Response) => {
   }
 };
 
+export const getNodeProgresses = async (req: Request, res: Response) => {
+  console.log(`[DomainController] GET /domains/:domainId/node-progresses`);
+  try {
+    const { domainId } = req.params;
+    const { userId } = req.query;
+
+    if (!userId || !domainId) {
+      return res.status(400).json({ error: 'userId and domainId are required' });
+    }
+
+    const result = await getNodeProgressesByDomainService(
+      parseInt(userId as string),
+      parseInt(domainId)
+    );
+
+    res.json(result);
+  } catch (error) {
+    console.error('[DomainController] 获取节点进度列表失败:', error);
+    res.status(500).json({ error: 'Failed to get node progresses' });
+  }
+};
+
+export const getNodeStudyCount = async (req: Request, res: Response) => {
+  console.log(`[DomainController] GET /domains/study-count`);
+  try {
+    const { userId, domainId, nodeId } = req.query;
+
+    if (!userId || !domainId || !nodeId) {
+      return res.status(400).json({ error: 'userId, domainId, nodeId are required' });
+    }
+
+    const result = await getNodeStudyCountService(
+      parseInt(userId as string),
+      parseInt(domainId as string),
+      nodeId as string
+    );
+
+    res.json(result);
+  } catch (error) {
+    console.error('[DomainController] 获取学习次数失败:', error);
+    res.status(500).json({ error: 'Failed to get study count' });
+  }
+};
+
 export default {
   createDomain,
   getDomains,
   getDomainById,
   updateNodeProgress,
   startLearning,
-  finishLearning
+  finishLearning,
+  getNodeProgresses,
+  getNodeStudyCount,
 };

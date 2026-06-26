@@ -8,6 +8,18 @@ export const STORAGE_KEYS = {
   IS_NEW_USER: 'isNewUser',
 } as const;
 
+// 节点进度存储键：nodeProgresses_{domainId} → Record<nodeId, 'pending' | 'done'>
+export const nodeProgressKey = (domain: string) => `nodeProgresses_${domain}`;
+
+// 番茄钟完成记录：pomodoroCount_{domain}_{nodeId} → number
+export const pomodoroCountKey = (domain: string, nodeId: string) => `pomodoroCount_${domain}_${nodeId}`;
+
+// 模块奖励领取标记
+export const moduleRewardedKey = (domain: string) => `moduleRewarded_${domain}`;
+
+// 模块完成固定能量奖励
+export const MODULE_COMPLETE_ENERGY = 50;
+
 export const storage = {
   async getItem<T>(key: string): Promise<T | null> {
     try {

@@ -54,13 +54,16 @@ export interface ThemeColors {
   accentOrange: string;
   brandBlue: string;
   brandPurple: string;
-  brandCoral: string;
+  brandPink: string;
   successText: string;
   error: string;
   warning: string;
 
-  // 装饰
+  // 装饰与效果
   decorCircle: string;
+  planetGlow: string;
+  starColor: string;
+  glassBg: string;
 
   // Pro / 付费模式
   pro: string;
@@ -90,31 +93,10 @@ export interface ThemeColors {
   nodeDoing: string;
   nodeDone: string;
 
-  // 霓虹（保留兼容）
-  neon: string;
-  glow: string;
-  highlight: string;
-  glitchPrimary: string;
-  glitchSecondary: string;
-
-  // 旧接口兼容
+  // 快捷别名（保留活跃使用的）
   success: string;
   orange: string;
   purple: string;
-  pink: string;
-  surfaceSoft: string;
-  primarySoft: string;
-  onDark: string;
-  footerBg: string;
-  hairlineSoft: string;
-  successBg: string;
-  brandCyan: string;
-  brandBlueMid: string;
-  brandBlueDeep: string;
-  brandBlue700: string;
-  brandBlue200: string;
-  brandMagenta: string;
-  inkStrong: string;
 }
 
 // ====== 深色模式 — 暖碳黑 · 陶土金主色 ======
@@ -171,13 +153,16 @@ export const darkTheme: ThemeColors = {
   accentOrange: '#C89070',
   brandBlue: '#6B9AAA',
   brandPurple: '#B892C8',
-  brandCoral: '#D4A574',
+  brandPink: '#D07090',
   successText: '#7AB07A',
   error: '#C86A6A',
   warning: '#C89070',
 
-  // 装饰
+  // 装饰与效果
   decorCircle: '#363636',
+  planetGlow: 'rgba(212,165,116,0.20)',
+  starColor: '#5A5A5A',
+  glassBg: 'rgba(41,41,41,0.75)',
 
   // Pro / 付费模式
   pro: '#D4A574',
@@ -207,31 +192,10 @@ export const darkTheme: ThemeColors = {
   nodeDoing: '#D4A574',
   nodeDone: '#7AB07A',
 
-  // 霓虹（保留兼容）
-  neon: '#7AB0A0',
-  glow: '#7AB07A',
-  highlight: '#D4A574',
-  glitchPrimary: '#7AB0A0',
-  glitchSecondary: '#B892C8',
-
-  // 旧接口兼容
+  // 快捷别名
   success: '#7AB07A',
   orange: '#C89070',
   purple: '#B892C8',
-  pink: '#C8A0B0',
-  surfaceSoft: '#222222',
-  primarySoft: '#363636',
-  onDark: '#FFFFFF',
-  footerBg: '#171717',
-  hairlineSoft: '#2A2A2A',
-  successBg: 'rgba(122,176,122,0.12)',
-  brandCyan: '#7AB0A0',
-  brandBlueMid: '#6B9AAA',
-  brandBlueDeep: '#5A8A9A',
-  brandBlue700: '#4A7A8A',
-  brandBlue200: '#C0D8E0',
-  brandMagenta: '#C8A0B0',
-  inkStrong: '#F5F0EA',
 };
 
 // ====== 浅色模式 — 陶土色 · 温暖米白底 ======
@@ -288,13 +252,16 @@ export const lightTheme: ThemeColors = {
   accentOrange: '#D4A574',
   brandBlue: '#7A9EB5',
   brandPurple: '#A08B8B',
-  brandCoral: '#C77D5A',
+  brandPink: '#D07090',
   successText: '#5A8F7C',
   error: '#D45656',
   warning: '#D4A574',
 
-  // 装饰
+  // 装饰与效果
   decorCircle: '#CDC0B2',
+  planetGlow: 'rgba(199,125,90,0.15)',
+  starColor: '#D0C8B8',
+  glassBg: 'rgba(255,255,255,0.70)',
 
   // Pro / 付费模式
   pro: '#D97706',
@@ -324,31 +291,10 @@ export const lightTheme: ThemeColors = {
   nodeDoing: '#C77D5A',
   nodeDone: '#7BA67B',
 
-  // 霓虹（保留兼容）
-  neon: '#C77D5A',
-  glow: '#5A8F7C',
-  highlight: '#D4A574',
-  glitchPrimary: '#5A8F7C',
-  glitchSecondary: '#A08B8B',
-
-  // 旧接口兼容
+  // 快捷别名
   success: '#7BA67B',
   orange: '#D4A574',
   purple: '#A08B8B',
-  pink: '#C89090',
-  surfaceSoft: '#F2EDE6',
-  primarySoft: '#F5EDE0',
-  onDark: '#FFFFFF',
-  footerBg: '#3D3229',
-  hairlineSoft: '#EEE5DC',
-  successBg: '#E8FFEA',
-  brandCyan: '#7A9EB5',
-  brandBlueMid: '#7A9EB5',
-  brandBlueDeep: '#6A8EA5',
-  brandBlue700: '#5A7E95',
-  brandBlue200: '#D6E4ED',
-  brandMagenta: '#C89090',
-  inkStrong: '#1A1510',
 };
 
 interface ThemeContextType {

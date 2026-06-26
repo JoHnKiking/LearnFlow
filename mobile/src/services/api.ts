@@ -54,9 +54,17 @@ api.interceptors.response.use(
   (error) => {
     // Axios 无法建连时常无 response，仅 message 为 Network Error
     if (!error.response && error.message === 'Network Error') {
-      return Promise.reject(
-        new Error('无法连接服务器，请检查手机网络、服务器是否在线，以及 API 地址是否正确')
-      );
+      const msg = [
+        '无法连接服务器',
+        `API 地址: ${API_BASE_URL}`,
+        '',
+        '排查步骤：',
+        '1. 确认手机和电脑在同一 WiFi',
+        '2. 确认服务器已启动（本机访问 http://localhost:3001 测试）',
+        '3. 打开手机浏览器访问上述 API 地址，确认可达',
+        '4. 若 IP 变了，修改 mobile/.env 后重启 Metro'
+      ].join('\n');
+      return Promise.reject(new Error(msg));
     }
 
     // 网络连接错误
@@ -374,5 +382,17 @@ export const domainService = {
   /** 完成学习（更新学习记录的实际时长和进度） */
   finishLearning: async (request: FinishLearningRequest): Promise<void> => {
     await api.post('/domains/learning/finish', request);
+  },
+
+  /** 获取某个领域下所有节点的进度状态 */
+  getNodeProgresses: async (userId: number, domainId: number): Promise<any[]> => {
+    const response = await api.get(`/domains/${domainId}/node-progresses`, { params: { userId } });
+    return response.data?.data || [];
+  },
+
+  /** 获取某个节点被完成的番茄钟学习次数 */
+  getStudyCount: async (userId: number, domainId: number, nodeId: string): Promise<number> => {
+    const response = await api.get('/domains/study-count', { params: { userId, domainId, nodeId } });
+    return response.data?.count || 0;
   },
 };

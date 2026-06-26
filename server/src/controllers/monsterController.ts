@@ -221,7 +221,7 @@ export const addExp = async (req: Request, res: Response) => {
 
 export const chatWithMonster = async (req: Request, res: Response) => {
   try {
-    const { userId, message } = req.body;
+    const { userId, message, personality: reqPersonality } = req.body;
 
     if (!userId || !message) {
       return res.status(400).json({ 
@@ -229,7 +229,7 @@ export const chatWithMonster = async (req: Request, res: Response) => {
       });
     }
 
-    const response = await chatWithMonsterService(parseInt(userId), message);
+    const response = await chatWithMonsterService(parseInt(userId), message, reqPersonality);
     
     res.json({
       success: true,

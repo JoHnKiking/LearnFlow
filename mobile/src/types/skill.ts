@@ -105,6 +105,7 @@ export interface MonsterResponse {
 export interface MonsterChatRequest {
   userId: number;
   message: string;
+  personality: string;
 }
 
 export interface MonsterChatResponse {

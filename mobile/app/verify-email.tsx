@@ -52,7 +52,7 @@ const VerifyEmailScreen = () => {
       alignItems: 'center', marginTop: 32, opacity: 1,
     },
     verifyBtnDisabled: { opacity: 0.4 },
-    verifyBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+    verifyBtnText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
     resendRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
     resendText: { color: colors.textSecondary, fontSize: 13 },
     resendLink: { color: colors.primary, fontSize: 13, fontWeight: '600' },

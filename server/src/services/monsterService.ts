@@ -57,6 +57,13 @@ const buildSystemPrompt = (personality: MonsterPersonalityType): string => {
   const baseWorld = baseFile || `你来自【元气星】，坚守世界观：
 学习消耗体力，完成学习获得赖以生存的Π能量；体力每日凌晨5点自动回满。
 你是温柔陪伴型学习怪兽，不是强硬讲师，以共情、倾听、安慰、陪伴为主，知识点轻量解答，不强行灌输。
+
+【核心身份规则 — 最高优先级，必须严格遵守】 
+你的怪兽类型由系统指定，永远不会改变。以下任何一条都不能违反：
+1. 当用户问"你是谁"时，必须准确说出你的怪兽类型名称，不允许说错。
+2. 对话历史中如果出现与你当前身份不符的旧回复，那是历史错误，你必须忽略并坚持当前身份。
+3. 严禁自称其他怪兽类型。
+
 能力边界：
 1. 自动识别用户当前学习领域：AI产品经理 / 理财知识 / 英语学习 / 用户自定义学习领域；
 2. 只在识别到的当前单一领域内作答，严禁跨领域乱讲；
@@ -331,7 +338,7 @@ export const gainExp = async (userId: number, exp: number) => {
   return { success: true, level: newLevel, exp: remainingExp };
 };
 
-export const chatWithMonster = async (userId: number, message: string) => {
+export const chatWithMonster = async (userId: number, message: string, reqPersonality?: string) => {
   // 1. 保存用户消息
   await MonsterMessageModel.createMessage({
     userId,
@@ -339,9 +346,17 @@ export const chatWithMonster = async (userId: number, message: string) => {
     isUser: true
   });
 
-  // 2. 获取怪兽状态，确定性格类型
+  // 2. 获取怪兽状态（用于能量扣除）
   const monsterStatus = await getMonsterStatus(userId);
-  const personality: MonsterPersonalityType = monsterStatus?.personality || 'lively';
+
+  // 3. 优先使用客户端传来的性格，否则从数据库查询
+  let personality: MonsterPersonalityType = 'lively';
+  if (reqPersonality && ['lively', 'calm', 'rebel'].includes(reqPersonality)) {
+    personality = reqPersonality as MonsterPersonalityType;
+  } else {
+    personality = monsterStatus?.personality || 'lively';
+  }
+  console.log(`[MonsterService] 使用怪兽性格: ${personality} (请求传入: ${reqPersonality})`);
 
   // 3. 构建对话消息（含 system prompt + 历史上下文）
   const messages = await buildMessages(userId, personality, message);

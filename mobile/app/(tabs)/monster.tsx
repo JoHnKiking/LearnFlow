@@ -44,7 +44,7 @@ const staticStyles = StyleSheet.create({
   },
   monsterInfo: { flex: 1, justifyContent: 'center', gap: 8 },
   gameButton: {
-    paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10,
+    paddingVertical: 8, paddingHorizontal: 12, borderRadius: 16,
     borderWidth: 2, flexDirection: 'row', alignItems: 'center', gap: 4,
     flex: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04, shadowRadius: 3, elevation: 2,
@@ -81,9 +81,9 @@ const staticStyles = StyleSheet.create({
   tabText: { fontSize: 13 },
   tabContent: { paddingHorizontal: 20, gap: 16 },
   taskCard: {
-    borderRadius: 14, padding: 20, borderWidth: 1.5,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4, shadowRadius: 12, elevation: 4,
+    borderRadius: 20, padding: 20, borderWidth: 1.5,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
   },
   taskHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 20 },
   taskTitle: { fontSize: 14, fontWeight: '600', letterSpacing: 0.5 },
@@ -117,12 +117,10 @@ const staticStyles = StyleSheet.create({
   timeOptionText: { fontSize: 12, fontWeight: '600' },
   pomodoroContainer: { alignItems: 'center', gap: 16 },
   pomodoroTimer: {
-    width: 140, height: 140, borderRadius: 70, borderWidth: 1,
+    width: 180, height: 180, borderRadius: 90,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
   },
-  pomodoroTime: { fontSize: 36, fontWeight: '700' },
+  pomodoroTime: { fontSize: 42, fontWeight: '400', letterSpacing: 2 },
   pomodoroButtons: { width: '100%' },
   pomodoroButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -227,7 +225,7 @@ const MonsterManageScreen = () => {
     taskName: { color: colors.textPrimary },
     taskNameDone: { color: colors.primary },
     timeOptionText: { color: colors.textSecondary },
-    pomodoroTimer: { borderColor: colors.primary, backgroundColor: colors.primary },
+    pomodoroTimer: { backgroundColor: colors.primary },
     pomodoroTime: { color: colors.onPrimary },
     pomodoroButton: { backgroundColor: colors.primary, borderColor: colors.primary },
     pomodoroButtonText: { color: colors.onPrimary },
@@ -338,6 +336,7 @@ const MonsterManageScreen = () => {
       console.log('[Monster] 开始加载数据');
       const monster = await storage.getItem(STORAGE_KEYS.MONSTER);
       if (monster) {
+        console.log(`[Monster] 已加载怪物 type="${monster.type}", name="${monster.name}"`);
         const resetData = await checkAndResetDaily(monster, isPro);
         setMonsterData(resetData);
       } else {
@@ -422,7 +421,8 @@ const MonsterManageScreen = () => {
           maxPaiEnergy: (data.paiEnergy || 0) + dailyEnergyGrant,
         };
         await storage.setItem(STORAGE_KEYS.MONSTER, resetData);
-        await storage.setItem(STORAGE_KEYS.LAST_RESET, now.toISOString());
+        // 将 lastReset 设为今天 5AM（而非当前时间），避免 5AM 前多次触发
+        await storage.setItem(STORAGE_KEYS.LAST_RESET, today5AM.toISOString());
         return resetData;
       }
 
@@ -585,13 +585,15 @@ const MonsterManageScreen = () => {
     setChatInput('');
     setIsSending(true);
 
+    console.log(`[MonsterChat] 发送消息 - monsterData.type="${monsterData?.type}", name="${monsterData?.name}"`);
+
     const tempUserMsg: MonsterMessageItem = {
       id: Date.now(), userId: user.id, message: text, isUser: true, createdAt: new Date().toISOString(),
     };
     setChatMessages(prev => [...prev, tempUserMsg]);
 
     try {
-      const res = await monsterService.chat({ userId: user.id, message: text });
+      const res = await monsterService.chat({ userId: user.id, message: text, personality: monsterData.type });
       if (res.success && res.data) {
         const cost = Math.max(1, Math.round(res.data.message.length * 0.05 * 10) / 10);
         const monsterMsg: MonsterMessageItem = {
@@ -720,13 +722,13 @@ const MonsterManageScreen = () => {
               style={[staticStyles.timeOption, { backgroundColor: selectedTime === time ? colors.primary : colors.borderLight }]}
               onPress={() => setSelectedTime(time)}
             >
-              <Text style={[dynamicStyles.timeOptionText, { color: selectedTime === time ? '#FFFFFF' : colors.textSecondary }]}>{time}分钟</Text>
+              <Text style={[dynamicStyles.timeOptionText, { color: selectedTime === time ? colors.onPrimary : colors.textSecondary }]}>{time}分钟</Text>
             </TouchableOpacity>
           ))}
         </View>
         <View style={staticStyles.pomodoroContainer}>
           <View style={[staticStyles.pomodoroTimer, dynamicStyles.pomodoroTimer]}>
-            <Text style={dynamicStyles.pomodoroTime}>{formatTimer(pomodoroTimeLeft)}</Text>
+            <Text style={[staticStyles.pomodoroTime, dynamicStyles.pomodoroTime]}>{formatTimer(pomodoroTimeLeft)}</Text>
           </View>
           <View style={staticStyles.pomodoroButtons}>
             <TouchableOpacity
@@ -826,14 +828,14 @@ const MonsterManageScreen = () => {
       {/* 非 Pro 用户提示条 */}
       {!isPro && (
         <View style={{ paddingHorizontal: 16, paddingVertical: 12, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.hairline }}>
-          <Text style={{ color: colors.textSecondary, fontSize: 14, textAlign: 'center' }}>
-            每日能量 +50，升级 Pro 可领取 <Text style={{ color: colors.primary, fontWeight: '600' }}>1000 点/天</Text>
-          </Text>
           <TouchableOpacity 
-            style={{ marginTop: 8, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: colors.primary, borderRadius: 8, alignSelf: 'center' }}
             onPress={() => setShowProModal(true)}
+            activeOpacity={0.7}
+            style={{ alignItems: 'center' }}
           >
-            <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '600' }}>升级 Pro</Text>
+            <Text style={{ color: colors.textSecondary, fontSize: 14, textAlign: 'center' }}>
+              升级 <Text style={{ color: colors.primary, fontWeight: '600' }}>Pro</Text> 领取每日 1000 点能量
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -875,7 +877,7 @@ const MonsterManageScreen = () => {
             ]}>
               <Text style={[
                 staticStyles.messageText,
-                { color: item.isUser ? '#FFFFFF' : colors.textPrimary },
+                { color: item.isUser ? colors.onPrimary : colors.textPrimary },
               ]}>
                 {item.message}
               </Text>

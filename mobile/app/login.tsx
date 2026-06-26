@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, Alert, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Alert, ScrollView, TouchableOpacity, Dimensions, Modal, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { storage, STORAGE_KEYS } from '../src/utils/storage';
 import { showErrorAlert, toErrorMessage } from '../src/utils';
 import { FloatingInputBar, InputFieldConfig } from '../src/components/FloatingInputBar';
+import { PRIVACY_POLICY_CONTENT, TERMS_OF_SERVICE_CONTENT } from '../src/constants/legal';
 
 const LoginScreen = () => {
   const { colors } = useTheme();
@@ -20,6 +21,7 @@ const LoginScreen = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [activeFieldId, setActiveFieldId] = useState<string | null>(null);
+  const [legalModal, setLegalModal] = useState<'privacy' | 'terms' | null>(null);
 
   const handleSubmit = async () => {
     console.log(`[Login] handleSubmit - 类型: ${loginType}, 邮箱: ${email}`);
@@ -158,7 +160,7 @@ const LoginScreen = () => {
     width: 256,
     height: 256,
     borderRadius: 128,
-    backgroundColor: '#D4A574',
+    backgroundColor: colors.primary,
     opacity: 0.08,
   },
   gradientCircle2: {
@@ -168,8 +170,8 @@ const LoginScreen = () => {
     width: 192,
     height: 192,
     borderRadius: 96,
-    backgroundColor: '#C89070',
-    opacity: 0.06,
+    backgroundColor: colors.primary,
+    opacity: 0.04,
   },
   gradientCircle3: {
     position: 'absolute',
@@ -178,8 +180,8 @@ const LoginScreen = () => {
     width: 128,
     height: 128,
     borderRadius: 64,
-    backgroundColor: '#D4A574',
-    opacity: 0.04,
+    backgroundColor: colors.primary,
+    opacity: 0.03,
   },
   logoSection: {
     alignItems: 'center',
@@ -189,21 +191,21 @@ const LoginScreen = () => {
   logoContainer: {
     width: 80,
     height: 80,
-    borderRadius: 2,
-    backgroundColor: '#D4A574',
+    borderRadius: 20,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
-    shadowColor: '#D4A574',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 32,
+    shadowColor: colors.planetGlow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 24,
     elevation: 5,
   },
   appTitle: {
     fontSize: 28,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.onPrimary,
     marginBottom: 4,
     letterSpacing: -0.5,
   },
@@ -218,18 +220,18 @@ const LoginScreen = () => {
   tabSwitcher: {
     flexDirection: 'row',
     backgroundColor: colors.surface,
-    borderRadius: 2,
+    borderRadius: 14,
     padding: 4,
   },
   tabButton: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 2,
+    borderRadius: 12,
     alignItems: 'center',
   },
   activeTabButton: {
-    backgroundColor: '#D4A574',
-    shadowColor: '#D4A574',
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -241,7 +243,7 @@ const LoginScreen = () => {
     fontWeight: '400',
   },
   activeTabText: {
-    color: '#fff',
+    color: colors.onPrimary,
     fontWeight: '600',
   },
   formContainer: {
@@ -279,15 +281,15 @@ const LoginScreen = () => {
   },
   forgotPasswordText: {
     fontSize: 13,
-    color: '#D4A574',
+    color: colors.primary,
   },
   loginButton: {
     height: 56,
-    borderRadius: 2,
-    backgroundColor: '#D4A574',
+    borderRadius: 12,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#D4A574',
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -298,7 +300,7 @@ const LoginScreen = () => {
     shadowOpacity: 0,
   },
   loginButtonText: {
-    color: '#fff',
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -307,7 +309,7 @@ const LoginScreen = () => {
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: colors.onPrimary,
     borderTopColor: 'transparent',
   },
   termsText: {
@@ -319,6 +321,23 @@ const LoginScreen = () => {
   termsLink: {
     color: colors.primary,
   },
+  legalModalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end',
+  },
+  legalModalCard: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+    overflow: 'hidden',
+  },
+  legalModalHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12,
+    borderBottomWidth: 1, borderBottomColor: colors.hairline,
+  },
+  legalModalTitle: { fontSize: 18, fontWeight: '700', color: colors.textPrimary },
+  legalCloseBtn: { padding: 4 },
 }), [colors]);
 
   return (
@@ -444,10 +463,27 @@ const LoginScreen = () => {
           {/* 底部条款 */}
           <Text style={styles.termsText}>
             继续即表示你同意我们的{' '}
-            <Text style={styles.termsLink}>服务条款</Text> 和{' '}
-            <Text style={styles.termsLink}>隐私政策</Text>
+            <Text style={styles.termsLink} onPress={() => setLegalModal('terms')}>服务条款</Text> 和{' '}
+            <Text style={styles.termsLink} onPress={() => setLegalModal('privacy')}>隐私政策</Text>
           </Text>
         </ScrollView>
+
+      {/* 法律文件弹窗 */}
+      <Modal visible={legalModal !== null} animationType="slide" transparent onRequestClose={() => setLegalModal(null)}>
+        <Pressable style={styles.legalModalOverlay} onPress={() => setLegalModal(null)}>
+          <Pressable style={styles.legalModalCard} onPress={() => {}}>
+            <View style={styles.legalModalHeader}>
+              <Text style={styles.legalModalTitle}>
+                {legalModal === 'privacy' ? '隐私政策' : '服务条款'}
+              </Text>
+              <TouchableOpacity style={styles.legalCloseBtn} onPress={() => setLegalModal(null)}>
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            {legalModal === 'privacy' ? <PRIVACY_POLICY_CONTENT /> : <TERMS_OF_SERVICE_CONTENT />}
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* 键盘上方浮动输入栏 */}
       <FloatingInputBar

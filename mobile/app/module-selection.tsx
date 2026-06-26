@@ -29,7 +29,7 @@ const PLATFORM_OPTIONS: { key: PlatformType; label: string; icon: string; color:
 
 type ModuleType = 'ai-product-manager' | 'personal-finance' | 'english-communication' | string;
 
-type ModuleCategory = 'student' | 'summer' | 'work';
+type ModuleCategory = 'student' | 'summer' | 'college' | 'work';
 
 interface Module {
   id: ModuleType;
@@ -65,12 +65,19 @@ const predefinedModules: Module[] = [
   // ---- 暑假专区 ----
   { id: 'office-skills', name: '基础办公技能', icon: 'desktop',
     category: 'summer', description: '熟练使用Word/Excel/PPT，达到独立完成办公文档与数据处理水平', difficulty: '初级' },
-  { id: 'coding-starter', name: '编程启蒙', icon: 'code-slash',
-    category: 'summer', description: '从零开始学编程，完成一个个人项目并具备自学新语言能力', difficulty: '初级' },
+  { id: 'vibe-coding', name: 'Vibe Coding 启蒙', icon: 'code-slash',
+    category: 'summer', description: '像聊天一样写代码：把想法说给AI，它帮你实现', difficulty: '初级' },
   { id: 'speech-expression', name: '演讲表达', icon: 'mic',
     category: 'summer', description: '克服演讲恐惧，能独立完成10分钟有逻辑、有感染力的公开演讲', difficulty: '初级' },
   { id: 'video-editing', name: '视频剪辑', icon: 'videocam',
     category: 'summer', description: '掌握剪辑全流程，能独立产出高质量短视频作品', difficulty: '初级' },
+  // ---- 大学课程 ----
+  { id: 'advanced-math', name: '高等数学', icon: 'calculator',
+    category: 'college', description: '微分、积分、级数与微分方程，掌握高等数学核心概念与解题方法', difficulty: '高级' },
+  { id: 'college-cs', name: '大学生计算机基础', icon: 'laptop',
+    category: 'college', description: '计算机原理、操作系统、网络基础，构建计算机科学知识体系', difficulty: '初级' },
+  { id: 'linear-algebra', name: '线性代数', icon: 'grid',
+    category: 'college', description: '矩阵运算、向量空间、特征值与特征向量，掌握线性代数基本工具', difficulty: '中级' },
   // ---- 工作专区 ----
   { id: 'ai-product-manager', name: 'AI产品经理', icon: 'hardware-chip',
     category: 'work', description: '掌握AI产品设计与落地，达到独立负责AI产品模块的能力', difficulty: '中级' },
@@ -95,12 +102,13 @@ const ModuleSelectionScreen = () => {
     checkAuth();
   }, []);
 
-  // 根据分类获取颜色
+  // 根据分类获取颜色（从品牌色系衍生）
   const getCategoryColor = (category: ModuleCategory): string => {
     switch (category) {
-      case 'student': return '#5D9BFA';
-      case 'summer': return '#4A9840';
-      case 'work': return '#D4A058';
+      case 'student': return colors.brandPink;
+      case 'summer': return colors.success;
+      case 'college': return colors.brandPurple;
+      case 'work': return colors.warning;
     }
   };
   const { mode } = useLocalSearchParams<{ mode?: string }>();
@@ -126,6 +134,13 @@ const ModuleSelectionScreen = () => {
   const [activeAddTab, setActiveAddTab] = useState<'official' | 'aicustom'>('official');
   // Pro 弹窗
   const [showProModal, setShowProModal] = useState(false);
+  // 专区折叠状态（默认全部展开）
+  const [expandedZones, setExpandedZones] = useState<Record<string, boolean>>({
+    student: true,
+    summer: true,
+    college: true,
+    work: true,
+  });
 
   // ---- 初始化 ----
   useEffect(() => {
@@ -434,9 +449,11 @@ const ModuleSelectionScreen = () => {
   const handleConfirmPreset = async () => {
     const newIds = selectedModules.filter(id => !existingModules.includes(id));
     if (newIds.length === 0) return;
-    // 免费用户检测：已有官方模块则禁止添加
-    if (!isPro && existingModules.length > 0) {
-      Alert.alert('提示', '免费用户仅可选择/拥有一个官方模块，请先删除原有模块');
+    // 免费用户检测：已有官方（预设）模块则禁止添加第二个
+    const presetIds = new Set(predefinedModules.map(m => m.id));
+    const hasPreset = existingModules.some(id => presetIds.has(id));
+    if (!isPro && hasPreset) {
+      Alert.alert('提示', '免费用户仅可选择/拥有一个官方模块，请先删除原有官方模块');
       return;
     }
     await AsyncStorage.setItem('selectedModules', JSON.stringify(selectedModules));
@@ -544,14 +561,14 @@ const ModuleSelectionScreen = () => {
       shadowOpacity: 0.08, shadowRadius: 12, elevation: 3,
     },
     confirmBtnDisabled: { backgroundColor: colors.border, opacity: 0.5, shadowOpacity: 0 },
-    confirmBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+    confirmBtnText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
     // Toast
     toast: {
       position: 'absolute', bottom: 40, left: 20, right: 20,
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
       backgroundColor: 'rgba(0,0,0,0.85)', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12,
     },
-    toastText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
+    toastText: { color: colors.textPrimary, fontSize: 14, fontWeight: '600' },
     // 添加模式 tab 切换
     addTabs: {
       flexDirection: 'row',
@@ -586,6 +603,7 @@ const ModuleSelectionScreen = () => {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 12,
+      marginBottom: 8,
     },
     moduleCardIcon: {
       width: 44,
@@ -619,6 +637,7 @@ const ModuleSelectionScreen = () => {
     },
     selectedCount: { textAlign: 'center', color: colors.textSecondary, fontSize: 13, marginTop: 24 },
     spacer: { flex: 1 },
+    bottomBar: { paddingHorizontal: 24, paddingVertical: 16, borderTopWidth: 1, borderTopColor: colors.hairline },
     startButton: {
       paddingVertical: 16, borderRadius: 16, alignItems: 'center',
       justifyContent: 'center', marginTop: 24,
@@ -660,7 +679,7 @@ const ModuleSelectionScreen = () => {
       shadowOpacity: 0.08, shadowRadius: 8, elevation: 3, minWidth: 110,
     },
     aiFillBtnDisabled: { backgroundColor: colors.border, shadowOpacity: 0 },
-    aiFillBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+    aiFillBtnText: { color: colors.onPrimary, fontSize: 13, fontWeight: '700' },
 
     // ---- AI 加载 Modal ----
     aiModalOverlay: {
@@ -685,6 +704,7 @@ const ModuleSelectionScreen = () => {
     const zones: { key: ModuleCategory; title: string }[] = [
       { key: 'student', title: '学生专区' },
       { key: 'summer', title: '暑假专区' },
+      { key: 'college', title: '大学课程' },
       { key: 'work', title: '工作专区' },
     ];
 
@@ -714,18 +734,18 @@ const ModuleSelectionScreen = () => {
             <View style={[styles.moduleCardIcon, {
               backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : catColor,
             }]}>
-              <Ionicons name={module.icon as any} size={22} color={isSelected ? '#FFFFFF' : colors.background} />
+              <Ionicons name={module.icon as any} size={22} color={'#FFFFFF'} />
             </View>
             <View style={styles.moduleCardInfo}>
               <Text
-                style={[styles.moduleCardName, { color: isSelected ? '#FFFFFF' : colors.textPrimary }]}
+                style={[styles.moduleCardName, { color: isSelected ? colors.onPrimary : colors.textPrimary }]}
               >
                 {module.name}
               </Text>
               <Text
                 style={[styles.moduleCardCategory, { color: isSelected ? 'rgba(255,255,255,0.8)' : colors.textTertiary }]}
               >
-                {module.category === 'student' ? '学生专区' : module.category === 'summer' ? '暑假专区' : '工作专区'}
+                {module.category === 'student' ? '学生专区' : module.category === 'summer' ? '暑假专区' : module.category === 'college' ? '大学课程' : '工作专区'}
               </Text>
             </View>
             {isSelected && (
@@ -746,12 +766,24 @@ const ModuleSelectionScreen = () => {
           zones.map((zone) => {
             const zoneModules = availableModules.filter((m) => m.category === zone.key);
             if (zoneModules.length === 0) return null;
+            const isExpanded = expandedZones[zone.key];
             return (
               <View key={zone.key} style={{ marginBottom: 16 }}>
-                <Text style={[styles.zoneTitle, { color: colors.textPrimary }]}>
-                  {zone.title}
-                </Text>
-                {zoneModules.map((module) => renderModuleCard(module))}
+                <TouchableOpacity
+                  onPress={() => setExpandedZones(prev => ({ ...prev, [zone.key]: !prev[zone.key] }))}
+                  activeOpacity={0.7}
+                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}
+                >
+                  <Text style={[styles.zoneTitle, { color: colors.textPrimary }]}>
+                    {zone.title}
+                  </Text>
+                  <Ionicons
+                    name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                    size={18}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+                {isExpanded && zoneModules.map((module) => renderModuleCard(module))}
               </View>
             );
           })
@@ -948,7 +980,7 @@ const ModuleSelectionScreen = () => {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: isAddMode ? 100 : 120 }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
@@ -985,7 +1017,7 @@ const ModuleSelectionScreen = () => {
                     activeOpacity={0.7}
                   >
                     <Text style={[styles.addTabText, {
-                      color: activeAddTab === 'official' ? '#FFFFFF' : colors.textSecondary,
+                      color: activeAddTab === 'official' ? colors.onPrimary : colors.textSecondary,
                     }]}>官方模块</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -994,7 +1026,7 @@ const ModuleSelectionScreen = () => {
                     activeOpacity={0.7}
                   >
                     <Text style={[styles.addTabText, {
-                      color: activeAddTab === 'aicustom' ? '#FFFFFF' : colors.textSecondary,
+                      color: activeAddTab === 'aicustom' ? colors.onPrimary : colors.textSecondary,
                     }]}>AI 自定义</Text>
                   </TouchableOpacity>
                 </View>
@@ -1008,22 +1040,19 @@ const ModuleSelectionScreen = () => {
                       <>
                         {renderPresetSelection()}
                     {selectedModules.length > 0 && (
-                          <>
-                            <Text style={styles.selectedCount}>已选中 1 个预设模块</Text>
-                            <TouchableOpacity
-                              style={[styles.startButton, {
-                                backgroundColor: colors.primary,
-                                shadowColor: colors.shadow,
-                                shadowOffset: { width: 0, height: 2 },
-                                shadowOpacity: 0.08, shadowRadius: 12, elevation: 3,
-                                marginBottom: 16,
-                              }]}
-                              onPress={handleConfirmPreset}
-                              activeOpacity={0.7}
-                            >
-                              <Text style={styles.startButtonText}>确认添加预设模块 ✨</Text>
-                            </TouchableOpacity>
-                          </>
+                          <TouchableOpacity
+                            style={[styles.startButton, {
+                              backgroundColor: colors.primary,
+                              shadowColor: colors.shadow,
+                              shadowOffset: { width: 0, height: 2 },
+                              shadowOpacity: 0.08, shadowRadius: 12, elevation: 3,
+                              marginTop: 16,
+                            }]}
+                            onPress={handleConfirmPreset}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={styles.startButtonText}>确认添加预设模块 ✨</Text>
+                          </TouchableOpacity>
                         )}
                       </>
                     )}
@@ -1034,7 +1063,7 @@ const ModuleSelectionScreen = () => {
                 {activeAddTab === 'aicustom' && renderCustomForm()}
               </>
             ) : (
-              <>{/* 初始选择模式：只显示预设模块 */}
+              <>
                 <Animated.View style={{ opacity: fadeAnim }}>
                   {renderPresetSelection()}
                 </Animated.View>
@@ -1042,32 +1071,35 @@ const ModuleSelectionScreen = () => {
                 <Text style={styles.selectedCount}>
                   已选择 {selectedModules.length}/3 个模块
                 </Text>
-
-                <View style={styles.spacer} />
-
-                <TouchableOpacity
-                  style={[
-                    styles.startButton,
-                    {
-                      backgroundColor: selectedModules.length === 0 ? colors.border : colors.primary,
-                      opacity: selectedModules.length === 0 ? 0.5 : 1,
-                      shadowColor: selectedModules.length === 0 ? 'transparent' : colors.shadow,
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: selectedModules.length === 0 ? 0 : 0.08,
-                      shadowRadius: 12,
-                      elevation: selectedModules.length === 0 ? 0 : 3,
-                    },
-                  ]}
-                  onPress={handleConfirmPreset}
-                  disabled={selectedModules.length === 0}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.startButtonText}>开始学习之旅 ✨</Text>
-                </TouchableOpacity>
               </>
             )}
           </View>
         </ScrollView>
+
+        {/* 底部固定按钮（非添加模式） */}
+        {!isAddMode && (
+          <View style={[styles.bottomBar, { backgroundColor: colors.background }]}>
+            <TouchableOpacity
+              style={[
+                styles.startButton,
+                {
+                  backgroundColor: selectedModules.length === 0 ? colors.border : colors.primary,
+                  opacity: selectedModules.length === 0 ? 0.5 : 1,
+                  shadowColor: selectedModules.length === 0 ? 'transparent' : colors.shadow,
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: selectedModules.length === 0 ? 0 : 0.08,
+                  shadowRadius: 12,
+                  elevation: selectedModules.length === 0 ? 0 : 3,
+                },
+              ]}
+              onPress={handleConfirmPreset}
+              disabled={selectedModules.length === 0}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.startButtonText}>开始学习之旅 ✨</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </KeyboardAvoidingView>
 
       {/* ---- Toast 提示 ---- */}

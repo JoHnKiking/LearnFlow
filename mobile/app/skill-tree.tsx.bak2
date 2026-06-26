@@ -91,7 +91,7 @@ const SkillTreeScreen = () => {
     width: 40, height: 40, borderRadius: 10,
     alignItems: 'center', justifyContent: 'center',
   },
-  backArrow: { fontSize: 24, color: colors.textPrimary, fontWeight: 'bold' },
+  backArrow: { fontSize: 24, color: '#FFFFFF', fontWeight: 'bold' },
   headerTitle: { fontSize: 18, fontWeight: '600' },
   headerPlaceholder: { width: 40 },
   // 描述区
@@ -120,7 +120,7 @@ const SkillTreeScreen = () => {
   skillNodesList: { gap: 8 },
   skillNode: {
     backgroundColor: colors.surface, borderWidth: 1,
-    borderRadius: 18, padding: 12, position: 'relative',
+    borderRadius: 14, padding: 12, position: 'relative',
     borderColor: colors.hairline,
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 1 },
@@ -128,19 +128,17 @@ const SkillTreeScreen = () => {
     shadowRadius: 3,
     elevation: 2,
   },
-  skillNodeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  skillNodeHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   nodeBadge: {
-    width: 22, height: 22, borderRadius: 6,
+    width: 20, height: 20, borderRadius: 6,
     alignItems: 'center', justifyContent: 'center',
   },
-  nodeBadgeText: { fontSize: 11, fontWeight: '600' },
-  skillNodeContent: { flex: 1 },
-  skillNodeName: { fontSize: 14, fontWeight: '600', lineHeight: 20 },
-  skillNodeFooter: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
-  contentTypeIcon: { marginRight: 0 },
-  platformText: { fontSize: 11, fontWeight: '500' },
-  contentTypeText: { fontSize: 11, color: '#888' },
-  durationText: { fontSize: 11, color: '#888', fontWeight: '500', marginLeft: 'auto' },
+  nodeBadgeText: { fontSize: 10, fontWeight: '600' },
+  skillNodeName: { fontSize: 13, fontWeight: '600', marginBottom: 8, lineHeight: 16 },
+  skillNodeFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  platformText: { fontSize: 10, fontWeight: '500' },
+  durationText: { fontSize: 10, color: '#888', fontWeight: '500' },
+  arrowIcon: { position: 'absolute', right: 12, bottom: 12 },
   // 添加结点按钮
   addNodeBtn: {
     alignItems: 'center', justifyContent: 'center', paddingVertical: 10,
@@ -188,31 +186,30 @@ const SkillTreeScreen = () => {
     elevation: 6,
   },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  modalTitle: { fontSize: 20, fontWeight: '600', color: colors.textPrimary },
+  modalTitle: { fontSize: 20, fontWeight: '600' },
   modalClose: {
     width: 32, height: 32, borderRadius: 8,
     alignItems: 'center', justifyContent: 'center',
   },
-  modalNodeName: { fontSize: 16, fontWeight: '600', marginBottom: 16 },
+  modalNodeName: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 16 },
   // 体力信息
   staminaInfo: { marginBottom: 16 },
   staminaBar: { height: 6, backgroundColor: colors.progressTrack, borderRadius: 9999, overflow: 'hidden', marginBottom: 8 },
   staminaFill: { height: '100%', borderRadius: 9999 },
-  staminaText: { fontSize: 12 },
-  modalSubtitle: { fontSize: 14, fontWeight: '600', marginBottom: 12 },
+  staminaText: { fontSize: 12, color: colors.textSecondary },
+  modalSubtitle: { fontSize: 14, fontWeight: '600', color: colors.textPrimary, marginBottom: 12 },
   // 时长选项
   durationOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
   durationButton: {
     paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10,
     borderWidth: 1, borderColor: colors.hairline,
-    backgroundColor: colors.surface,
   },
   durationButtonActive: {},
-  durationTextSmall: { fontSize: 12 },
-  durationTextActive: { color: colors.onPrimary },
+  durationTextSmall: { fontSize: 12, color: colors.textSecondary },
+  durationTextActive: { color: '#FFFFFF' },
   costInfo: { marginBottom: 20 },
-  costText: { fontSize: 12, marginBottom: 4 },
-  suggestedText: { fontSize: 12 },
+  costText: { fontSize: 12, color: '#C4A27A', marginBottom: 4 },
+  suggestedText: { fontSize: 12, color: colors.textSecondary },
   modalConfirmBtn: { paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
   modalConfirmText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
   // Toast
@@ -222,7 +219,7 @@ const SkillTreeScreen = () => {
     backgroundColor: colors.surface, paddingVertical: 12, paddingHorizontal: 20, borderRadius: 14,
     borderWidth: 1, borderColor: colors.hairline,
   },
-  toastText: { fontSize: 14, fontWeight: '600' },
+  toastText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   }), [colors]);
 
   // ===================== 子组件：大标题结点 =====================
@@ -251,53 +248,61 @@ const SkillTreeScreen = () => {
 
   // ===================== 子组件：学习结点卡片 =====================
 
-  const SkillNodeItem = ({ name, platform, duration, url, index, stageColor, platformColor, nodeId, isChecked, onSelect, onToggleCheck, onLongPress, onEdit, isCustom }: {
+  const SkillNodeItem = ({ name, platform, duration, url, index, stageColor, platformIcon, platformColor, nodeId, isChecked, onSelect, onToggleCheck, onLongPress, onEdit, isCustom }: {
     name: string; platform: PlatformType; duration: number; url: string;
     index: number; stageColor: { bg: string; border: string; text: string };
-    platformColor: string;
+    platformIcon: string; platformColor: string;
     nodeId: string; isChecked: boolean;
     onSelect: (name: string, url: string, suggestedDuration: number, nodeId: string) => void;
     onToggleCheck: (nodeId: string) => void;
     onLongPress?: () => void; onEdit?: () => void;
     isCustom?: boolean;
-  }) => {
-    const contentType = getContentType(platform);
-    const platformName = PLATFORM_NAME_MAP[platform] ?? platform;
-    return (
-      <View style={[s.skillNode, { borderColor: isChecked ? colors.success : stageColor.border, opacity: isChecked ? 0.7 : 1 }]}>
-        <View style={s.skillNodeRow}>
-          {/* 勾选框 — 最左边 */}
-          <TouchableOpacity onPress={() => onToggleCheck(nodeId)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name={isChecked ? 'checkbox' : 'square-outline'} size={22} color={isChecked ? colors.success : colors.textTertiary} />
-          </TouchableOpacity>
-          {/* 序号 */}
+  }) => (
+    <View style={[s.skillNode, { borderColor: isChecked ? colors.success : stageColor.border, opacity: isChecked ? 0.7 : 1 }]}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+        <TouchableOpacity
+          onPress={() => onSelect(name, url, duration, nodeId)}
+          onLongPress={onLongPress}
+          activeOpacity={0.7}
+          style={{ flex: 1 }}
+        >
+        <View style={s.skillNodeHeader}>
           <View style={[s.nodeBadge, { backgroundColor: stageColor.border }]}>
             <Text style={[s.nodeBadgeText, { color: stageColor.text }]}>{index + 1}</Text>
           </View>
+          <Ionicons name={platformIcon as any} size={14} color={platformColor} />
           {isCustom && (
             <TouchableOpacity onPress={onEdit} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="create-outline" size={12} color="#888" />
             </TouchableOpacity>
           )}
-          {/* 主要内容区 — 课程名称 + 资源信息 */}
-          <TouchableOpacity
-            onPress={() => onSelect(name, url, duration, nodeId)}
-            onLongPress={onLongPress}
-            activeOpacity={0.7}
-            style={s.skillNodeContent}
-          >
-            <Text style={[s.skillNodeName, { color: isChecked ? colors.textTertiary : stageColor.text }]} numberOfLines={2}>{name}</Text>
-            <View style={s.skillNodeFooter}>
-              <Ionicons name={contentType.icon as any} size={14} color={contentType.color} style={s.contentTypeIcon} />
-              <Text style={[s.platformText, { color: platformColor }]}>{platformName}</Text>
-              <Text style={s.contentTypeText}>· {contentType.label}</Text>
-              <Text style={s.durationText}>{duration}h</Text>
-            </View>
-          </TouchableOpacity>
         </View>
+        <Text style={[s.skillNodeName, { color: isChecked ? colors.textTertiary : stageColor.text }]}>{name}</Text>
+        <View style={s.skillNodeFooter}>
+          <Text style={[s.platformText, { color: platformColor }]}>
+            {PLATFORM_NAME_MAP[platform] ?? platform}
+          </Text>
+          <Text style={s.durationText}>{duration}h</Text>
+        </View>
+        <View style={s.arrowIcon}>
+          <Ionicons name="chevron-forward" size={14} color={stageColor.text} />
+        </View>
+        </TouchableOpacity>
+        {/* 勾选框 */}
+        <TouchableOpacity
+          onPress={() => onToggleCheck(nodeId)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={{ paddingLeft: 8 }}
+        >
+          <Ionicons
+            name={isChecked ? 'checkbox' : 'square-outline'}
+            size={22}
+            color={isChecked ? colors.success : colors.textTertiary}
+          />
+        </TouchableOpacity>
       </View>
-    );
-  };
+    </View>
+  );
 
   // ===================== 模态框：选择学习时长 =====================
 
@@ -333,7 +338,7 @@ const SkillTreeScreen = () => {
         Alert.alert('体力不足', `需要 ${staminaCost} 点体力，当前体力 ${monsterStamina} 点`);
         return;
       }
-      console.log('[DurationModal] 确认开始学习', { nodeName, url, selectedDuration, staminaCost });
+      console.log('[DurationModal] 确认开始学习', { nodeName, url, selectedDuration, staminaCost, domain: domain as string, nodeId });
       try {
         const monster = await AsyncStorage.getItem('monster');
         if (monster) {
@@ -358,35 +363,35 @@ const SkillTreeScreen = () => {
     return (
       <Modal visible transparent onRequestClose={onClose} animationType="fade">
         <TouchableOpacity style={s.overlayLight} onPress={onClose} activeOpacity={1}>
-          <View style={[s.modalCard, { backgroundColor: colors.surface, borderColor: colors.borderDark }]} onStartShouldSetResponder={() => true}>
+          <View style={[s.modalCard, { backgroundColor: colors.backgroundDark || colors.background, borderColor: colors.borderDark }]} onStartShouldSetResponder={() => true}>
             <View style={s.modalHeader}>
               <Text style={s.modalTitle}>开始学习</Text>
               <TouchableOpacity style={[s.modalClose, { backgroundColor: colors.border }]} onPress={onClose}>
-                <Ionicons name="close" size={20} color={colors.textSecondary} />
+                <Ionicons name="close" size={20} color="#888" />
               </TouchableOpacity>
             </View>
-            <Text style={[s.modalNodeName, { color: colors.textPrimary }]}>{nodeName}</Text>
+            <Text style={s.modalNodeName}>{nodeName}</Text>
             <View style={s.staminaInfo}>
               <View style={s.staminaBar}>
                 <View style={[s.staminaFill, { width: `${Math.min(100, (monsterStamina / maxStamina) * 100)}%`, backgroundColor: colors.success }]} />
               </View>
               <Text style={[s.staminaText, { color: colors.textSecondary }]}>体力: {monsterStamina}/{maxStamina}</Text>
             </View>
-            <Text style={[s.modalSubtitle, { color: colors.textPrimary }]}>选择学习时长</Text>
+            <Text style={s.modalSubtitle}>选择学习时长</Text>
             <View style={s.durationOptions}>
               {durations.map(d => (
                 <TouchableOpacity
                   key={d}
                   onPress={() => setSelectedDuration(d)}
                   style={[s.durationButton, selectedDuration === d && { borderColor: colors.primary },
-                    { backgroundColor: selectedDuration === d ? colors.primary : colors.surface },
+                    { backgroundColor: selectedDuration === d ? colors.primary : colors.backgroundDark || colors.background },
                   ]}>
-                  <Text style={[s.durationTextSmall, { color: selectedDuration === d ? colors.onPrimary : colors.textSecondary }, selectedDuration === d && s.durationTextActive]}>{d}分钟</Text>
+                  <Text style={[s.durationTextSmall, selectedDuration === d && s.durationTextActive]}>{d}分钟</Text>
                 </TouchableOpacity>
               ))}
             </View>
             <View style={s.costInfo}>
-              <Text style={[s.costText, { color: colors.warning }]}>{isPro ? 'Pro 会员 · 无限次跳转' : `预计消耗体力: ${staminaCost} 点`}</Text>
+              <Text style={s.costText}>{isPro ? 'Pro 会员 · 无限次跳转' : `预计消耗体力: ${staminaCost} 点`}</Text>
               <Text style={[s.suggestedText, { color: colors.textSecondary }]}>建议学习时长: {suggestedDuration}小时</Text>
             </View>
             <TouchableOpacity style={[s.modalConfirmBtn, { backgroundColor: colors.primary }]} onPress={handleConfirm}>
@@ -411,16 +416,6 @@ const SkillTreeScreen = () => {
       case 'xiaohongshu': return { icon: 'book', color: '#FF2442' };
       case 'mooc': return { icon: 'school', color: colors.primary };
       default: return { icon: 'link', color: '#888' };
-    }
-  };
-
-  /** 获取内容类型（图文/视频）及对应图标 */
-  const getContentType = (platform: PlatformType): { icon: string; label: string; color: string } => {
-    switch (platform) {
-      case 'bilibili': return { icon: 'play-circle', label: '视频', color: '#FB7299' };
-      case 'xiaohongshu': return { icon: 'book', label: '图文', color: '#FF2442' };
-      case 'mooc': return { icon: 'play-circle', label: '视频', color: colors.primary };
-      default: return { icon: 'document-text', label: '图文', color: '#888' };
     }
   };
 
@@ -471,7 +466,7 @@ const SkillTreeScreen = () => {
   const [toastMessage, setToastMessage] = useState('');
 
   // ---- 节点勾选进度 ----
-  const [nodeProgresses, setNodeProgresses] = useState<Record<string, string>>({});
+  const [nodeProgresses, setNodeProgresses] = useState<Record<string, 'pending' | 'done'>>({});
   const [showCompleteReward, setShowCompleteReward] = useState(false);
 
   // 加载节点进度
@@ -481,14 +476,16 @@ const SkillTreeScreen = () => {
       try {
         const key = `nodeProgresses_${domain}`;
         const stored = await AsyncStorage.getItem(key);
-        if (stored) setNodeProgresses(JSON.parse(stored));
+        if (stored) {
+          setNodeProgresses(JSON.parse(stored));
+        }
       } catch {}
     };
     loadProgresses();
   }, [domain]);
 
   // 保存节点进度
-  const saveNodeProgresses = async (progresses: Record<string, string>) => {
+  const saveNodeProgresses = async (progresses: Record<string, 'pending' | 'done'>) => {
     if (!domain) return;
     await AsyncStorage.setItem(`nodeProgresses_${domain}`, JSON.stringify(progresses));
   };
@@ -680,41 +677,50 @@ const SkillTreeScreen = () => {
     setModalVisible(true);
   };
 
+  /** 切换节点勾选状态 */
   const toggleNodeCheck = async (nodeId: string) => {
     if (!domain) return;
     const currentDone = nodeProgresses[nodeId] === 'done';
+
     if (!currentDone) {
-      const countStr = await AsyncStorage.getItem(`pomodoroCount_${domain}_${nodeId}`);
+      // 勾选前检查：是否至少完成过一次番茄钟
+      const countKey = `pomodoroCount_${domain}_${nodeId}`;
+      const countStr = await AsyncStorage.getItem(countKey);
       const count = parseInt(countStr || '0', 10);
       if (count < 1) {
         Alert.alert('提示', '请先完成至少一次番茄钟学习，才可以勾选该节点');
         return;
       }
     }
-    const newProgresses = { ...nodeProgresses, [nodeId]: currentDone ? 'pending' : 'done' };
+
+    const newProgresses = {
+      ...nodeProgresses,
+      [nodeId]: currentDone ? 'pending' : 'done',
+    };
     setNodeProgresses(newProgresses);
     await saveNodeProgresses(newProgresses);
 
+    // 检测模块是否全部完成
     const totalNodes = getAllNodeIds().length;
     const doneCount = Object.values(newProgresses).filter(s => s === 'done').length;
     if (!currentDone && doneCount === totalNodes && totalNodes > 0) {
-      const alreadyRewarded = await AsyncStorage.getItem(`moduleRewarded_${domain}`);
-      if (!alreadyRewarded) setShowCompleteReward(true);
+      // 检查是否已领过奖励
+      const rewardedKey = `moduleRewarded_${domain}`;
+      const alreadyRewarded = await AsyncStorage.getItem(rewardedKey);
+      if (!alreadyRewarded) {
+        setShowCompleteReward(true);
+      }
     }
   };
 
-  const getAllNodeIds = (): string[] => {
-    const ids: string[] = [];
-    if (skillTree) skillTree.stages.forEach(stage => stage.nodes.forEach(node => ids.push(node.id)));
-    customNodes.forEach(node => ids.push(node.id));
-    return ids;
-  };
-
+  /** 领取模块完成奖励 */
   const claimModuleReward = async () => {
     if (!domain) return;
     setShowCompleteReward(false);
     try {
+      // 标记已领奖
       await AsyncStorage.setItem(`moduleRewarded_${domain}`, 'true');
+      // 发放 50 π能量到怪兽
       const monsterStr = await AsyncStorage.getItem('monster');
       if (monsterStr) {
         const m = JSON.parse(monsterStr);
@@ -725,6 +731,15 @@ const SkillTreeScreen = () => {
     } catch (e) {
       Alert.alert('提示', '奖励已发放');
     }
+  };
+    const ids: string[] = [];
+    if (skillTree) {
+      skillTree.stages.forEach(stage => {
+        stage.nodes.forEach(node => ids.push(node.id));
+      });
+    }
+    customNodes.forEach(node => ids.push(node.id));
+    return ids;
   };
 
   // ---- 返回上一页 ----
@@ -906,6 +921,7 @@ const SkillTreeScreen = () => {
                         url={displayUrl}
                         index={nodeIndex}
                         stageColor={stageColor}
+                        platformIcon={platformInfo.icon}
                         platformColor={platformInfo.color}
                         onSelect={handleNodeSelect}
                         isCustom={isCustomNode}
@@ -962,11 +978,17 @@ const SkillTreeScreen = () => {
           <View style={[s.modalCard, { backgroundColor: colors.backgroundDark || colors.background, borderColor: colors.borderDark, alignItems: 'center' }]} onStartShouldSetResponder={() => true}>
             <Text style={{ fontSize: 48, marginBottom: 12 }}>🎉</Text>
             <Text style={[s.modalTitle, { textAlign: 'center' }]}>恭喜完成！</Text>
-            <Text style={{ color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 8 }}>你已完成该模块的所有学习节点</Text>
+            <Text style={{ color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 8 }}>
+              你已完成该模块的所有学习节点
+            </Text>
             <View style={{ backgroundColor: colors.success + '15', borderRadius: 12, paddingHorizontal: 20, paddingVertical: 12, marginTop: 16, marginBottom: 20 }}>
               <Text style={{ color: colors.success, fontSize: 24, fontWeight: '700' }}>+50 π能量</Text>
             </View>
-            <TouchableOpacity style={[s.modalConfirmBtn, { backgroundColor: colors.primary, width: '100%' }]} onPress={claimModuleReward} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={[s.modalConfirmBtn, { backgroundColor: colors.primary, width: '100%' }]}
+              onPress={claimModuleReward}
+              activeOpacity={0.7}
+            >
               <Text style={s.modalConfirmText}>太棒了！</Text>
             </TouchableOpacity>
           </View>
@@ -1124,7 +1146,7 @@ const SkillTreeScreen = () => {
       {toastMessage !== '' && (
         <View style={s.toast}>
           <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-          <Text style={[s.toastText, { color: colors.textPrimary }]}>{toastMessage}</Text>
+          <Text style={s.toastText}>{toastMessage}</Text>
         </View>
       )}
     </SafeAreaView>

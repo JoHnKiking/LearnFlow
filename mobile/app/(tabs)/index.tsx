@@ -9,6 +9,7 @@ import SubscriptionModal from '../../src/components/SubscriptionModal';
 import { proService } from '../../src/services/api';
 import { SUBSCRIPTION_STORAGE_KEY } from '../../src/utils/pricing';
 import { getCurrentUser } from '../../src/utils/auth';
+import { getSkillTreeByDomain } from '../../src/data/skillTrees';
 
 interface Module {
   id: string;
@@ -20,38 +21,38 @@ interface Module {
   isCustom?: boolean;
 }
 
-// 自定义模块调色板 — 像素莫兰迪版 (深色/浅色各一套)
+// 自定义模块调色板 — 从品牌色系衍生（金/紫/粉/绿），暗色模式偏饱和，浅色模式偏柔和
 const CUSTOM_PALETTE_DARK = [
-  { color: '#B56A6A', icon: 'flame' },
-  { color: '#C4A27A', icon: 'sunny' },
-  { color: '#6B9AA8', icon: 'water' },
-  { color: '#6C5B7B', icon: 'flash' },
-  { color: '#D48A6A', icon: 'bulb' },
-  { color: '#7A9B6A', icon: 'leaf' },
-  { color: '#9B7AA8', icon: 'diamond' },
-  { color: '#5A8A98', icon: 'earth' },
-  { color: '#C48AA0', icon: 'heart' },
-  { color: '#7A8EB0', icon: 'compass' },
-  { color: '#B8A060', icon: 'star' },
-  { color: '#C07AC0', icon: 'sparkles' },
-  { color: '#6A9B6A', icon: 'leaf' },
-  { color: '#C87A5A', icon: 'bonfire' },
+  { color: '#C49A5C', icon: 'star' },        // 暖金
+  { color: '#8B7EE0', icon: 'diamond' },     // 紫
+  { color: '#D87898', icon: 'heart' },       // 粉
+  { color: '#5AAD68', icon: 'leaf' },        // 绿
+  { color: '#D4A060', icon: 'flame' },       // 橙金
+  { color: '#7B6ED0', icon: 'flash' },       // 深紫
+  { color: '#C87088', icon: 'compass' },     // 玫瑰
+  { color: '#50A888', icon: 'water' },       // 青绿
+  { color: '#D8B050', icon: 'sunny' },       // 亮金
+  { color: '#9888E0', icon: 'sparkles' },    // 淡紫
+  { color: '#C87868', icon: 'bulb' },        // 珊瑚
+  { color: '#48A068', icon: 'earth' },       // 苔绿
+  { color: '#B88050', icon: 'bonfire' },     // 古铜
+  { color: '#A898D8', icon: 'moon' },        // 薰衣草
 ];
 const CUSTOM_PALETTE_LIGHT = [
-  { color: '#C48A7A', icon: 'flame' },
-  { color: '#D3B89F', icon: 'sunny' },
-  { color: '#6A9AA8', icon: 'water' },
-  { color: '#A3C4B5', icon: 'flash' },
-  { color: '#D89A7A', icon: 'bulb' },
-  { color: '#8FAA7D', icon: 'leaf' },
-  { color: '#A58AB8', icon: 'diamond' },
-  { color: '#6A9AA0', icon: 'earth' },
-  { color: '#C49AAC', icon: 'heart' },
-  { color: '#8AA8C0', icon: 'compass' },
-  { color: '#C0A860', icon: 'star' },
-  { color: '#C08AC0', icon: 'sparkles' },
-  { color: '#7F9B89', icon: 'leaf' },
-  { color: '#C87A5A', icon: 'bonfire' },
+  { color: '#D4B898', icon: 'star' },        // 暖金
+  { color: '#B8B0E8', icon: 'diamond' },     // 紫
+  { color: '#E8B8C8', icon: 'heart' },       // 粉
+  { color: '#A0C8A8', icon: 'leaf' },        // 绿
+  { color: '#E0C0A0', icon: 'flame' },       // 橙金
+  { color: '#C0B8E0', icon: 'flash' },       // 深紫
+  { color: '#D8B0B8', icon: 'compass' },     // 玫瑰
+  { color: '#A0C8B8', icon: 'water' },       // 青绿
+  { color: '#E0D0A8', icon: 'sunny' },       // 亮金
+  { color: '#C8C0E8', icon: 'sparkles' },    // 淡紫
+  { color: '#D8B0A0', icon: 'bulb' },        // 珊瑚
+  { color: '#A0C0A0', icon: 'earth' },       // 苔绿
+  { color: '#D0B088', icon: 'bonfire' },     // 古铜
+  { color: '#C8B8D8', icon: 'moon' },        // 薰衣草
 ];
 
 const staticStyles = StyleSheet.create({
@@ -77,9 +78,9 @@ const staticStyles = StyleSheet.create({
     paddingHorizontal: 24, paddingTop: 20, paddingBottom: 24,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
   },
-  modulesGrid: { paddingHorizontal: 24, gap: 12 },
+  modulesGrid: { paddingHorizontal: 24, gap: 14 },
   moduleCard: {
-    borderRadius: 16, padding: 16, position: 'relative', overflow: 'hidden',
+    borderRadius: 20, padding: 16, position: 'relative', overflow: 'hidden',
   },
   decorationCircle: {
     position: 'absolute', top: -20, right: -10, width: 100, height: 100, borderRadius: 50,
@@ -94,7 +95,7 @@ const staticStyles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
   moduleInfo: { flex: 1 },
-  moduleProgressBar: { width: '100%', height: 6, borderRadius: 9999, overflow: 'hidden' },
+  moduleProgressBar: { width: '100%', height: 8, borderRadius: 9999, overflow: 'hidden' },
   moduleProgressFill: { height: '100%', borderRadius: 9999 },
   addModuleCard: {
     flexDirection: 'row', alignItems: 'center', borderRadius: 16,
@@ -192,6 +193,26 @@ const MapScreen = () => {
       category: '语言学习', badgeBorder: colors.badgeBorderLang,
       progressFill: isDark ? colors.progressFillLang : colors.accentOrange,
     },
+    'office-skills': {
+      icon: 'desktop' as const, color: colors.success, cardBg: colors.cardLife,
+      category: '暑假专区', badgeBorder: colors.badgeBorderLife,
+      progressFill: isDark ? colors.progressFillLife : colors.progressFill,
+    },
+    'vibe-coding': {
+      icon: 'code-slash' as const, color: colors.success, cardBg: colors.cardLife,
+      category: '暑假专区', badgeBorder: colors.badgeBorderLife,
+      progressFill: isDark ? colors.progressFillLife : colors.progressFill,
+    },
+    'speech-expression': {
+      icon: 'mic' as const, color: colors.success, cardBg: colors.cardLife,
+      category: '暑假专区', badgeBorder: colors.badgeBorderLife,
+      progressFill: isDark ? colors.progressFillLife : colors.progressFill,
+    },
+    'video-editing': {
+      icon: 'videocam' as const, color: colors.success, cardBg: colors.cardLife,
+      category: '暑假专区', badgeBorder: colors.badgeBorderLife,
+      progressFill: isDark ? colors.progressFillLife : colors.progressFill,
+    },
   }), [colors, isDark]);
 
   const loadModules = useCallback(async () => {
@@ -208,25 +229,61 @@ const MapScreen = () => {
         'programming-basics': '编程基础',
         'finance-basics': '理财入门',
         'cet-exam': '四六级过关',
+        'office-skills': '基础办公技能',
+        'vibe-coding': 'Vibe Coding 启蒙',
+        'speech-expression': '演讲表达',
+        'video-editing': '视频剪辑',
+        'advanced-math': '高等数学',
+        'college-cs': '大学生计算机基础',
+        'linear-algebra': '线性代数',
       };
 
       if (selectedModules) {
         const selected = JSON.parse(selectedModules) as string[];
-        const loadedModules = selected.map((id) => {
+        const loadedModules = await Promise.all(selected.map(async (id) => {
           if (presetNames[id]) {
-            return { id, name: presetNames[id], progress: 0, totalNodes: 9, completedNodes: 0, isLocked: false };
+            // 从 skill tree 获取真实节点数
+            const tree = getSkillTreeByDomain(id);
+            const totalNodes = tree ? tree.stages.reduce((sum, s) => sum + s.nodes.length, 0) : 9;
+            // 从本地进度获取完成数
+            let completedNodes = 0;
+            try {
+              const progressStr = await AsyncStorage.getItem(`nodeProgresses_${id}`);
+              if (progressStr) {
+                const progresses = JSON.parse(progressStr) as Record<string, string>;
+                completedNodes = Object.values(progresses).filter(s => s === 'done').length;
+              }
+            } catch {}
+            const progress = totalNodes > 0 ? Math.round((completedNodes / totalNodes) * 100) : 0;
+            return { id, name: presetNames[id], progress, totalNodes, completedNodes, isLocked: false };
           }
           const custom = customModules[id];
           if (custom) {
-            return { id, name: custom.name, progress: 0, totalNodes: 9, completedNodes: 0, isLocked: false, isCustom: true };
+            // 自定义模块：从 customNodes 数量获取 totalNodes
+            let totalNodes = 0;
+            let completedNodes = 0;
+            try {
+              const nodesStr = await AsyncStorage.getItem(`customNodes_${id}`);
+              if (nodesStr) {
+                const nodes = JSON.parse(nodesStr) as any[];
+                totalNodes = nodes.length;
+              }
+              const progressStr = await AsyncStorage.getItem(`nodeProgresses_${id}`);
+              if (progressStr) {
+                const progresses = JSON.parse(progressStr) as Record<string, string>;
+                completedNodes = Object.values(progresses).filter(s => s === 'done').length;
+              }
+            } catch {}
+            const progress = totalNodes > 0 ? Math.round((completedNodes / totalNodes) * 100) : 0;
+            return { id, name: custom.name, progress, totalNodes, completedNodes, isLocked: false, isCustom: true };
           }
           return null;
-        }).filter(Boolean) as Module[];
-        if (loadedModules.length > 0) {
-          console.log('[Map] 加载模块:', loadedModules.map(m => m.name));
-          setModules(loadedModules);
-          return;
-        }
+        }));
+        const validModules = loadedModules.filter(Boolean) as Module[];
+        // 尊重用户意图：selectedModules 存在时始终使用它，哪怕为空
+        console.log('[Map] 加载模块:', validModules.map(m => `${m.name}(${m.progress}%)`));
+        setModules(validModules);
+        return;
       }
       console.log('[Map] 使用默认模块');
       setModules([{ id: 'ai-product-manager', name: 'AI产品经理', progress: 0, totalNodes: 9, completedNodes: 0, isLocked: false }]);
@@ -265,6 +322,11 @@ const MapScreen = () => {
               await AsyncStorage.setItem('customModules', JSON.stringify(parsed));
             }
             await AsyncStorage.multiRemove([`customStages_${moduleId}`, `customNodes_${moduleId}`]);
+            // 清理节点进度和奖励标记
+            await AsyncStorage.multiRemove([
+              `nodeProgresses_${moduleId}`,
+              `moduleRewarded_${moduleId}`,
+            ]);
             try {
               const { domainService } = await import('../../src/services/api');
               await domainService.deleteDomain(moduleId);
@@ -284,8 +346,8 @@ const MapScreen = () => {
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden', pointerEvents: 'none' }}>
         <View style={[staticStyles.decorCircleTL, { backgroundColor: colors.decorCircle }]} />
         <View style={[staticStyles.decorCircleBR, { backgroundColor: colors.decorCircle }]} />
-        <View style={[staticStyles.decorDot1, { backgroundColor: isDark ? '#5A6AAA' : '#8BA892', opacity: 0.6 }]} />
-        <View style={[staticStyles.decorDot2, { backgroundColor: isDark ? '#3A7060' : '#C49A6C', opacity: 0.4 }]} />
+        <View style={[staticStyles.decorDot1, { backgroundColor: colors.brandPurple, opacity: 0.5 }]} />
+        <View style={[staticStyles.decorDot2, { backgroundColor: colors.brandPink, opacity: 0.4 }]} />
       </View>
       <ScrollView contentContainerStyle={staticStyles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* 顶部标题栏 */}
@@ -305,8 +367,8 @@ const MapScreen = () => {
               borderRadius: 2,
             }}
           >
-            <Ionicons name="diamond" size={14} color={isPro ? '#FFFFFF' : colors.pro} />
-            <Text style={{ fontSize: 11, fontWeight: '700' as const, color: isPro ? '#FFFFFF' : colors.pro, fontFamily: 'Courier' }}>{isPro ? 'PRO' : 'Pro'}</Text>
+            <Ionicons name="diamond" size={14} color={isPro ? colors.onPrimary : colors.pro} />
+            <Text style={{ fontSize: 11, fontWeight: '700' as const, color: isPro ? colors.onPrimary : colors.pro, fontFamily: 'Courier' }}>{isPro ? 'PRO' : 'Pro'}</Text>
           </TouchableOpacity>
         </View>
 
@@ -326,7 +388,7 @@ const MapScreen = () => {
                   staticStyles.moduleCard,
                   { backgroundColor: cardBg },
                   { borderWidth: 1, borderColor: colors.hairline },
-                  { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 2 },
+                  { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
                 ]}
                 onPress={() => handleModulePress(module.id)}
                 onLongPress={() => handleModuleLongPress(module.id, module.name)}
@@ -337,7 +399,7 @@ const MapScreen = () => {
                 <View style={staticStyles.moduleCardContent}>
                   <View style={staticStyles.moduleRow}>
                     <View style={[staticStyles.moduleIcon, { backgroundColor: color, borderWidth: 0, borderRadius: 10 }]}>
-                      <Ionicons name={icon as any} size={22} color="#FFFFFF" />
+                      <Ionicons name={icon as any} size={22} color={colors.onPrimary} />
                     </View>
                     <View style={staticStyles.moduleInfo}>
                       <Text style={dynamicStyles.moduleName}>{module.name}</Text>
@@ -377,9 +439,9 @@ const MapScreen = () => {
           <Text style={dynamicStyles.sectionTitle}>学习提示</Text>
           <View style={staticStyles.tipsContainer}>
             {[
-              { icon: 'checkmark-circle' as const, color: colors.accentGreen, text: '完成每个节点的学习任务' },
-              { icon: 'flash' as const, color: colors.accentOrange, text: '消耗体力获取知识能量' },
-              { icon: 'help-circle' as const, color: colors.textTertiary, text: '玩游戏恢复体力' },
+              { icon: 'checkmark-circle' as const, color: colors.accentGreen, text: '完成学习任务获取额外能量' },
+              { icon: 'flash' as const, color: colors.accentOrange, text: '消耗体力跳转学习资源' },
+              { icon: 'trash-outline' as const, color: colors.textTertiary, text: '长按模块卡片可删除' },
             ].map((tip, i) => (
               <TouchableOpacity key={i} style={[staticStyles.tipCard, dynamicStyles.tipCard]} activeOpacity={0.8}>
                 <Ionicons name={tip.icon} size={18} color={tip.color} />

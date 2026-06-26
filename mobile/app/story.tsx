@@ -167,11 +167,6 @@ const StoryScreen = () => {
       height: 180,
       position: 'relative',
     },
-    monsterIconContainer: {
-      position: 'absolute',
-      bottom: -10,
-      right: -20,
-    },
     title: {
       color: colors.textPrimary,
       fontSize: 22,
@@ -188,7 +183,7 @@ const StoryScreen = () => {
       marginBottom: 8,
     },
     subtext: {
-      color: '#7AB0A0',
+      color: colors.accentGreen,
       fontSize: 14,
       lineHeight: 22,
       textAlign: 'center',
@@ -216,17 +211,17 @@ const StoryScreen = () => {
       justifyContent: 'center',
       gap: 8,
       paddingVertical: 16,
-      backgroundColor: '#D4A574',
-      borderRadius: 2,
+      backgroundColor: colors.primary,
+      borderRadius: 9999,
       overflow: 'hidden',
-      shadowColor: '#D4A574',
+      shadowColor: colors.primary,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3,
       shadowRadius: 12,
       elevation: 5,
     },
     nextButtonText: {
-      color: '#FFFFFF',
+      color: colors.onPrimary,
       fontSize: 16,
       fontWeight: '600',
     },
@@ -275,7 +270,7 @@ const StoryScreen = () => {
     soilPixel: {
       width: 14,
       height: 10,
-      borderRadius: 2,
+      borderRadius: 9999,
     },
     // 怪兽排列 — 在泥土上方
     monsterRow: {
@@ -306,11 +301,11 @@ const StoryScreen = () => {
       width: 60,
       height: 60,
       borderRadius: 30,
-      backgroundColor: '#D4A574',
+      backgroundColor: colors.primary,
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 10,
-      shadowColor: '#D4A574',
+      shadowColor: colors.primary,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.5,
       shadowRadius: 12,
@@ -318,7 +313,7 @@ const StoryScreen = () => {
     mindMapCenterText: {
       fontSize: 10,
       fontWeight: '600',
-      color: '#FFFFFF',
+      color: colors.onPrimary,
       textAlign: 'center',
       lineHeight: 14,
     },
@@ -421,7 +416,7 @@ const StoryScreen = () => {
     },
     staminaBarFill: {
       height: '100%',
-      backgroundColor: '#c2d474ff',
+      backgroundColor: colors.success,
       borderRadius: 12,
       justifyContent: 'center',
       alignItems: 'center',
@@ -429,14 +424,14 @@ const StoryScreen = () => {
     staminaValue: {
       fontSize: 12,
       fontWeight: '600',
-      color: '#FFFFFF',
+      color: colors.onPrimary,
     },
     gameButtonNew: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: '#D4A574',
-      borderRadius: 2,
+      backgroundColor: colors.primary,
+      borderRadius: 9999,
       paddingVertical: 12,
       paddingHorizontal: 16,
       marginTop: 20,
@@ -448,7 +443,7 @@ const StoryScreen = () => {
     gameButtonText: {
       fontSize: 14,
       fontWeight: '600',
-      color: '#FFFFFF',
+      color: colors.onPrimary,
     },
   }), [colors]);
 
@@ -585,9 +580,6 @@ const StoryScreen = () => {
           >
             <View style={styles.illustrationContainer}>
               <StoryIllustration frameIndex={currentFrame} />
-              <View style={styles.monsterIconContainer}>
-                <MonsterIcon type={currentFrame === 1 ? 'rebel' : currentFrame === 2 ? 'calm' : 'lively'} size={60} />
-              </View>
             </View>
 
             <Text style={styles.title}>{currentStory.title}</Text>
@@ -603,7 +595,7 @@ const StoryScreen = () => {
               style={[
                 styles.progressDot,
                 {
-                  backgroundColor: index === currentFrame ? '#D4A574' : colors.border,
+                  backgroundColor: index === currentFrame ? colors.primary : colors.border,
                   transform: [{ scale: index === currentFrame ? 1.5 : 1 }],
                 },
               ]}

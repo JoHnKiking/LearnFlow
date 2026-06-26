@@ -157,3 +157,25 @@ export const finishLearning = async (recordId: number, duration: number, progres
 
   return { success: true };
 };
+
+export const getNodeProgressesByDomain = async (userId: number, domainId: number) => {
+  console.log(`[DomainService] 获取节点进度列表 - 用户ID: ${userId}, 领域ID: ${domainId}`);
+  const progresses = await NodeProgressModel.getNodeProgressesByDomain(userId, domainId);
+  return { success: true, data: progresses };
+};
+
+export const getNodeStudyCount = async (userId: number, domainId: number, nodeId: string) => {
+  console.log(`[DomainService] 获取节点学习次数 - 用户ID: ${userId}, 领域ID: ${domainId}, 节点: ${nodeId}`);
+  try {
+    const pool = require('../config/database').pool;
+    const [rows] = await pool.execute(
+      'SELECT COUNT(*) as count FROM study_records WHERE user_id = ? AND domain_id = ? AND node_id = ? AND end_time IS NOT NULL',
+      [userId, domainId, nodeId]
+    );
+    const count = (rows as any[])[0]?.count || 0;
+    return { success: true, count };
+  } catch (error) {
+    console.error('[DomainService] 获取学习次数失败:', error);
+    return { success: false, count: 0 };
+  }
+};

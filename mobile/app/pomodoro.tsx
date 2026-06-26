@@ -14,6 +14,7 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import MonsterIcon from '../src/components/MonsterIcon';
 import { getCurrentUser } from '../src/utils/auth';
 import { monsterService } from '../src/services/api';
+import { STORAGE_KEYS } from '../src/utils/storage';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PROGRESS_SIZE = SCREEN_WIDTH * 0.55;
@@ -29,14 +30,14 @@ const formatDisplay = (seconds: number): string => {
 };
 
 const PomodoroScreen = () => {
-  const { nodeName, url, duration } = useLocalSearchParams<{
-    nodeName?: string; url?: string; duration: string;
+  const { nodeName, url, duration, domainId, nodeId } = useLocalSearchParams<{
+    nodeName?: string; url?: string; duration: string; domainId?: string; nodeId?: string;
   }>();
   const { colors } = useTheme();
 
   const totalSeconds = parseInt(duration || '25', 10) * 60;
 
-  console.log('[Pomodoro] 启动番茄钟', { nodeName, url, duration, totalSeconds });
+  console.log('[Pomodoro] 启动番茄钟', { nodeName, url, duration, totalSeconds, domainId, nodeId });
 
   const [timerSeconds, setTimerSeconds] = useState(totalSeconds);
   const [isPaused, setIsPaused] = useState(false);
@@ -62,10 +63,24 @@ const PomodoroScreen = () => {
     (async () => {
       try {
         const user = await getCurrentUser();
-        if (!user?.id) return;
-        const res = await monsterService.getMonsterStatus(user.id);
-        if (res?.success && res.data?.personality) {
-          setMonsterType(res.data.personality);
+        if (user?.id) {
+          const res = await monsterService.getMonsterStatus(user.id);
+          if (res?.success && res.data?.personality) {
+            setMonsterType(res.data.personality);
+            return;
+          }
+        }
+      } catch {}
+      // API 失败时回退到本地存储
+      try {
+        const local = await AsyncStorage.getItem(STORAGE_KEYS.MONSTER);
+        if (local) {
+          const data = JSON.parse(local);
+          if (data?.type) {
+            console.log(`[Pomodoro] 加载怪物 type="${data.type}", name="${data.name}"`);
+            setMonsterType(data.type);
+            return;
+          }
         }
       } catch {}
     })();
@@ -80,6 +95,7 @@ const PomodoroScreen = () => {
   const timerRef = useRef(totalSeconds);
   const appStateRef = useRef<AppStateStatus>('active');
   const initialBrightnessRef = useRef(0.5);
+  const brightnessTrackWidthRef = useRef(200); // 将被 onLayout 更新
 
   const navigation = useNavigation();
 
@@ -193,6 +209,15 @@ const PomodoroScreen = () => {
             AsyncStorage.setItem('monster', JSON.stringify(m));
           }
         });
+        // 记录番茄钟完成次数（用于节点勾选检查）
+        if (domainId && nodeId) {
+          const countKey = `pomodoroCount_${domainId}_${nodeId}`;
+          AsyncStorage.getItem(countKey).then(val => {
+            const newCount = (parseInt(val || '0', 10)) + 1;
+            AsyncStorage.setItem(countKey, String(newCount));
+            console.log(`[Pomodoro] 节点完成记录: ${domainId}/${nodeId} = ${newCount}次`);
+          }).catch(() => {});
+        }
       }
     };
 
@@ -395,12 +420,13 @@ const PomodoroScreen = () => {
       position: 'absolute', width: PROGRESS_SIZE, height: PROGRESS_SIZE,
       borderRadius: PROGRESS_SIZE / 2, borderWidth: STROKE_WIDTH,
       borderColor: colors.borderDark,
+      shadowColor: colors.planetGlow, shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.5, shadowRadius: 24,
     },
     timerText: {
-      fontSize: 40, fontWeight: '900',
+      fontSize: 56, fontWeight: '900',
       color: colors.textPrimary,
-
-      letterSpacing: 2,
+      letterSpacing: 4,
     },
     timerSub: {
       fontSize: 14, color: colors.textSecondary,  marginTop: 8,
@@ -479,7 +505,7 @@ const PomodoroScreen = () => {
     },
     gotoBtn: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-      paddingHorizontal: 32, paddingVertical: 12, backgroundColor: '#6C63FF',
+      paddingHorizontal: 32, paddingVertical: 12, backgroundColor: colors.primary,
       borderRadius: 16, marginBottom: 12,
     },
     gotoBtnText: {
@@ -737,7 +763,7 @@ const PomodoroScreen = () => {
         <View style={styles.progressContainer}>
           <View style={styles.progressBg} />
           <Text style={styles.timerText}>{formatDisplay(timerSeconds)}</Text>
-          <Text style={styles.timerSub}>「{nodeName}」</Text>
+          <Text style={styles.timerSub}>{nodeName}</Text>
           {isPaused && <Text style={styles.pausedHint}>⏸ 已暂停</Text>}
         </View>
         {url ? (
@@ -803,18 +829,24 @@ const PomodoroScreen = () => {
         <View style={styles.brightnessContainer}>
           <View style={styles.brightnessRow}>
             <Ionicons name="sunny" size={16} color={colors.textTertiary} />
-            <TouchableOpacity
+            <View
               style={styles.brightnessTrack}
-              activeOpacity={1}
-              onPress={(e) => {
-                const { locationX } = e.nativeEvent;
-                handleBrightnessChange(Math.max(0.05, Math.min(1, locationX / 200)));
+              onLayout={(e) => { brightnessTrackWidthRef.current = e.nativeEvent.layout.width || 200; }}
+              onStartShouldSetResponder={() => true}
+              onMoveShouldSetResponder={() => true}
+              onResponderGrant={(e) => {
+                const newVal = Math.max(0.05, Math.min(1, e.nativeEvent.locationX / brightnessTrackWidthRef.current));
+                handleBrightnessChange(newVal);
+              }}
+              onResponderMove={(e) => {
+                const newVal = Math.max(0.05, Math.min(1, e.nativeEvent.locationX / brightnessTrackWidthRef.current));
+                handleBrightnessChange(newVal);
               }}
             >
               <View style={[styles.brightnessFill, { width: `${brightness * 100}%` }]}>
                 <View style={[styles.brightnessHandle, { left: '100%' }]} />
               </View>
-            </TouchableOpacity>
+            </View>
             <Ionicons name="sunny" size={18} color={colors.warning} />
           </View>
         </View>

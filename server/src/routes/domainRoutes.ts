@@ -5,13 +5,17 @@ import {
   getDomainById,
   updateNodeProgress,
   startLearning,
-  finishLearning
+  finishLearning,
+  getNodeProgresses,
+  getNodeStudyCount,
 } from '../controllers';
 
 const router = express.Router();
 
 router.post('/create', createDomain);
 router.get('/list/:userId', getDomains);
+router.get('/study-count', getNodeStudyCount);
+router.get('/:domainId/node-progresses', getNodeProgresses);
 router.get('/:id', getDomainById);
 router.put('/nodes/progress', updateNodeProgress);
 router.post('/learning/start', startLearning);
