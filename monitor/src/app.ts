@@ -5,7 +5,8 @@ import { testConnection } from './db';
 import { takeSnapshot } from './snapshotService';
 import routes from './routes';
 
-dotenv.config();
+// 编译后 dist/app.js → 从 dist/ 目录向上找 .env
+dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
 const PORT = parseInt(process.env.MONITOR_PORT || '3002', 10);
 const INTERVAL_MINUTES = parseInt(process.env.SNAPSHOT_INTERVAL_MINUTES || '5', 10);

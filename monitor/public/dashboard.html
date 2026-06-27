@@ -35,7 +35,8 @@
     @media (max-width: 860px) { .charts-grid { grid-template-columns: 1fr; } }
     .chart-box { background: #fff; border-radius: 8px; padding: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
     .chart-box h3 { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
-    .chart-box canvas { width: 100% !important; }
+    .chart-wrap { position: relative; width: 100%; height: 220px; }
+    .chart-wrap canvas { width: 100% !important; height: 100% !important; }
   </style>
 </head>
 <body>
@@ -65,10 +66,10 @@
 
 <!-- 折线图 -->
 <div class="charts-grid">
-  <div class="chart-box"><h3>DAU（日活跃用户）</h3><canvas id="c1"></canvas></div>
-  <div class="chart-box"><h3>用户增长</h3><canvas id="c2"></canvas></div>
-  <div class="chart-box"><h3>节点完成 & 学习时长</h3><canvas id="c3"></canvas></div>
-  <div class="chart-box"><h3>互动 & 内容产出</h3><canvas id="c4"></canvas></div>
+  <div class="chart-box"><h3>DAU（日活跃用户）</h3><div class="chart-wrap"><canvas id="c1"></canvas></div></div>
+  <div class="chart-box"><h3>用户增长</h3><div class="chart-wrap"><canvas id="c2"></canvas></div></div>
+  <div class="chart-box"><h3>节点完成 &amp; 学习时长</h3><div class="chart-wrap"><canvas id="c3"></canvas></div></div>
+  <div class="chart-box"><h3>互动 &amp; 内容产出</h3><div class="chart-wrap"><canvas id="c4"></canvas></div></div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
@@ -125,8 +126,45 @@ function renderCards(latest) {
 }
 
 // ========== 图表 ==========
+// 不销毁重建 — 只更新数据，避免容器不断变大
 const chartStore = {};
-function dChart(id) { if (chartStore[id]) { chartStore[id].destroy(); delete chartStore[id]; } }
+let chartNeedRebuild = true; // 切换 range 时才重建
+
+function getOrCreateChart(id, type, datasetsFactory, extraOpts) {
+  const canvas = document.getElementById(id);
+  if (!canvas) return null;
+
+  // 如果需要重建，先彻底清理
+  if (chartNeedRebuild && chartStore[id]) {
+    chartStore[id].destroy();
+    delete chartStore[id];
+  }
+
+  // 已有实例 → 只更新数据
+  if (chartStore[id]) {
+    const ch = chartStore[id];
+    ch.data.labels = window._chartLabels;
+    ch.data.datasets = datasetsFactory();
+    ch.update('none');
+    return ch;
+  }
+
+  // 新建实例
+  chartStore[id] = new Chart(canvas, {
+    type,
+    data: { labels: window._chartLabels || [], datasets: datasetsFactory() },
+    options: Object.assign({
+      responsive: true, maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 10 }, usePointStyle: true } } },
+      scales: {
+        x: { ticks: { font: { size: 9 }, maxTicksLimit: 20, maxRotation: 0 } },
+        y: { beginAtZero: true, ticks: { font: { size: 10 } } },
+      }
+    }, extraOpts || {})
+  });
+  return chartStore[id];
+}
 
 function makeLine(label, data, color, yID) {
   return { label, data, borderColor: color, backgroundColor: color + '18', fill: true, tension: 0.35, pointRadius: currentRange === 'day' ? 0 : 1.5, borderWidth: 1.5, yAxisID: yID };
@@ -137,60 +175,51 @@ function makeBar(label, data, color, yID) {
 
 function renderCharts(snapshots) {
   if (!snapshots || snapshots.length < 2) return;
-  const labels = snapshots.map(s => fmtDate(s.snapshot_at));
 
-  function createChart(id, type, datasets, opts) {
-    dChart(id);
-    chartStore[id] = new Chart(document.getElementById(id), {
-      type, data: { labels, datasets },
-      options: Object.assign({
-        responsive: true, maintainAspectRatio: false,
-        interaction: { intersect: false, mode: 'index' },
-        plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 10 }, usePointStyle: true } } },
-        scales: {
-          x: { ticks: { font: { size: 9 }, maxTicksLimit: 20, maxRotation: 0 } },
-          y: { beginAtZero: true, ticks: { font: { size: 10 } } },
-        }
-      }, opts || {})
-    });
-  }
+  window._chartLabels = snapshots.map(s => fmtDate(s.snapshot_at));
 
-  // DAU
-  createChart('c1', 'line', [
-    makeLine('DAU', snapshots.map(s => s.dau), '#1a73e8'),
-    makeLine('7天活跃', snapshots.map(s => s.active_users_7d), '#34a853'),
-  ]);
-
-  // 用户增长（双Y轴）
-  createChart('c2', 'line', [
-    makeLine('总用户', snapshots.map(s => s.total_users), '#1a73e8', 'y'),
-    makeLine('今日新增', snapshots.map(s => s.new_users_today), '#f9a825', 'y1'),
-  ], {
+  const optDualY = {
     scales: {
       x: { ticks: { font: { size: 9 }, maxTicksLimit: 20, maxRotation: 0 } },
       y: { beginAtZero: true, position: 'left', title: { display: true, text: '总用户', font: { size: 10 } }, ticks: { font: { size: 10 } } },
       y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: '今日新增', font: { size: 10 } }, ticks: { font: { size: 10 } } },
     }
-  });
+  };
 
-  // 节点完成 + 学习时长（混合图）
-  createChart('c3', 'bar', [
-    makeBar('节点完成', snapshots.map(s => s.node_completions_today), '#34a853', 'y'),
-    makeLine('学习时长(min)', snapshots.map(s => s.study_minutes_today), '#f9a825', 'y1'),
-  ], {
+  const optMixed = {
     scales: {
       x: { ticks: { font: { size: 9 }, maxTicksLimit: 20, maxRotation: 0 } },
       y: { beginAtZero: true, position: 'left', title: { display: true, text: '完成数', font: { size: 10 } }, ticks: { font: { size: 10 } } },
       y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'min', font: { size: 10 } }, ticks: { font: { size: 10 } } },
     }
-  });
+  };
 
-  // 互动 & 内容
-  createChart('c4', 'line', [
+  // DAU
+  getOrCreateChart('c1', 'line', () => [
+    makeLine('DAU', snapshots.map(s => s.dau), '#1a73e8'),
+    makeLine('7天活跃', snapshots.map(s => s.active_users_7d), '#34a853'),
+  ]);
+
+  // 用户增长
+  getOrCreateChart('c2', 'line', () => [
+    makeLine('总用户', snapshots.map(s => s.total_users), '#1a73e8', 'y'),
+    makeLine('今日新增', snapshots.map(s => s.new_users_today), '#f9a825', 'y1'),
+  ], optDualY);
+
+  // 节点完成 + 学习时长
+  getOrCreateChart('c3', 'bar', () => [
+    makeBar('节点完成', snapshots.map(s => s.node_completions_today), '#34a853', 'y'),
+    makeLine('学习时长(min)', snapshots.map(s => s.study_minutes_today), '#f9a825', 'y1'),
+  ], optMixed);
+
+  // 互动
+  getOrCreateChart('c4', 'line', () => [
     makeLine('对话', snapshots.map(s => s.monster_messages_today), '#7c4dff'),
     makeLine('笔记', snapshots.map(s => s.notes_created_today), '#e53935'),
     makeLine('新模块', snapshots.map(s => s.module_creations_today), '#f9a825'),
   ]);
+
+  chartNeedRebuild = false; // 首次创建完毕，后续都是更新
 }
 
 // ========== 主流程 ==========
@@ -199,6 +228,7 @@ let timer = null;
 function switchRange(range) {
   currentRange = range;
   document.querySelectorAll('[data-range]').forEach(b => b.classList.toggle('btn-active', b.dataset.range === range));
+  chartNeedRebuild = true; // 切换范围时重建图表
   refresh();
 }
 
