@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LearnFlow 数据监控</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #1a1a2e; padding: 20px; }
+    h1 { font-size: 20px; font-weight: 700; }
+    .subtitle { font-size: 12px; color: #888; margin: 2px 0 8px; }
+    .error-banner { background: #fff2f0; border: 1px solid #ffccc7; border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; color: #a8071a; font-size: 12px; display: none; }
+    .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; flex-wrap: wrap; gap: 8px; }
+    button, .btn { background: #1a73e8; color: #fff; border: none; border-radius: 6px; padding: 6px 14px; font-size: 12px; cursor: pointer; font-weight: 500; }
+    button:hover, .btn:hover { background: #1558b8; }
+    .btn-ghost { background: transparent; color: #1a73e8; border: 1px solid #1a73e8; }
+    .btn-ghost:hover { background: #e8f0fe; }
+    .btn-active { background: #1a73e8 !important; color: #fff !important; border-color: #1a73e8 !important; }
+
+    /* 指标卡片 */
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .card { background: #fff; border-radius: 8px; padding: 12px 14px; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+    .card .label { font-size: 11px; color: #999; }
+    .card .value { font-size: 20px; font-weight: 700; margin-top: 4px; }
+    .card .sub { font-size: 11px; color: #bbb; margin-top: 2px; }
+    .c-blue { color: #1a73e8; } .c-green { color: #34a853; } .c-orange { color: #f9a825; } .c-purple { color: #7c4dff; }
+
+    /* 工具栏 */
+    .toolbar { display: flex; align-items: center; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
+    .toolbar .sep { width: 1px; height: 20px; background: #ddd; margin: 0 4px; }
+    .toolbar label { font-size: 12px; color: #666; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+
+    /* 图表 */
+    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 860px) { .charts-grid { grid-template-columns: 1fr; } }
+    .chart-box { background: #fff; border-radius: 8px; padding: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+    .chart-box h3 { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .chart-box canvas { width: 100% !important; }
+  </style>
+</head>
+<body>
+
+<div class="header-row">
+  <div>
+    <h1>LearnFlow 数据监控</h1>
+    <div class="subtitle">快照间隔 5 分钟 · 上次刷新：<span id="lastUpdate">--</span></div>
+  </div>
+  <button onclick="refresh()">🔄 刷新</button>
+</div>
+
+<div id="errorBanner" class="error-banner"></div>
+
+<div class="toolbar">
+  <span style="font-size:12px;color:#888;font-weight:500;">K 线：</span>
+  <button class="btn btn-ghost active" data-range="day" onclick="switchRange('day')">日线</button>
+  <button class="btn btn-ghost" data-range="week" onclick="switchRange('week')">周线</button>
+  <button class="btn btn-ghost" data-range="month" onclick="switchRange('month')">月线</button>
+  <button class="btn btn-ghost" data-range="all" onclick="switchRange('all')">全部</button>
+  <span class="sep"></span>
+  <label><input type="checkbox" id="autoRefresh" checked> 自动刷新（5min）</label>
+</div>
+
+<!-- 指标卡片 -->
+<div class="cards" id="cardsRow"><div style="color:#aaa;padding:12px;">加载中...</div></div>
+
+<!-- 折线图 -->
+<div class="charts-grid">
+  <div class="chart-box"><h3>DAU（日活跃用户）</h3><canvas id="c1"></canvas></div>
+  <div class="chart-box"><h3>用户增长</h3><canvas id="c2"></canvas></div>
+  <div class="chart-box"><h3>节点完成 & 学习时长</h3><canvas id="c3"></canvas></div>
+  <div class="chart-box"><h3>互动 & 内容产出</h3><canvas id="c4"></canvas></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ========== 配置 ==========
+let currentRange = 'day';
+
+function getKey() {
+  const u = new URLSearchParams(location.search).get('monitorKey');
+  if (u) { localStorage.setItem('monitorKey', u); return u; }
+  return localStorage.getItem('monitorKey') || '';
+}
+let MONITOR_KEY = getKey();
+
+// ========== 日期格式化 ==========
+function fmtDate(iso) {
+  if (!iso) return '--';
+  const d = new Date(iso);
+  const pad = n => String(n).padStart(2, '0');
+  switch (currentRange) {
+    case 'day':   return pad(d.getHours()) + ':' + pad(d.getMinutes());
+    case 'week':  return (d.getMonth()+1) + '/' + d.getDate() + ' ' + pad(d.getHours()) + ':00';
+    case 'month':
+    case 'all':   return (d.getMonth()+1) + '/' + d.getDate();
+  }
+}
+
+// ========== API ==========
+async function fetchData(range) {
+  const qs = MONITOR_KEY ? '?monitorKey=' + encodeURIComponent(MONITOR_KEY) : '';
+  const sep = qs ? '&' : '?';
+  const [snapRes, latestRes] = await Promise.all([
+    fetch('/api/snapshots' + qs + sep + 'range=' + range),
+    fetch('/api/snapshots/latest' + qs),
+  ]);
+  if (snapRes.status === 401) throw new Error('AUTH');
+  if (!snapRes.ok) throw new Error('HTTP ' + snapRes.status);
+  return {
+    snapshots: await snapRes.json(),
+    latest: latestRes.ok ? await latestRes.json() : null,
+  };
+}
+
+// ========== 卡片 ==========
+function renderCards(latest) {
+  if (!latest) { document.getElementById('cardsRow').innerHTML = '<div style="color:#aaa;padding:12px;">暂无快照数据</div>'; return; }
+  document.getElementById('cardsRow').innerHTML =
+    `<div class="card"><div class="label">总用户数</div><div class="value c-blue">${latest.total_users}</div><div class="sub">近7天活跃: ${latest.active_users_7d}</div></div>
+     <div class="card"><div class="label">今日 DAU</div><div class="value c-green">${latest.dau}</div><div class="sub">新注册: ${latest.new_users_today}</div></div>
+     <div class="card"><div class="label">今日完成数</div><div class="value c-orange">${latest.node_completions_today}</div><div class="sub">学习时长: ${latest.study_minutes_today} min</div></div>
+     <div class="card"><div class="label">Pro 用户</div><div class="value c-purple">${latest.pro_users}</div><div class="sub">对话: ${latest.monster_messages_today} 条</div></div>
+     <div class="card"><div class="label">今日模块</div><div class="value">${latest.module_creations_today}</div><div class="sub">笔记: ${latest.notes_created_today}</div></div>
+     <div class="card"><div class="label">领域 / 模块</div><div class="value c-blue">${latest.total_domains} / ${latest.total_skill_trees}</div><div class="sub">快照 ${new Date(latest.snapshot_at).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'})}</div></div>`;
+}
+
+// ========== 图表 ==========
+const chartStore = {};
+function dChart(id) { if (chartStore[id]) { chartStore[id].destroy(); delete chartStore[id]; } }
+
+function makeLine(label, data, color, yID) {
+  return { label, data, borderColor: color, backgroundColor: color + '18', fill: true, tension: 0.35, pointRadius: currentRange === 'day' ? 0 : 1.5, borderWidth: 1.5, yAxisID: yID };
+}
+function makeBar(label, data, color, yID) {
+  return { label, data, backgroundColor: color + '88', borderRadius: 2, yAxisID: yID };
+}
+
+function renderCharts(snapshots) {
+  if (!snapshots || snapshots.length < 2) return;
+  const labels = snapshots.map(s => fmtDate(s.snapshot_at));
+
+  function createChart(id, type, datasets, opts) {
+    dChart(id);
+    chartStore[id] = new Chart(document.getElementById(id), {
+      type, data: { labels, datasets },
+      options: Object.assign({
+        responsive: true, maintainAspectRatio: false,
+        interaction: { intersect: false, mode: 'index' },
+        plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 10 }, usePointStyle: true } } },
+        scales: {
+          x: { ticks: { font: { size: 9 }, maxTicksLimit: 20, maxRotation: 0 } },
+          y: { beginAtZero: true, ticks: { font: { size: 10 } } },
+        }
+      }, opts || {})
+    });
+  }
+
+  // DAU
+  createChart('c1', 'line', [
+    makeLine('DAU', snapshots.map(s => s.dau), '#1a73e8'),
+    makeLine('7天活跃', snapshots.map(s => s.active_users_7d), '#34a853'),
+  ]);
+
+  // 用户增长（双Y轴）
+  createChart('c2', 'line', [
+    makeLine('总用户', snapshots.map(s => s.total_users), '#1a73e8', 'y'),
+    makeLine('今日新增', snapshots.map(s => s.new_users_today), '#f9a825', 'y1'),
+  ], {
+    scales: {
+      x: { ticks: { font: { size: 9 }, maxTicksLimit: 20, maxRotation: 0 } },
+      y: { beginAtZero: true, position: 'left', title: { display: true, text: '总用户', font: { size: 10 } }, ticks: { font: { size: 10 } } },
+      y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: '今日新增', font: { size: 10 } }, ticks: { font: { size: 10 } } },
+    }
+  });
+
+  // 节点完成 + 学习时长（混合图）
+  createChart('c3', 'bar', [
+    makeBar('节点完成', snapshots.map(s => s.node_completions_today), '#34a853', 'y'),
+    makeLine('学习时长(min)', snapshots.map(s => s.study_minutes_today), '#f9a825', 'y1'),
+  ], {
+    scales: {
+      x: { ticks: { font: { size: 9 }, maxTicksLimit: 20, maxRotation: 0 } },
+      y: { beginAtZero: true, position: 'left', title: { display: true, text: '完成数', font: { size: 10 } }, ticks: { font: { size: 10 } } },
+      y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'min', font: { size: 10 } }, ticks: { font: { size: 10 } } },
+    }
+  });
+
+  // 互动 & 内容
+  createChart('c4', 'line', [
+    makeLine('对话', snapshots.map(s => s.monster_messages_today), '#7c4dff'),
+    makeLine('笔记', snapshots.map(s => s.notes_created_today), '#e53935'),
+    makeLine('新模块', snapshots.map(s => s.module_creations_today), '#f9a825'),
+  ]);
+}
+
+// ========== 主流程 ==========
+let timer = null;
+
+function switchRange(range) {
+  currentRange = range;
+  document.querySelectorAll('[data-range]').forEach(b => b.classList.toggle('btn-active', b.dataset.range === range));
+  refresh();
+}
+
+async function refresh() {
+  const errEl = document.getElementById('errorBanner');
+  errEl.style.display = 'none';
+  try {
+    const data = await fetchData(currentRange);
+    renderCards(data.latest);
+    renderCharts(data.snapshots);
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  } catch (err) {
+    console.error(err);
+    if (err.message === 'AUTH') { errEl.style.display = 'block'; errEl.textContent = '鉴权失败，请在 URL 中加上 ?monitorKey=你的密钥'; promptKey(); }
+    else { errEl.style.display = 'block'; errEl.textContent = '加载失败: ' + err.message; }
+  }
+}
+
+function promptKey() { const k = prompt('请输入 MONITOR_API_KEY：'); if (k) { MONITOR_KEY = k; localStorage.setItem('monitorKey', k); refresh(); } }
+
+function setupAutoRefresh() {
+  if (timer) clearInterval(timer);
+  if (document.getElementById('autoRefresh').checked) timer = setInterval(refresh, 5 * 60 * 1000);
+}
+document.getElementById('autoRefresh').addEventListener('change', setupAutoRefresh);
+
+// 启动
+if (!MONITOR_KEY) promptKey(); else { refresh(); setupAutoRefresh(); }
+</script>
+</body>
+</html>
