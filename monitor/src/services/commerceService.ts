@@ -12,12 +12,12 @@ export async function getProUserList(params: { search?: string; expiring?: strin
     if (search) { where += ' AND (u.username LIKE ? OR u.email LIKE ?)'; vals.push(`%${search}%`, `%${search}%`); }
     if (params.expiring === '7') { where += ' AND u.pro_expires_at IS NOT NULL AND u.pro_expires_at BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 7 DAY)'; }
 
-    const [rows] = await conn.execute(
+    const [rows] = await conn.query(
       `SELECT u.id, u.username, u.email, u.is_pro, u.pro_activated_at, u.pro_expires_at, u.created_at
        FROM users u ${where} ORDER BY u.pro_activated_at DESC LIMIT ? OFFSET ?`,
       [...vals, limit, offset]
     );
-    const [[{ count }]] = await conn.execute(`SELECT COUNT(*) as count FROM users u ${where}`, vals) as any;
+    const [[{ count }]] = await conn.query(`SELECT COUNT(*) as count FROM users u ${where}`, vals) as any;
     return { list: rows as any[], total: count, page };
   } finally { conn.release(); }
 }
@@ -30,13 +30,13 @@ export async function getActivationCodes(params: { status?: string; page?: numbe
     const vals: any[] = [];
     if (status) { where += ' AND ac.status = ?'; vals.push(status); }
 
-    const [rows] = await conn.execute(
+    const [rows] = await conn.query(
       `SELECT ac.*, u.username as used_by_name
        FROM activation_codes ac LEFT JOIN users u ON ac.used_by = u.id
        ${where} ORDER BY ac.created_at DESC LIMIT 20 OFFSET ?`,
       [...vals, (page - 1) * 20]
     );
-    const [[{ count }]] = await conn.execute(`SELECT COUNT(*) as count FROM activation_codes ac ${where}`, vals) as any;
+    const [[{ count }]] = await conn.query(`SELECT COUNT(*) as count FROM activation_codes ac ${where}`, vals) as any;
     return { list: rows as any[], total: count, page };
   } finally { conn.release(); }
 }
@@ -47,7 +47,7 @@ export async function generateActivationCode(planId: string, count: number = 1) 
     const codes: string[] = [];
     for (let i = 0; i < count; i++) {
       const code = 'LF-' + Math.random().toString(36).substring(2, 10).toUpperCase();
-      await conn.execute('INSERT INTO activation_codes (code, plan_id, status) VALUES (?, ?, ?)', [code, planId, 'unused']);
+      await conn.query('INSERT INTO activation_codes (code, plan_id, status) VALUES (?, ?, ?)', [code, planId, 'unused']);
       codes.push(code);
     }
     return codes;
@@ -57,14 +57,14 @@ export async function generateActivationCode(planId: string, count: number = 1) 
 export async function getCommerceStats() {
   const conn = await getConnection();
   try {
-    const [[proTotal]] = await conn.execute(`SELECT COUNT(*) as c FROM users WHERE is_pro = 1`) as any;
-    const [[proToday]] = await conn.execute(`SELECT COUNT(*) as c FROM users WHERE is_pro = 1 AND DATE(pro_activated_at) = CURDATE()`) as any;
-    const [[expiring7d]] = await conn.execute(
+    const [[proTotal]] = await conn.query(`SELECT COUNT(*) as c FROM users WHERE is_pro = 1`) as any;
+    const [[proToday]] = await conn.query(`SELECT COUNT(*) as c FROM users WHERE is_pro = 1 AND DATE(pro_activated_at) = CURDATE()`) as any;
+    const [[expiring7d]] = await conn.query(
       `SELECT COUNT(*) as c FROM users WHERE is_pro = 1 AND pro_expires_at IS NOT NULL AND pro_expires_at BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 7 DAY)`
     ) as any;
-    const [[totalUsers]] = await conn.execute(`SELECT COUNT(*) as c FROM users`) as any;
+    const [[totalUsers]] = await conn.query(`SELECT COUNT(*) as c FROM users`) as any;
 
-    const [planDist] = await conn.execute(
+    const [planDist] = await conn.query(
       `SELECT plan_id, COUNT(*) as cnt FROM activation_codes WHERE status = 'used' GROUP BY plan_id`
     );
 

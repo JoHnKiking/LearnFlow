@@ -295,7 +295,7 @@ function renderTable(rows, total, page, type) {
         <td><button class="btn btn-sm btn-ghost" onclick="banUser(${r.id})">${r.status==='banned'?'解封':'封禁'}</button></td></tr>`;
     });
   }
-  html += '</table><div class="pagination"><span>共 ${total} 条</span>';
+  html += '</table><div class="pagination"><span>共 ' + total + ' 条</span>';
   const maxP = Math.ceil(total / 20);
   for (let i = 1; i <= Math.min(maxP, 10); i++) html += `<button ${i===page?'style="background:#1a73e8;color:#fff"':''} onclick="search${type.charAt(0).toUpperCase()+type.slice(1)}(${i})">${i}</button>`;
   html += '</div></div>';

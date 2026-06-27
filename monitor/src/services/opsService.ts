@@ -5,7 +5,7 @@ import { getConnection } from '../db';
 export async function getTomatoConfig() {
   const conn = await getConnection();
   try {
-    const [[row]] = await conn.execute('SELECT * FROM config_tomato WHERE id = 1') as any;
+    const [[row]] = await conn.query('SELECT * FROM config_tomato WHERE id = 1') as any;
     return row;
   } finally { conn.release(); }
 }
@@ -13,7 +13,7 @@ export async function getTomatoConfig() {
 export async function updateTomatoConfig(data: any) {
   const conn = await getConnection();
   try {
-    await conn.execute(
+    await conn.query(
       `UPDATE config_tomato SET work_minutes=?, short_break=?, long_break=?, long_break_after=?, auto_start_break=?, auto_start_work=?, sound_enabled=? WHERE id=1`,
       [data.work_minutes, data.short_break, data.long_break, data.long_break_after, data.auto_start_break ? 1 : 0, data.auto_start_work ? 1 : 0, data.sound_enabled ? 1 : 0]
     );
@@ -24,7 +24,7 @@ export async function updateTomatoConfig(data: any) {
 export async function getAIConfig() {
   const conn = await getConnection();
   try {
-    const [[row]] = await conn.execute('SELECT * FROM config_ai WHERE id = 1') as any;
+    const [[row]] = await conn.query('SELECT * FROM config_ai WHERE id = 1') as any;
     return row;
   } finally { conn.release(); }
 }
@@ -32,7 +32,7 @@ export async function getAIConfig() {
 export async function updateAIConfig(data: any) {
   const conn = await getConnection();
   try {
-    await conn.execute(
+    await conn.query(
       `UPDATE config_ai SET provider=?, model=?, temperature=?, max_tokens=?, system_prompt=?, monster_personalities=? WHERE id=1`,
       [data.provider, data.model, data.temperature, data.max_tokens, data.system_prompt || null, data.monster_personalities ? JSON.stringify(data.monster_personalities) : null]
     );
@@ -43,7 +43,7 @@ export async function updateAIConfig(data: any) {
 export async function getGameConfig() {
   const conn = await getConnection();
   try {
-    const [[row]] = await conn.execute('SELECT * FROM config_game WHERE id = 1') as any;
+    const [[row]] = await conn.query('SELECT * FROM config_game WHERE id = 1') as any;
     return row;
   } finally { conn.release(); }
 }
@@ -59,7 +59,7 @@ export async function updateGameConfig(data: any) {
     ];
     const sets = fields.map(f => `${f}=?`).join(',');
     const vals = fields.map(f => data[f]);
-    await conn.execute(`UPDATE config_game SET ${sets} WHERE id=1`, vals);
+    await conn.query(`UPDATE config_game SET ${sets} WHERE id=1`, vals);
   } finally { conn.release(); }
 }
 
@@ -68,11 +68,11 @@ export async function getPushLogs(params: { page?: number }) {
   const conn = await getConnection();
   try {
     const { page = 1 } = params;
-    const [rows] = await conn.execute(
+    const [rows] = await conn.query(
       `SELECT pl.*, u.username FROM push_logs pl LEFT JOIN users u ON pl.user_id = u.id ORDER BY pl.created_at DESC LIMIT 20 OFFSET ?`,
       [(page - 1) * 20]
     );
-    const [[{ count }]] = await conn.execute('SELECT COUNT(*) as count FROM push_logs') as any;
+    const [[{ count }]] = await conn.query('SELECT COUNT(*) as count FROM push_logs') as any;
     return { list: rows as any[], total: count, page };
   } finally { conn.release(); }
 }
@@ -80,7 +80,7 @@ export async function getPushLogs(params: { page?: number }) {
 export async function createPushLog(data: any) {
   const conn = await getConnection();
   try {
-    await conn.execute(
+    await conn.query(
       'INSERT INTO push_logs (user_id, title, body, type, status) VALUES (?, ?, ?, ?, ?)',
       [data.user_id || null, data.title, data.body, data.type || 'system', 'pending']
     );

@@ -43,11 +43,11 @@ export async function takeSnapshot(): Promise<SnapRow | null> {
 
     const results: Record<string, number> = {};
     for (const [key, [sql, params]] of Object.entries(queries)) {
-      const [rows] = await conn.execute(sql, params || []);
+      const [rows] = await conn.query(sql, params || []);
       results[key] = (rows as any[])[0].c || 0;
     }
 
-    await conn.execute(
+    await conn.query(
       `INSERT INTO monitor_snapshots
        (snapshot_at, total_users, dau, new_users_today, node_completions_today,
         study_minutes_today, pro_users, monster_messages_today, notes_created_today,
@@ -109,7 +109,7 @@ export async function getSnapshots(range: ChartRange = 'day'): Promise<SnapRow[]
 
     if (range === 'day') {
       // 日线直接用原始数据
-      const [rows] = await conn.execute(
+      const [rows] = await conn.query(
         `SELECT * FROM monitor_snapshots
          WHERE snapshot_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
          ORDER BY snapshot_at ASC`
@@ -130,7 +130,7 @@ export async function getSnapshots(range: ChartRange = 'day'): Promise<SnapRow[]
     const cumSelects = cumFields.map(f => `MAX(${f}) as ${f}`).join(', ');
     const instSelects = instFields.map(f => `ROUND(AVG(${f}),0) as ${f}`).join(', ');
 
-    const [rows] = await conn.execute(
+    const [rows] = await conn.query(
       `SELECT
         ${config.groupBy} as snapshot_at,
         ${cumSelects},
@@ -168,7 +168,7 @@ function formatRows(rows: any[]): SnapRow[] {
 export async function getLatestSnapshot(): Promise<SnapRow | null> {
   const conn = await getConnection();
   try {
-    const [rows] = await conn.execute(
+    const [rows] = await conn.query(
       `SELECT * FROM monitor_snapshots ORDER BY id DESC LIMIT 1`
     );
     if (!(rows as any[]).length) return null;
