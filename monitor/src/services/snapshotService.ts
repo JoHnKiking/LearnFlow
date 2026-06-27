@@ -1,4 +1,4 @@
-import { getConnection } from './db';
+import { getConnection } from '../db';
 
 /**
  * 监控快照服务
