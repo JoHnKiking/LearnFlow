@@ -246,8 +246,8 @@ function switchDashRange(range) { localStorage.setItem('dashRange', range); load
 
 function renderDashCharts(s, range) {
   const labels = s.map(x => fmtDate(x.snapshot_at, range));
-  const L = (l,d,c,y) => ({label:l,data,borderColor:c,backgroundColor:c+'18',fill:true,tension:.35,pointRadius:range==='day'?0:1.5,borderWidth:1.5,yAxisID:y});
-  const B = (l,d,c,y) => ({label:l,data,backgroundColor:c+'88',borderRadius:2,yAxisID:y});
+  const L = (l,d,c,y) => ({label:l,data:d,borderColor:c,backgroundColor:c+'18',fill:true,tension:.35,pointRadius:range==='day'?0:1.5,borderWidth:1.5,yAxisID:y});
+  const B = (l,d,c,y) => ({label:l,data:d,backgroundColor:c+'88',borderRadius:2,yAxisID:y});
   const mk = (id,t,ds,o) => {
     if (chartStore[id]) chartStore[id].destroy();
     chartStore[id] = new Chart(document.getElementById(id), {type:t,data:{labels,datasets:ds()},options:Object.assign({responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10,font:{size:10}}}},scales:{x:{ticks:{font:{size:9},maxTicksLimit:20,maxRotation:0}},y:{beginAtZero:true,ticks:{font:{size:10}}}}},o||{})});
