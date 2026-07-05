@@ -329,7 +329,7 @@ const SkillTreeScreen = () => {
           await AsyncStorage.setItem('monster', JSON.stringify(m));
         }
         const user = await getCurrentUser();
-        if (user?.id) await monsterService.consumeStamina(user.id, staminaCost).catch(() => {});
+        if (user?.id) await monsterService.consumeStamina(staminaCost).catch(() => {});
 
         onClose();
         router.push({

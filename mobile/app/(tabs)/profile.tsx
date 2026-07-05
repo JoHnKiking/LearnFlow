@@ -59,7 +59,7 @@ const ProfileScreen = () => {
         Alert.alert('提示', '请先登录');
         return;
       }
-      const res = await authService.uploadAvatar(currentUser.id, uri);
+      const res = await authService.uploadAvatar(uri);
       setAvatarUrl(res.avatarUrl);
       currentUser.avatarUrl = res.avatarUrl;
       setUser({ ...currentUser });

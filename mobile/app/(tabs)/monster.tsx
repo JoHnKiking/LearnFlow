@@ -350,7 +350,7 @@ const MonsterManageScreen = () => {
       try {
         const user = await getCurrentUser();
         if (user?.id) {
-          const serverNotes = await noteService.getNotes(user.id);
+          const serverNotes = await noteService.getNotes();
           if (serverNotes && serverNotes.length > 0) {
             setSavedNotes(serverNotes.map((n: any) => ({
               id: n.id,
@@ -429,7 +429,7 @@ const MonsterManageScreen = () => {
     try {
       const user = await getCurrentUser();
       if (user?.id) {
-        await noteService.createNote({ userId: user.id, date: newNote.date, content: newNote.content });
+        await noteService.createNote({ date: newNote.date, content: newNote.content });
         console.log('[Monster] 笔记已保存至服务端');
       }
     } catch (error) {
@@ -463,8 +463,8 @@ const MonsterManageScreen = () => {
 
     try {
       if (user?.id) {
-        await rewardService.createReward({ userId: user.id, type: 'stamina', source: 'game_win', amount: staminaBonus });
-        await rewardService.createReward({ userId: user.id, type: 'energy', source: 'game_win', amount: energyBonus });
+        await rewardService.createReward({ type: 'stamina', source: 'game_win', amount: staminaBonus });
+        await rewardService.createReward({ type: 'energy', source: 'game_win', amount: energyBonus });
         console.log('[Monster] 奖励已同步至服务端');
       }
     } catch (error) {
@@ -541,7 +541,7 @@ const MonsterManageScreen = () => {
     try {
       const user = await getCurrentUser();
       if (!user?.id) return;
-      const res = await monsterService.getMessages(user.id);
+      const res = await monsterService.getMessages();
       if (res.success) {
         const serverMessages: MonsterMessageItem[] = (res.data.messages || []).map((msg: any) => {
           const isUser = typeof msg.isUser === 'boolean' ? msg.isUser : msg.is_user === true || msg.is_user === 1;
@@ -579,7 +579,7 @@ const MonsterManageScreen = () => {
     setChatMessages(prev => [...prev, tempUserMsg]);
 
     try {
-      const res = await monsterService.chat({ userId: user.id, message: text, personality: monsterData.type });
+      const res = await monsterService.chat({ message: text, personality: monsterData.type });
       if (res.success && res.data) {
         const cost = Math.max(1, Math.round(res.data.message.length * 0.05 * 10) / 10);
         const monsterMsg: MonsterMessageItem = {

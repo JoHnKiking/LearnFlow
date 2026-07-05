@@ -66,7 +66,7 @@ const PomodoroScreen = () => {
       try {
         const user = await getCurrentUser();
         if (user?.id) {
-          const res = await monsterService.getMonsterStatus(user.id);
+          const res = await monsterService.getMonsterStatus();
           if (res?.success && res.data?.personality) {
             setMonsterType(res.data.personality);
             return;
@@ -383,7 +383,7 @@ const PomodoroScreen = () => {
     setChatMessages(prev => [...prev, { text, isUser: true }]);
 
     try {
-      const res = await monsterService.chat({ userId: user.id, message: text });
+      const res = await monsterService.chat({ message: text });
       if (res.success && res.data) {
         setChatMessages(prev => [...prev, { text: res.data.message, isUser: false }]);
         if (res.data.energyCost !== undefined) {
@@ -738,7 +738,7 @@ const PomodoroScreen = () => {
               try {
                 const user = await getCurrentUser();
                 if (user?.id) {
-                  const res = await monsterService.getMessages(user.id);
+                  const res = await monsterService.getMessages();
                   if (res.success && res.data?.messages) {
                     setChatMessages(res.data.messages.map((m: any) => ({ text: m.message, isUser: m.isUser })));
                   }

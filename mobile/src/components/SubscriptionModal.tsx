@@ -51,7 +51,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ visible, onClose,
         return;
       }
 
-      const result = await proService.activate(code, user.id);
+      const result = await proService.activate(code);
       
       // 存入本地缓存
       await AsyncStorage.setItem(SUBSCRIPTION_STORAGE_KEY, JSON.stringify({

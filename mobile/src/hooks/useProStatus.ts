@@ -24,7 +24,7 @@ export function useProStatus() {
         setLoading(false);
         return;
       }
-      const status = await proService.getStatus(user.id);
+      const status = await proService.getStatus();
       const result: ProStatus = {
         isPro: status.isPro,
         planId: status.planId,

@@ -21,11 +21,11 @@ export const useStatistics = () => {
     }
   };
 
-  const getLearningReport = async (userId: string = 'user1') => {
-    console.log('[useStatistics] 获取学习报告 - 用户:', userId);
+  const getLearningReport = async (period: string = 'week') => {
+    console.log('[useStatistics] 获取学习报告 - 周期:', period);
     setLoading(true);
     try {
-      const report = await skillService.getUserLearningReport(userId);
+      const report = await skillService.getUserLearningReport(period);
       console.log('[useStatistics] 学习报告获取成功');
       return report;
     } catch (error) {
