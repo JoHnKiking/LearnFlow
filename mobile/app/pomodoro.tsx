@@ -12,6 +12,7 @@ import * as Brightness from 'expo-brightness';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useTheme } from '../src/contexts/ThemeContext';
 import MonsterIcon from '../src/components/MonsterIcon';
+import InputDialog from '../src/components/InputDialog';
 import { getCurrentUser } from '../src/utils/auth';
 import { monsterService } from '../src/services/api';
 import { STORAGE_KEYS } from '../src/utils/storage';
@@ -55,6 +56,7 @@ const PomodoroScreen = () => {
   const [chatMessages, setChatMessages] = useState<{ text: string; isUser: boolean }[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [showChatInputDialog, setShowChatInputDialog] = useState(false);
   const [energyInfo, setEnergyInfo] = useState<{ cost: number; remaining: number } | null>(null);
   const [monsterType, setMonsterType] = useState<'lively' | 'calm' | 'rebel'>('lively');
 
@@ -895,15 +897,16 @@ const PomodoroScreen = () => {
                 </View>
               )}
               <View style={[styles.chatInputRow, { borderColor: colors.borderDark }]}>
-                <TextInput
-                  style={[styles.chatTextInput, { color: colors.textPrimary, backgroundColor: colors.borderLight }]}
-                  placeholder="说点什么..."
-                  placeholderTextColor={colors.textTertiary}
-                  value={chatInput}
-                  onChangeText={setChatInput}
-                  multiline
-                />
-                <TouchableOpacity onPress={handleSendChat} disabled={isSending} style={[styles.chatSendBtn, { backgroundColor: colors.primary }]}>
+                <TouchableOpacity
+                  style={[styles.chatTextInput, { flex: 1, justifyContent: 'center', backgroundColor: colors.borderLight, borderRadius: 12, paddingHorizontal: 16 }]}
+                  onPress={() => setShowChatInputDialog(true)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={{ color: chatInput ? colors.textPrimary : colors.textTertiary, fontSize: 14 }}>
+                    {chatInput || '说点什么...'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleSendChat} disabled={isSending || !chatInput.trim()} style={[styles.chatSendBtn, { backgroundColor: colors.primary, opacity: chatInput.trim() ? 1 : 0.5 }]}>
                   <Ionicons name="send" size={16} color="#fff" />
                 </TouchableOpacity>
               </View>
@@ -911,6 +914,19 @@ const PomodoroScreen = () => {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* 聊天输入弹窗 */}
+      <InputDialog
+        visible={showChatInputDialog}
+        title="和小怪兽聊聊"
+        icon="chatbubbles"
+        value={chatInput}
+        onChangeText={setChatInput}
+        onDismiss={() => setShowChatInputDialog(false)}
+        placeholder="说点什么..."
+        colors={colors}
+      />
+
     </SafeAreaView>
   );
 };
