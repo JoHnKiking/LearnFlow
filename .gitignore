@@ -95,3 +95,5 @@ con
 aux
 lpt[0-9]
 com[0-9]
+
+server/uploads/avatars/
