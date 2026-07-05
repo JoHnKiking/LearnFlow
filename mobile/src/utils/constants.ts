@@ -1,21 +1,13 @@
 import Constants from 'expo-constants';
 
 // 应用常量配置
-// 优先级：.env 的 EXPO_PUBLIC_API_URL > app.json 的 extra.apiBaseUrl > localhost 回退
-// .env 优先是因为本地开发时 IP 可能频繁变动，改 .env 比改 app.json 更方便
-const envApiUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
-const extraApiBaseUrl = Constants.expoConfig?.extra?.apiBaseUrl;
-const rawApiBaseUrl =
-  (envApiUrl && envApiUrl.length > 0 ? envApiUrl : undefined) ??
-  (typeof extraApiBaseUrl === 'string' && extraApiBaseUrl.length > 0 ? extraApiBaseUrl : undefined);
-
+// API 地址仅从 app.json 的 extra.apiBaseUrl 读取，无则回退 localhost
+const apiBaseUrl = Constants.expoConfig?.extra?.apiBaseUrl;
 export const API_BASE_URL =
-  rawApiBaseUrl && rawApiBaseUrl.length > 0 ? rawApiBaseUrl : 'http://localhost:3001/api';
+  typeof apiBaseUrl === 'string' && apiBaseUrl.length > 0 ? apiBaseUrl : 'http://localhost:3001/api';
 export const APP_NAME = 'LearnFlow';
 export const APP_VERSION = '1.0.0';
 
-console.log('[Config] EXPO_PUBLIC_API_URL =', process.env.EXPO_PUBLIC_API_URL);
-console.log('[Config] extra.apiBaseUrl =', extraApiBaseUrl);
 console.log('[Config] API_BASE_URL =', API_BASE_URL);
 
 // 页面路由常量

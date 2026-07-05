@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, Alert, ScrollView, TouchableOpacity, Dimensions, Modal, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -11,6 +11,7 @@ import { storage, STORAGE_KEYS } from '../src/utils/storage';
 import { showErrorAlert, toErrorMessage } from '../src/utils';
 import { FloatingInputBar, InputFieldConfig } from '../src/components/FloatingInputBar';
 import { PRIVACY_POLICY_CONTENT, TERMS_OF_SERVICE_CONTENT } from '../src/constants/legal';
+import InputDialog from '../src/components/InputDialog';
 
 const LoginScreen = () => {
   const { colors } = useTheme();
@@ -98,41 +99,15 @@ const LoginScreen = () => {
     }
   };
 
-  // ---- 浮动输入栏字段配置 ----
-  const inputFields: InputFieldConfig[] = useMemo(() => {
-    const fields: InputFieldConfig[] = [];
-    if (loginType === 'register') {
-      fields.push({
-        id: 'username',
-        label: '用户名',
-        icon: 'person',
-        value: username,
-        onChangeText: setUsername,
-        placeholder: '请输入用户名',
-      });
+  // ---- 当前激活字段的配置 ----
+  const activeField = (() => {
+    switch (activeFieldId) {
+      case 'username': return { title: '用户名', icon: 'person', value: username, onChangeText: setUsername, placeholder: '请输入用户名', keyboardType: undefined as any, secureTextEntry: false };
+      case 'email': return { title: '邮箱', icon: 'mail', value: email, onChangeText: setEmail, placeholder: '请输入邮箱', keyboardType: 'email-address' as any, secureTextEntry: false };
+      case 'password': return { title: '密码', icon: 'lock-closed', value: password, onChangeText: setPassword, placeholder: loginType === 'register' ? '至少6位密码' : '请输入密码', keyboardType: 'default' as any, secureTextEntry: !showPassword };
+      default: return null;
     }
-    fields.push(
-      {
-        id: 'email',
-        label: '邮箱',
-        icon: 'mail',
-        value: email,
-        onChangeText: setEmail,
-        keyboardType: 'email-address',
-        placeholder: '请输入邮箱',
-      },
-      {
-        id: 'password',
-        label: '密码',
-        icon: 'lock-closed',
-        value: password,
-        onChangeText: setPassword,
-        secureTextEntry: !showPassword,
-        placeholder: loginType === 'register' ? '至少6位密码' : '请输入密码',
-      },
-    );
-    return fields;
-  }, [loginType, username, email, password, showPassword]);
+  })();
 
   const styles = useMemo(() => StyleSheet.create({
   container: {
@@ -441,7 +416,10 @@ const LoginScreen = () => {
             </TouchableOpacity>
 
             {loginType === 'login' && (
-              <TouchableOpacity style={styles.forgotPassword}>
+              <TouchableOpacity
+                style={styles.forgotPassword}
+                onPress={() => router.push('/forgot-password')}
+              >
                 <Text style={styles.forgotPasswordText}>忘记密码？</Text>
               </TouchableOpacity>
             )}
@@ -485,11 +463,17 @@ const LoginScreen = () => {
         </Pressable>
       </Modal>
 
-      {/* 键盘上方浮动输入栏 */}
-      <FloatingInputBar
-        fields={inputFields}
-        activeFieldId={activeFieldId}
+      {/* 居中弹窗输入 */}
+      <InputDialog
+        visible={activeFieldId !== null}
+        title={activeField?.title || ''}
+        icon={activeField?.icon || 'mail'}
+        value={activeField?.value || ''}
+        onChangeText={activeField?.onChangeText || (() => {})}
         onDismiss={() => setActiveFieldId(null)}
+        placeholder={activeField?.placeholder}
+        keyboardType={activeField?.keyboardType}
+        secureTextEntry={activeField?.secureTextEntry}
         colors={colors}
       />
       </SafeAreaView>

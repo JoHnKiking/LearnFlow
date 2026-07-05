@@ -7,7 +7,7 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import { authService } from '../src/services/api';
 import { saveAuthData } from '../src/utils/auth';
 import { showErrorAlert, toErrorMessage } from '../src/utils';
-import { FloatingInputBar, InputFieldConfig } from '../src/components/FloatingInputBar';
+import InputDialog from '../src/components/InputDialog';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '../src/utils/storage';
 
@@ -22,43 +22,16 @@ const RegisterScreen = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [activeFieldId, setActiveFieldId] = useState<string | null>(null);
 
-  const inputFields: InputFieldConfig[] = useMemo(() => [
-    {
-      id: 'username',
-      label: '用户名',
-      icon: 'person',
-      value: username,
-      onChangeText: setUsername,
-      placeholder: '请输入用户名',
-    },
-    {
-      id: 'email',
-      label: '邮箱',
-      icon: 'mail',
-      value: email,
-      onChangeText: setEmail,
-      keyboardType: 'email-address',
-      placeholder: '请输入邮箱',
-    },
-    {
-      id: 'password',
-      label: '密码',
-      icon: 'lock-closed',
-      value: password,
-      onChangeText: setPassword,
-      secureTextEntry: !showPassword,
-      placeholder: '至少6位密码',
-    },
-    {
-      id: 'confirmPassword',
-      label: '确认密码',
-      icon: 'lock-closed',
-      value: confirmPassword,
-      onChangeText: setConfirmPassword,
-      secureTextEntry: !showConfirmPassword,
-      placeholder: '请再次输入密码',
-    },
-  ], [username, email, password, confirmPassword, showPassword, showConfirmPassword]);
+  // ---- 当前激活字段的配置 ----
+  const activeField = (() => {
+    switch (activeFieldId) {
+      case 'username': return { title: '用户名', icon: 'person', value: username, onChangeText: setUsername, placeholder: '请输入用户名', keyboardType: 'default' as any, secureTextEntry: false };
+      case 'email': return { title: '邮箱', icon: 'mail', value: email, onChangeText: setEmail, placeholder: '请输入邮箱', keyboardType: 'email-address' as any, secureTextEntry: false };
+      case 'password': return { title: '密码', icon: 'lock-closed', value: password, onChangeText: setPassword, placeholder: '至少6位密码', keyboardType: 'default' as any, secureTextEntry: !showPassword };
+      case 'confirmPassword': return { title: '确认密码', icon: 'lock-closed', value: confirmPassword, onChangeText: setConfirmPassword, placeholder: '请再次输入密码', keyboardType: 'default' as any, secureTextEntry: !showConfirmPassword };
+      default: return null;
+    }
+  })();
 
   const handleRegister = async () => {
     console.log('[Register] 开始注册 - 用户名:', username, '邮箱:', email);
@@ -474,10 +447,16 @@ const RegisterScreen = () => {
         </ScrollView>
 
       {/* 键盘上方浮动输入栏 */}
-      <FloatingInputBar
-        fields={inputFields}
-        activeFieldId={activeFieldId}
+      <InputDialog
+        visible={activeFieldId !== null}
+        title={activeField?.title || ''}
+        icon={activeField?.icon || 'mail'}
+        value={activeField?.value || ''}
+        onChangeText={activeField?.onChangeText || (() => {})}
         onDismiss={() => setActiveFieldId(null)}
+        placeholder={activeField?.placeholder}
+        keyboardType={activeField?.keyboardType}
+        secureTextEntry={activeField?.secureTextEntry}
         colors={colors}
       />
       </SafeAreaView>

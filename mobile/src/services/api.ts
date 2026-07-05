@@ -54,17 +54,32 @@ api.interceptors.response.use(
   (error) => {
     // Axios 无法建连时常无 response，仅 message 为 Network Error
     if (!error.response && error.message === 'Network Error') {
-      const msg = [
+      const isTunnel = API_BASE_URL.includes('ngrok');
+      const steps = [
         '无法连接服务器',
         `API 地址: ${API_BASE_URL}`,
         '',
         '排查步骤：',
-        '1. 确认手机和电脑在同一 WiFi',
-        '2. 确认服务器已启动（本机访问 http://localhost:3001 测试）',
-        '3. 打开手机浏览器访问上述 API 地址，确认可达',
-        '4. 若 IP 变了，修改 mobile/.env 后重启 Metro'
-      ].join('\n');
-      return Promise.reject(new Error(msg));
+        '1. 确认服务器已启动（本机访问 http://localhost:3001 测试）',
+      ];
+
+      if (isTunnel) {
+        steps.push(
+          '2. 确认 ngrok 正在运行：ngrok http 3001',
+          '3. 检查 ngrok Forwarding 地址是否与上方 API 地址一致（免费版每次重启 ngrok 子域可能变）',
+          '4. 若不匹配，修改 app.json 的 extra.apiBaseUrl 后重启 Metro',
+          '5. 手机浏览器访问 ngrok 地址，确认可达',
+        );
+      } else {
+        steps.push(
+          '2. 同一 WiFi：确认手机和电脑连接同一 WiFi',
+          '3. 手机用流量：需将 app.json 的 apiBaseUrl 改为 ngrok https 地址',
+          '4. 打开手机浏览器访问上述 API 地址，确认可达',
+          '5. 若地址变了，修改 app.json 的 extra.apiBaseUrl 后重启 Metro',
+        );
+      }
+
+      return Promise.reject(new Error(steps.join('\n')));
     }
 
     // 网络连接错误
@@ -149,6 +164,18 @@ export const authService = {
   // 用户登出
   logout: async (): Promise<void> => {
     await api.post('/auth/logout');
+  },
+
+  // 忘记密码 — 发送重置验证码
+  forgotPassword: async (email: string): Promise<{ message: string; email: string }> => {
+    const response = await api.post('/auth/forgot-password', { email });
+    return response.data.data;
+  },
+
+  // 重置密码
+  resetPassword: async (email: string, code: string, newPassword: string): Promise<{ message: string }> => {
+    const response = await api.post('/auth/reset-password', { email, code, newPassword });
+    return response.data.data;
   },
 };
 

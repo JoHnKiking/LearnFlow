@@ -181,6 +181,56 @@ export class AuthController {
     }
   }
 
+  // 忘记密码 — 发送重置验证码
+  static async forgotPassword(req: Request, res: Response) {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ error: '邮箱不能为空' });
+      }
+
+      console.log(`[AuthController] 忘记密码请求 - 邮箱: ${email}`);
+      const result = await AuthService.forgotPassword(email);
+
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      console.error(`[AuthController] 忘记密码失败 - 错误: ${error}`);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : '发送失败',
+      });
+    }
+  }
+
+  // 重置密码 — 验证验证码并更新密码
+  static async resetPassword(req: Request, res: Response) {
+    try {
+      const { email, code, newPassword } = req.body;
+
+      if (!email || !code || !newPassword) {
+        return res.status(400).json({ error: '邮箱、验证码和新密码不能为空' });
+      }
+
+      console.log(`[AuthController] 重置密码请求 - 邮箱: ${email}`);
+      const result = await AuthService.resetPassword(email, code, newPassword);
+
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      console.error(`[AuthController] 重置密码失败 - 错误: ${error}`);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : '重置失败',
+      });
+    }
+  }
+
   // 用户登出
   static async logout(req: Request, res: Response) {
     try {

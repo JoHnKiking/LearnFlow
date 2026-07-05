@@ -24,4 +24,10 @@ router.post('/verify-token', AuthController.verifyToken);
 // 用户登出
 router.post('/logout', AuthController.logout);
 
+// 忘记密码
+router.post('/forgot-password', AuthController.forgotPassword);
+
+// 重置密码
+router.post('/reset-password', AuthController.resetPassword);
+
 export default router;

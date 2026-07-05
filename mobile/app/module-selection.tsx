@@ -980,7 +980,8 @@ const ModuleSelectionScreen = () => {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
       >
         <ScrollView
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: isAddMode ? 100 : 120 }]}
+          style={{ flex: 1 }}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: isAddMode ? 100 : 40 }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >

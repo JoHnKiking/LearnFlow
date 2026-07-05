@@ -357,6 +357,97 @@ export class AuthService {
     return await bcrypt.hash(password, 12);
   }
 
+  // 忘记密码 — 发送重置验证码
+  static async forgotPassword(email: string): Promise<{ message: string; email: string }> {
+    const connection = await DatabaseConnection.getConnection();
+
+    // 检查用户是否存在且已激活
+    const [rows] = await connection.execute(
+      'SELECT * FROM users WHERE email = ?',
+      [email]
+    );
+    const user = (rows as any[])[0];
+    if (!user) {
+      throw new Error('该邮箱未注册');
+    }
+    if (user.status !== 'active') {
+      throw new Error('该账户尚未激活，无法重置密码');
+    }
+
+    // 检查 60 秒冷却
+    const [recent] = await connection.execute(
+      'SELECT created_at FROM email_verification_tokens WHERE email = ? ORDER BY created_at DESC LIMIT 1',
+      [email]
+    );
+    const lastRecord = (recent as any[])[0];
+    if (lastRecord) {
+      const secondsSinceLast = (Date.now() - new Date(lastRecord.created_at).getTime()) / 1000;
+      if (secondsSinceLast < 60) {
+        const waitSeconds = Math.ceil(60 - secondsSinceLast);
+        throw new Error(`请等待 ${waitSeconds} 秒后再发送`);
+      }
+    }
+
+    const code = await this.generateAndStoreCode(email);
+    await EmailService.sendPasswordResetCode(email, code);
+    console.log(`[AuthService] 密码重置验证码已发送 - 邮箱: ${email}`);
+    return { message: '重置验证码已发送至邮箱', email };
+  }
+
+  // 重置密码 — 验证验证码并更新密码
+  static async resetPassword(
+    email: string,
+    code: string,
+    newPassword: string
+  ): Promise<{ message: string }> {
+    if (newPassword.length < 6) {
+      throw new Error('新密码长度至少6位');
+    }
+
+    const connection = await DatabaseConnection.getConnection();
+
+    // 查找有效验证码
+    const [rows] = await connection.execute(
+      'SELECT * FROM email_verification_tokens WHERE email = ? AND token = ? AND expires_at > NOW()',
+      [email, code]
+    );
+    const record = (rows as any[])[0];
+    if (!record) {
+      throw new Error('验证码无效或已过期');
+    }
+
+    // 检查尝试次数
+    if (record.attempts >= 3) {
+      await connection.execute(
+        'DELETE FROM email_verification_tokens WHERE id = ?',
+        [record.id]
+      );
+      throw new Error('验证码错误次数过多，请重新发送');
+    }
+
+    // 增加尝试次数
+    await connection.execute(
+      'UPDATE email_verification_tokens SET attempts = attempts + 1 WHERE id = ?',
+      [record.id]
+    );
+
+    // 更新密码
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await connection.execute(
+      'UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE email = ?',
+      [passwordHash, email]
+    );
+
+    // 清理验证码
+    await connection.execute(
+      'DELETE FROM email_verification_tokens WHERE email = ?',
+      [email]
+    );
+
+    console.log(`[AuthService] 密码重置成功 - 邮箱: ${email}`);
+    return { message: '密码重置成功，请重新登录' };
+  }
+
   // 数据库行到User对象映射
   private static mapUserFromDB(row: any): User {
     return {
