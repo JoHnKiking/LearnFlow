@@ -177,7 +177,7 @@ const IdentitySelectionScreen = () => {
       backgroundColor: colors.background,
     },
     content: {
-      flex: 1,
+      flexGrow: 1,
       paddingHorizontal: 24,
       paddingTop: 48,
       paddingBottom: 32,

@@ -456,7 +456,7 @@ const ModuleSelectionScreen = () => {
   const styles = useMemo(() => StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     scrollContent: { flexGrow: 1 },
-    content: { flex: 1, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 32 },
+    content: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 32 },
     // 标题区
     title: { color: colors.textPrimary, fontSize: 24, fontWeight: '600', marginBottom: 4 },
     subtitle: { color: colors.textSecondary, fontSize: 13, marginBottom: 24 },
