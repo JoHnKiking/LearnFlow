@@ -1,15 +1,10 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import MonsterIcon from '../src/components/MonsterIcon';
 import { useTheme } from '../src/contexts/ThemeContext';
-import { getCurrentUser } from '../src/utils/auth';
-
-const ROUTES = {
-  MONSTER_SELECTION: '/monster-selection',
-};
 
 const STORY_FRAMES = [
   {
@@ -29,20 +24,22 @@ const STORY_FRAMES = [
   },
 ];
 
-const useStoryAnimation = (totalFrames: number) => {
+// 入口模式：仅第1帧 → 登录页
+const ENTRY_FRAMES = [STORY_FRAMES[0]];
+// 新手模式：第2、3帧 → 怪兽选择
+const TUTORIAL_FRAMES = [STORY_FRAMES[1], STORY_FRAMES[2]];
+
+const useStoryAnimation = (frames: typeof STORY_FRAMES, isTutorial: boolean) => {
   const [currentFrame, setCurrentFrame] = useState(0);
   const slideAnimation = useState(new Animated.Value(0))[0];
 
   const switchFrame = useCallback((nextFrame: number) => {
-    // 先淡出旧帧
     Animated.timing(slideAnimation, {
       toValue: 1,
       duration: 200,
       useNativeDriver: true,
     }).start(() => {
-      // 不可见时切换内容，避免闪烁
       setCurrentFrame(nextFrame);
-      // 新帧淡入
       Animated.timing(slideAnimation, {
         toValue: 0,
         duration: 300,
@@ -51,34 +48,46 @@ const useStoryAnimation = (totalFrames: number) => {
     });
   }, [slideAnimation]);
 
+  const totalFrames = frames.length;
+
   const goToNextFrame = useCallback(() => {
     if (currentFrame < totalFrames - 1) {
-      console.log(`[Story] 切换到第 ${currentFrame + 2} 帧`);
       switchFrame(currentFrame + 1);
     } else {
-      console.log('[Story] 故事结束，跳转至怪物选择');
-      router.replace(ROUTES.MONSTER_SELECTION);
+      if (isTutorial) {
+        router.replace('/monster-selection');
+      } else {
+        router.replace('/login');
+      }
     }
-  }, [currentFrame, totalFrames, switchFrame]);
+  }, [currentFrame, totalFrames, switchFrame, isTutorial]);
 
-  const skipToSelection = useCallback(() => {
-    console.log('[Story] 跳过故事，跳转至怪物选择');
-    router.replace(ROUTES.MONSTER_SELECTION);
-  }, []);
+  const skipToNext = useCallback(() => {
+    if (isTutorial) {
+      router.replace('/monster-selection');
+    } else {
+      router.replace('/login');
+    }
+  }, [isTutorial]);
 
   return {
     currentFrame,
     slideAnimation,
     goToNextFrame,
-    skipToSelection,
+    skipToNext,
+    switchFrame,
   };
 };
 
 const StoryScreen = () => {
   const { colors } = useTheme();
-  const { currentFrame, slideAnimation, goToNextFrame, skipToSelection } = useStoryAnimation(STORY_FRAMES.length);
-  const currentStory = STORY_FRAMES[currentFrame];
-  const isLastFrame = currentFrame === STORY_FRAMES.length - 1;
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const isTutorial = mode === 'tutorial';
+  const frames = isTutorial ? TUTORIAL_FRAMES : ENTRY_FRAMES;
+
+  const { currentFrame, slideAnimation, goToNextFrame, skipToNext, switchFrame } = useStoryAnimation(frames, isTutorial);
+  const currentStory = frames[currentFrame];
+  const isLastFrame = currentFrame === frames.length - 1;
 
   const animatedStyle = {
     transform: [
@@ -558,7 +567,7 @@ const StoryScreen = () => {
       <View style={styles.content}>
         <View style={styles.pixelBackground} />
 
-        <TouchableOpacity style={styles.skipButton} onPress={skipToSelection}>
+        <TouchableOpacity style={styles.skipButton} onPress={skipToNext}>
           <Text style={styles.skipText}>跳过</Text>
           <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
         </TouchableOpacity>
@@ -589,7 +598,7 @@ const StoryScreen = () => {
         </View>
 
         <View style={styles.progressContainer}>
-          {STORY_FRAMES.map((_, index) => (
+          {frames.map((_, index) => (
             <View
               key={index}
               style={[
@@ -605,7 +614,7 @@ const StoryScreen = () => {
 
         <TouchableOpacity style={styles.nextButton} onPress={goToNextFrame}>
           <Text style={styles.nextButtonText}>
-            {isLastFrame ? '开始冒险' : '继续'}
+            {isLastFrame ? (isTutorial ? '开始冒险' : '开始') : '继续'}
           </Text>
           <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
         </TouchableOpacity>

@@ -10,7 +10,7 @@ const OnboardingScreen = () => {
   const { colors } = useTheme();
   const handleStart = () => {
     console.log('[Onboarding] 用户点击开始探索，跳转至故事页');
-    router.replace('/story');
+    router.replace('/story?mode=tutorial');
   };
 
   const styles = useMemo(() => StyleSheet.create({

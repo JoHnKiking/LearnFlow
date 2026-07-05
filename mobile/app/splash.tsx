@@ -55,7 +55,7 @@ const SplashScreen = () => {
     });
 
     const timer = setTimeout(() => {
-      router.replace('/login');
+      router.replace('/story');
     }, 2000);
 
     return () => clearTimeout(timer);

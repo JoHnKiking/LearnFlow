@@ -14,7 +14,7 @@ const IndexScreen = () => {
     if (rootNavState?.key) {
       // 延迟一帧确保导航栈就绪
       const timer = setTimeout(() => {
-        router.replace('/login');
+        router.replace('/splash');
       }, 0);
       return () => clearTimeout(timer);
     }
