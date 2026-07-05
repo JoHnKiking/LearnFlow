@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, Modal, StyleSheet,
   KeyboardAvoidingView, Platform, KeyboardTypeOptions,
@@ -44,6 +44,8 @@ const InputDialog: React.FC<InputDialogProps> = ({
   colors,
 }) => {
   const inputRef = useRef<TextInput>(null);
+  const [showValue, setShowValue] = useState(false);
+  const isSecure = secureTextEntry && !showValue;
 
   useEffect(() => {
     if (visible) {
@@ -73,7 +75,7 @@ const InputDialog: React.FC<InputDialogProps> = ({
               value={value}
               onChangeText={onChangeText}
               keyboardType={keyboardType}
-              secureTextEntry={secureTextEntry}
+              secureTextEntry={isSecure}
               placeholder={placeholder}
               placeholderTextColor={colors.textSecondary}
               maxLength={maxLength}
@@ -81,6 +83,11 @@ const InputDialog: React.FC<InputDialogProps> = ({
               onSubmitEditing={onDismiss}
               returnKeyType="done"
             />
+            {secureTextEntry && (
+              <TouchableOpacity onPress={() => setShowValue(!showValue)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: 4 }}>
+                <Ionicons name={showValue ? 'eye-off' : 'eye'} size={18} color={colors.textSecondary} />
+              </TouchableOpacity>
+            )}
             {value.length > 0 && (
               <TouchableOpacity onPress={() => onChangeText('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <Ionicons name="close-circle" size={18} color={colors.textSecondary} />

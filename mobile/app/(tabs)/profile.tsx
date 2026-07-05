@@ -38,29 +38,28 @@ const ProfileScreen = () => {
   };
 
   const handlePickAvatar = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('权限不足', '请在设置中允许访问相册');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-    if (result.canceled || !result.assets?.[0]) return;
-
-    const asset = result.assets[0];
-    const currentUser = await getCurrentUser();
-    if (!currentUser?.id) {
-      Alert.alert('提示', '请先登录');
-      return;
-    }
     try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('权限不足', '请在设置中允许访问相册');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'] as any,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (result.canceled || !result.assets?.[0]) return;
+
+      const asset = result.assets[0];
+      const currentUser = await getCurrentUser();
+      if (!currentUser?.id) {
+        Alert.alert('提示', '请先登录');
+        return;
+      }
       const res = await authService.uploadAvatar(currentUser.id, asset.uri);
       setAvatarUrl(res.avatarUrl);
-      // 同步更新本地用户信息
       currentUser.avatarUrl = res.avatarUrl;
       setUser({ ...currentUser });
       Alert.alert('成功', '头像已更新');
