@@ -99,6 +99,9 @@ export function createApp() {
   app.use(express.json());
 
   // 静态文件：头像等上传资源
+  // /api/uploads 路径：通过 nginx 反代时可走 /api/* 规则
+  app.use('/api/uploads', express.static(path.join(__dirname, '../uploads')));
+  // /uploads 直连路径：兼容旧数据和本地开发
   app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
   // ========================================

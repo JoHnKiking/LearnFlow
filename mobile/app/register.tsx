@@ -357,7 +357,7 @@ const RegisterScreen = () => {
                 style={[styles.displayText, password ? { color: colors.textPrimary } : { color: colors.textSecondary }]}
                 numberOfLines={1}
               >
-                {password ? '●'.repeat(Math.min(password.length, 12)) : '密码'}
+                {password ? (showPassword ? password : '●'.repeat(Math.min(password.length, 12))) : '密码'}
               </Text>
               <TouchableOpacity
                 style={styles.passwordToggle}
@@ -378,7 +378,7 @@ const RegisterScreen = () => {
                 style={[styles.displayText, confirmPassword ? { color: colors.textPrimary } : { color: colors.textSecondary }]}
                 numberOfLines={1}
               >
-                {confirmPassword ? '●'.repeat(Math.min(confirmPassword.length, 12)) : '确认密码'}
+                {confirmPassword ? (showConfirmPassword ? confirmPassword : '●'.repeat(Math.min(confirmPassword.length, 12))) : '确认密码'}
               </Text>
               <TouchableOpacity
                 style={styles.passwordToggle}

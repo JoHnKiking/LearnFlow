@@ -400,7 +400,7 @@ const LoginScreen = () => {
                 style={[styles.displayText, password ? { color: colors.textPrimary } : { color: colors.textSecondary }]}
                 numberOfLines={1}
               >
-                {password ? '●'.repeat(Math.min(password.length, 12)) : '密码'}
+                {password ? (showPassword ? password : '●'.repeat(Math.min(password.length, 12))) : '密码'}
               </Text>
               <TouchableOpacity
                 style={styles.passwordToggle}

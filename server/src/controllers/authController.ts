@@ -271,7 +271,7 @@ export class AuthController {
 
       try {
         const connection = await (await import('../config/database')).DatabaseConnection.getConnection();
-        const avatarUrl = `/uploads/avatars/${file.filename}`;
+        const avatarUrl = `/api/uploads/avatars/${file.filename}`;
 
         await connection.execute(
           'UPDATE users SET avatar_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',

@@ -33,7 +33,9 @@ const ProfileScreen = () => {
   // 根据 API_BASE_URL 构造完整头像地址
   const getFullAvatarUrl = (url: string) => {
     if (url.startsWith('http')) return url;
-    const base = API_BASE_URL.replace(/\/api$/, '');
+    // url 是 /api/uploads/... 或 /uploads/...
+    // API_BASE_URL 如 http://119.91.133.45/api → 去掉末尾 /api 得到 host
+    const base = API_BASE_URL.replace(/\/api\/?$/, '');
     return base + url;
   };
 
