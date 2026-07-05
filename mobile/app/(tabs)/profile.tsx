@@ -45,20 +45,21 @@ const ProfileScreen = () => {
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'] as any,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
       });
-      if (result.canceled || !result.assets?.[0]) return;
+      if (result.canceled) return;
+      const uri = result.assets?.[0]?.uri || (result as any).uri;
+      if (!uri) return;
 
-      const asset = result.assets[0];
       const currentUser = await getCurrentUser();
       if (!currentUser?.id) {
         Alert.alert('提示', '请先登录');
         return;
       }
-      const res = await authService.uploadAvatar(currentUser.id, asset.uri);
+      const res = await authService.uploadAvatar(currentUser.id, uri);
       setAvatarUrl(res.avatarUrl);
       currentUser.avatarUrl = res.avatarUrl;
       setUser({ ...currentUser });

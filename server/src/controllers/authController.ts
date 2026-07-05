@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/authService';
 import { LoginRequest, CreateUserRequest } from '../models';
-import multer from 'multer';
+import multer, { FileFilterCallback } from 'multer';
 import path from 'path';
 import fs from 'fs';
 
@@ -14,13 +14,13 @@ if (!fs.existsSync(uploadsDir)) {
 const upload = multer({
   storage: multer.diskStorage({
     destination: uploadsDir,
-    filename: (_req, file, cb) => {
+    filename: (_req: Express.Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
       const ext = path.extname(file.originalname);
       cb(null, `avatar_${Date.now()}${ext}`);
     },
   }),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-  fileFilter: (_req, file, cb) => {
+  fileFilter: (_req: Express.Request, file: Express.Multer.File, cb: FileFilterCallback) => {
     const allowed = /\.(jpg|jpeg|png|gif|webp)$/i;
     cb(null, allowed.test(path.extname(file.originalname)));
   },
@@ -257,12 +257,13 @@ export class AuthController {
 
   // 上传头像
   static async uploadAvatar(req: Request, res: Response) {
-    upload(req, res, async (err) => {
+    upload(req, res, async (err: any) => {
       if (err) {
         console.error('[AuthController] 头像上传失败:', err.message);
         return res.status(400).json({ error: '上传失败: ' + err.message });
       }
-      if (!req.file) {
+      const file = (req as any).file;
+      if (!file) {
         return res.status(400).json({ error: '未选择文件' });
       }
 
@@ -273,7 +274,7 @@ export class AuthController {
 
       try {
         const connection = await (await import('../config/database')).DatabaseConnection.getConnection();
-        const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+        const avatarUrl = `/uploads/avatars/${file.filename}`;
 
         await connection.execute(
           'UPDATE users SET avatar_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
