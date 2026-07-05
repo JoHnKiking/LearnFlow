@@ -13,16 +13,17 @@ import {
 export const createDomain = async (req: Request, res: Response) => {
   console.log(`[DomainController] POST /domains - 创建领域`);
   try {
-    const { userId, name, type = 'preset' } = req.body;
+    const { name, type = 'preset' } = req.body;
+    const userId = req.user!.userId;
 
-    if (!userId || !name) {
+    if (!name) {
       console.log(`[DomainController] 参数验证失败 - 缺少必填字段`);
       return res.status(400).json({ 
-        error: 'User ID and name are required' 
+        error: 'Name is required' 
       });
     }
 
-    const result = await createDomainService(parseInt(userId), name, type);
+    const result = await createDomainService(userId, name, type);
     
     console.log(`[DomainController] 领域创建成功`);
     res.json({
@@ -39,15 +40,10 @@ export const createDomain = async (req: Request, res: Response) => {
 };
 
 export const getDomains = async (req: Request, res: Response) => {
-  console.log(`[DomainController] GET /domains/:userId - 获取领域列表`);
+  console.log(`[DomainController] GET /domains/list - 获取领域列表`);
   try {
-    const { userId } = req.params;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    const result = await getDomainsService(parseInt(userId));
+    const userId = req.user!.userId;
+    const result = await getDomainsService(userId);
     
     res.json({
       success: true,
@@ -92,19 +88,20 @@ export const getDomainById = async (req: Request, res: Response) => {
 };
 
 export const updateNodeProgress = async (req: Request, res: Response) => {
-  console.log(`[DomainController] PUT /domains/node-progress - 更新节点进度`);
+  console.log(`[DomainController] PUT /domains/nodes/progress - 更新节点进度`);
   try {
-    const { userId, domainId, nodeId, status, studyTime, notes } = req.body;
+    const { domainId, nodeId, status, studyTime, notes } = req.body;
+    const userId = req.user!.userId;
 
-    if (!userId || !domainId || !nodeId || !status) {
+    if (!domainId || !nodeId || !status) {
       console.log(`[DomainController] 参数验证失败 - 缺少必填字段`);
       return res.status(400).json({ 
-        error: 'User ID, domain ID, node ID, and status are required' 
+        error: 'Domain ID, node ID, and status are required' 
       });
     }
 
     await updateNodeProgressService(
-      parseInt(userId),
+      userId,
       parseInt(domainId),
       nodeId,
       status as 'pending' | 'doing' | 'done',
@@ -126,16 +123,17 @@ export const updateNodeProgress = async (req: Request, res: Response) => {
 
 export const startLearning = async (req: Request, res: Response) => {
   try {
-    const { userId, domainId, nodeId } = req.body;
+    const { domainId, nodeId } = req.body;
+    const userId = req.user!.userId;
 
-    if (!userId || !domainId || !nodeId) {
+    if (!domainId || !nodeId) {
       return res.status(400).json({ 
-        error: 'User ID, domain ID, and node ID are required' 
+        error: 'Domain ID and node ID are required' 
       });
     }
 
     const result = await startLearningService(
-      parseInt(userId),
+      userId,
       parseInt(domainId),
       nodeId
     );
@@ -185,14 +183,14 @@ export const getNodeProgresses = async (req: Request, res: Response) => {
   console.log(`[DomainController] GET /domains/:domainId/node-progresses`);
   try {
     const { domainId } = req.params;
-    const { userId } = req.query;
+    const userId = req.user!.userId;
 
-    if (!userId || !domainId) {
-      return res.status(400).json({ error: 'userId and domainId are required' });
+    if (!domainId) {
+      return res.status(400).json({ error: 'domainId is required' });
     }
 
     const result = await getNodeProgressesByDomainService(
-      parseInt(userId as string),
+      userId,
       parseInt(domainId)
     );
 
@@ -206,14 +204,15 @@ export const getNodeProgresses = async (req: Request, res: Response) => {
 export const getNodeStudyCount = async (req: Request, res: Response) => {
   console.log(`[DomainController] GET /domains/study-count`);
   try {
-    const { userId, domainId, nodeId } = req.query;
+    const { domainId, nodeId } = req.query;
+    const userId = req.user!.userId;
 
-    if (!userId || !domainId || !nodeId) {
-      return res.status(400).json({ error: 'userId, domainId, nodeId are required' });
+    if (!domainId || !nodeId) {
+      return res.status(400).json({ error: 'domainId and nodeId are required' });
     }
 
     const result = await getNodeStudyCountService(
-      parseInt(userId as string),
+      userId,
       parseInt(domainId as string),
       nodeId as string
     );

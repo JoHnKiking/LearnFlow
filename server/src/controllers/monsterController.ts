@@ -13,14 +13,15 @@ import {
 } from '../services';
 
 export const createMonster = async (req: Request, res: Response) => {
-  console.log(`[MonsterController] POST /monsters - 创建怪物`);
+  console.log(`[MonsterController] POST /monster/create - 创建怪物`);
   try {
-    const { userId, name, style, personality } = req.body;
+    const { name, style, personality } = req.body;
+    const userId = req.user!.userId;
 
-    if (!userId || !name || !personality) {
+    if (!name || !personality) {
       console.log(`[MonsterController] 参数验证失败 - 缺少必填字段`);
       return res.status(400).json({
-        error: 'User ID, name, and personality are required'
+        error: 'Name and personality are required'
       });
     }
 
@@ -31,7 +32,7 @@ export const createMonster = async (req: Request, res: Response) => {
       });
     }
 
-    const result = await createMonsterService(parseInt(userId, 10), {
+    const result = await createMonsterService(userId, {
       name,
       style,
       personality,
@@ -52,15 +53,10 @@ export const createMonster = async (req: Request, res: Response) => {
 };
 
 export const getMonsterStatus = async (req: Request, res: Response) => {
-  console.log(`[MonsterController] GET /monsters/:userId - 获取怪物状态`);
+  console.log(`[MonsterController] GET /monster/status - 获取怪物状态`);
   try {
-    const { userId } = req.params;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    const status = await getMonsterStatusService(parseInt(userId));
+    const userId = req.user!.userId;
+    const status = await getMonsterStatusService(userId);
 
     if (!status) {
       console.log(`[MonsterController] 怪物不存在 - 用户ID: ${userId}`);
@@ -81,15 +77,12 @@ export const getMonsterStatus = async (req: Request, res: Response) => {
 };
 
 export const consumeStamina = async (req: Request, res: Response) => {
-  console.log(`[MonsterController] POST /monsters/consume-stamina - 消耗体力`);
+  console.log(`[MonsterController] POST /monster/stamina/consume - 消耗体力`);
   try {
-    const { userId, amount = 10 } = req.body;
+    const { amount = 10 } = req.body;
+    const userId = req.user!.userId;
 
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    const success = await consumeStaminaService(parseInt(userId), amount);
+    const success = await consumeStaminaService(userId, amount);
     
     res.json({
       success,
@@ -106,13 +99,10 @@ export const consumeStamina = async (req: Request, res: Response) => {
 
 export const recoverStamina = async (req: Request, res: Response) => {
   try {
-    const { userId, amount = 20 } = req.body;
+    const { amount = 20 } = req.body;
+    const userId = req.user!.userId;
 
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    await recoverStaminaService(parseInt(userId), amount);
+    await recoverStaminaService(userId, amount);
     
     res.json({
       success: true
@@ -128,13 +118,8 @@ export const recoverStamina = async (req: Request, res: Response) => {
 
 export const consumeEnergy = async (req: Request, res: Response) => {
   try {
-    const { userId } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    const success = await consumeEnergyService(parseInt(userId));
+    const userId = req.user!.userId;
+    const success = await consumeEnergyService(userId);
     
     res.json({
       success,
@@ -151,13 +136,14 @@ export const consumeEnergy = async (req: Request, res: Response) => {
 
 export const consumeEnergyAmount = async (req: Request, res: Response) => {
   try {
-    const { userId, amount } = req.body;
+    const { amount } = req.body;
+    const userId = req.user!.userId;
 
-    if (!userId || amount === undefined) {
-      return res.status(400).json({ error: 'User ID and amount are required' });
+    if (amount === undefined) {
+      return res.status(400).json({ error: 'Amount is required' });
     }
 
-    const success = await consumeEnergyAmountService(parseInt(userId), amount);
+    const success = await consumeEnergyAmountService(userId, amount);
     
     res.json({
       success,
@@ -174,13 +160,10 @@ export const consumeEnergyAmount = async (req: Request, res: Response) => {
 
 export const recoverEnergy = async (req: Request, res: Response) => {
   try {
-    const { userId, amount = 1 } = req.body;
+    const { amount = 1 } = req.body;
+    const userId = req.user!.userId;
 
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    await recoverEnergyService(parseInt(userId), amount);
+    await recoverEnergyService(userId, amount);
     
     res.json({
       success: true
@@ -196,15 +179,16 @@ export const recoverEnergy = async (req: Request, res: Response) => {
 
 export const addExp = async (req: Request, res: Response) => {
   try {
-    const { userId, exp } = req.body;
+    const { exp } = req.body;
+    const userId = req.user!.userId;
 
-    if (!userId || exp === undefined) {
+    if (exp === undefined) {
       return res.status(400).json({ 
-        error: 'User ID and exp are required' 
+        error: 'Exp is required' 
       });
     }
 
-    const result = await gainExpService(parseInt(userId), exp);
+    const result = await gainExpService(userId, exp);
     
     res.json({
       success: true,
@@ -221,15 +205,16 @@ export const addExp = async (req: Request, res: Response) => {
 
 export const chatWithMonster = async (req: Request, res: Response) => {
   try {
-    const { userId, message, personality: reqPersonality } = req.body;
+    const { message, personality: reqPersonality } = req.body;
+    const userId = req.user!.userId;
 
-    if (!userId || !message) {
+    if (!message) {
       return res.status(400).json({ 
-        error: 'User ID and message are required' 
+        error: 'Message is required' 
       });
     }
 
-    const response = await chatWithMonsterService(parseInt(userId), message, reqPersonality);
+    const response = await chatWithMonsterService(userId, message, reqPersonality);
     
     res.json({
       success: true,
@@ -246,13 +231,8 @@ export const chatWithMonster = async (req: Request, res: Response) => {
 
 export const getMonsterMessages = async (req: Request, res: Response) => {
   try {
-    const { userId } = req.params;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    const messages = await getMonsterMessagesService(parseInt(userId));
+    const userId = req.user!.userId;
+    const messages = await getMonsterMessagesService(userId);
     
     res.json({
       success: true,

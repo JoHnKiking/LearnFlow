@@ -8,7 +8,7 @@ import {
 const router = express.Router();
 
 router.post('/create', createReward);
-router.get('/list/:userId', getRewards);
+router.get('/list', getRewards);
 router.post('/claim', claimReward);
 
 export default router;

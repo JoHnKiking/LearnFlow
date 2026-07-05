@@ -8,17 +8,18 @@ import {
 export const createReward = async (req: Request, res: Response) => {
   console.log(`[RewardController] POST /rewards - 创建奖励`);
   try {
-    const { userId, type, amount, source } = req.body;
+    const { type, amount, source } = req.body;
+    const userId = req.user!.userId;
 
-    if (!userId || !type || amount === undefined) {
+    if (!type || amount === undefined) {
       console.log(`[RewardController] 参数验证失败 - 缺少必填字段`);
       return res.status(400).json({ 
-        error: 'User ID, type, and amount are required' 
+        error: 'Type and amount are required' 
       });
     }
 
     const result = await createRewardService(
-      parseInt(userId),
+      userId,
       type,
       amount,
       source
@@ -39,15 +40,10 @@ export const createReward = async (req: Request, res: Response) => {
 };
 
 export const getRewards = async (req: Request, res: Response) => {
-  console.log(`[RewardController] GET /rewards/:userId - 获取奖励列表`);
+  console.log(`[RewardController] GET /rewards/list - 获取奖励列表`);
   try {
-    const { userId } = req.params;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    const result = await getRewardsService(parseInt(userId));
+    const userId = req.user!.userId;
+    const result = await getRewardsService(userId);
     
     res.json({
       success: true,

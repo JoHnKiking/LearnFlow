@@ -267,10 +267,7 @@ export class AuthController {
         return res.status(400).json({ error: '未选择文件' });
       }
 
-      const userId = parseInt(req.body.userId);
-      if (!userId) {
-        return res.status(400).json({ error: '缺少用户ID' });
-      }
+      const userId = req.user!.userId;
 
       try {
         const connection = await (await import('../config/database')).DatabaseConnection.getConnection();

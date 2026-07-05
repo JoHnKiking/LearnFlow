@@ -21,8 +21,8 @@ router.get('/:id', getSkillTreeById);
 
 // 用户相关功能
 router.post('/save', saveUserSkillTree);
-router.get('/progress/:userId', getUserProgress);
-router.put('/progress/:userId', updateUserProgress);
+router.get('/progress', getUserProgress);
+router.put('/progress', updateUserProgress);
 
 // 搜索和推荐功能
 router.get('/search/domains', searchPopularDomains);
@@ -30,6 +30,6 @@ router.get('/recommendations/path', getRecommendedPath);
 
 // 统计和学习报告
 router.get('/stats/overview', getStatistics);
-router.get('/report/:userId', getUserLearningReport);
+router.get('/report', getUserLearningReport);
 
 export default router;

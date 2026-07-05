@@ -9,17 +9,18 @@ import {
 export const createNote = async (req: Request, res: Response) => {
   console.log(`[NoteController] POST /notes - 创建笔记`);
   try {
-    const { userId, date, content } = req.body;
+    const { date, content } = req.body;
+    const userId = req.user!.userId;
 
-    if (!userId || !date) {
+    if (!date) {
       console.log(`[NoteController] 参数验证失败 - 缺少必填字段`);
       return res.status(400).json({ 
-        error: 'User ID and date are required' 
+        error: 'Date is required' 
       });
     }
 
     const result = await createNoteService(
-      parseInt(userId),
+      userId,
       new Date(date),
       content
     );
@@ -39,15 +40,10 @@ export const createNote = async (req: Request, res: Response) => {
 };
 
 export const getNotes = async (req: Request, res: Response) => {
-  console.log(`[NoteController] GET /notes/:userId - 获取笔记列表`);
+  console.log(`[NoteController] GET /notes/list - 获取笔记列表`);
   try {
-    const { userId } = req.params;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    const result = await getNotesService(parseInt(userId));
+    const userId = req.user!.userId;
+    const result = await getNotesService(userId);
     
     res.json({
       success: true,
@@ -63,17 +59,18 @@ export const getNotes = async (req: Request, res: Response) => {
 };
 
 export const getNoteByDate = async (req: Request, res: Response) => {
-  console.log(`[NoteController] GET /notes/:userId/:date - 按日期获取笔记`);
+  console.log(`[NoteController] GET /notes/:date - 按日期获取笔记`);
   try {
-    const { userId, date } = req.params;
+    const { date } = req.params;
+    const userId = req.user!.userId;
 
-    if (!userId || !date) {
+    if (!date) {
       return res.status(400).json({ 
-        error: 'User ID and date are required' 
+        error: 'Date is required' 
       });
     }
 
-    const note = await getNoteByDateService(parseInt(userId), new Date(date));
+    const note = await getNoteByDateService(userId, new Date(date));
     
     res.json({
       success: true,

@@ -102,11 +102,14 @@ export const getSkillTreeById = async (req: Request, res: Response) => {
 // 保存用户技能树
 export const saveUserSkillTree = async (req: Request, res: Response) => {
   try {
-    const request: SaveSkillTreeRequest = req.body;
+    const request: SaveSkillTreeRequest = {
+      ...req.body,
+      userId: String(req.user!.userId),
+    };
     
-    if (!request.userId || !request.skillTree) {
+    if (!request.skillTree) {
       return res.status(400).json({ 
-        error: 'User ID and skill tree are required' 
+        error: 'Skill tree is required' 
       });
     }
 
@@ -128,14 +131,10 @@ export const saveUserSkillTree = async (req: Request, res: Response) => {
 // 获取用户进度
 export const getUserProgress = async (req: Request, res: Response) => {
   try {
-    const { userId } = req.params;
+    const userId = req.user!.userId;
     const { skillTreeId } = req.query;
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
 
-    const progress = await getUserProgressService(userId, skillTreeId as string);
+    const progress = await getUserProgressService(userId.toString(), skillTreeId as string);
     
     res.json({
       success: true,
@@ -153,17 +152,17 @@ export const getUserProgress = async (req: Request, res: Response) => {
 // 更新用户进度
 export const updateUserProgress = async (req: Request, res: Response) => {
   try {
-    const { userId } = req.params;
+    const userId = req.user!.userId;
     const { skillTreeId, completedNodes = [], completedLinks = [] } = req.body;
     
-    if (!userId || !skillTreeId) {
+    if (!skillTreeId) {
       return res.status(400).json({ 
-        error: 'User ID and skill tree ID are required' 
+        error: 'Skill tree ID is required' 
       });
     }
 
     const progress = await updateUserProgressService(
-      userId, 
+      userId.toString(), 
       skillTreeId, 
       completedNodes, 
       completedLinks
@@ -255,14 +254,10 @@ export const getRecommendedPath = async (req: Request, res: Response) => {
 // 获取用户学习报告
 export const getUserLearningReport = async (req: Request, res: Response) => {
   try {
-    const { userId } = req.params;
+    const userId = req.user!.userId;
     const { period = 'week' } = req.query;
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
 
-    const result = await getUserLearningReportService(userId, period as string);
+    const result = await getUserLearningReportService(userId.toString(), period as string);
     
     res.json({
       success: true,
@@ -277,7 +272,6 @@ export const getUserLearningReport = async (req: Request, res: Response) => {
   }
 };
 
-// 添加默认导出以解决TypeScript模块解析问题
 export default {
   generateSkillTree,
   getSkillTreeList,

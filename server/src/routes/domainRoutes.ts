@@ -13,7 +13,7 @@ import {
 const router = express.Router();
 
 router.post('/create', createDomain);
-router.get('/list/:userId', getDomains);
+router.get('/list', getDomains);
 router.get('/study-count', getNodeStudyCount);
 router.get('/:domainId/node-progresses', getNodeProgresses);
 router.get('/:id', getDomainById);

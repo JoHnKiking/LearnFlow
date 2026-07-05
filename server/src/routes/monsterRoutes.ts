@@ -15,7 +15,7 @@ import {
 const router = express.Router();
 
 router.post('/create', createMonster);
-router.get('/status/:userId', getMonsterStatus);
+router.get('/status', getMonsterStatus);
 router.post('/stamina/consume', consumeStamina);
 router.post('/stamina/recover', recoverStamina);
 router.post('/energy/consume', consumeEnergy);
@@ -23,6 +23,6 @@ router.post('/energy/consume-amount', consumeEnergyAmount);
 router.post('/energy/recover', recoverEnergy);
 router.post('/exp/add', addExp);
 router.post('/chat', chatWithMonster);
-router.get('/messages/:userId', getMonsterMessages);
+router.get('/messages', getMonsterMessages);
 
 export default router;

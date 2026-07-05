@@ -9,8 +9,8 @@ import {
 const router = express.Router();
 
 router.post('/create', createNote);
-router.get('/list/:userId', getNotes);
-router.get('/:userId/:date', getNoteByDate);
+router.get('/list', getNotes);
+router.get('/:date', getNoteByDate);
 router.put('/update', updateNote);
 
 export default router;
