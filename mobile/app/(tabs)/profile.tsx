@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Switch, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { getCurrentUser, clearAuthData } from '../../src/utils/auth';
+import { authService } from '../../src/services/api';
+import { API_BASE_URL } from '../../src/utils/constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import HelpModal from '../../src/components/HelpModal';
 import SubscriptionModal from '../../src/components/SubscriptionModal';
@@ -25,6 +28,46 @@ const ProfileScreen = () => {
   const [activeDomainCount, setActiveDomainCount] = useState(0);
   const [showProModal, setShowProModal] = useState(false);
   const { isPro, planId, expiresAt, refresh: refreshPro } = useProStatus();
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  // 根据 API_BASE_URL 构造完整头像地址
+  const getFullAvatarUrl = (url: string) => {
+    if (url.startsWith('http')) return url;
+    const base = API_BASE_URL.replace(/\/api$/, '');
+    return base + url;
+  };
+
+  const handlePickAvatar = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('权限不足', '请在设置中允许访问相册');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+
+    const asset = result.assets[0];
+    const currentUser = await getCurrentUser();
+    if (!currentUser?.id) {
+      Alert.alert('提示', '请先登录');
+      return;
+    }
+    try {
+      const res = await authService.uploadAvatar(currentUser.id, asset.uri);
+      setAvatarUrl(res.avatarUrl);
+      // 同步更新本地用户信息
+      currentUser.avatarUrl = res.avatarUrl;
+      setUser({ ...currentUser });
+      Alert.alert('成功', '头像已更新');
+    } catch (error: any) {
+      Alert.alert('上传失败', error.message || '请稍后重试');
+    }
+  };
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -33,6 +76,7 @@ const ProfileScreen = () => {
         const currentUser = await getCurrentUser();
         setUser(currentUser);
         setIsLoggedIn(!!currentUser);
+        if (currentUser?.avatarUrl) setAvatarUrl(currentUser.avatarUrl);
         console.log('[Profile] 用户登录状态:', !!currentUser);
       } catch (error) {
         console.error('[Profile] 加载用户数据失败:', error);
@@ -267,6 +311,18 @@ const ProfileScreen = () => {
     shadowOpacity: 0.04, shadowRadius: 3, elevation: 2,
   },
   avatarEmoji: { fontSize: 32 },
+  avatarEditBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.background,
+  },
   avatarEditBadge: {
     position: 'absolute', bottom: -2, right: -2,
     width: 22, height: 22, borderRadius: 6,
@@ -637,11 +693,21 @@ const ProfileScreen = () => {
                 {isLoggedIn ? (
                   <>
                     <View style={styles.profileInfo}>
-                      <View style={styles.avatarContainer}>
+                      <TouchableOpacity style={styles.avatarContainer} onPress={handlePickAvatar} activeOpacity={0.7}>
                         <View style={[styles.avatar, isDark && styles.avatarDark]}>
-                          <Text style={styles.avatarEmoji}>🧑</Text>
+                          {avatarUrl || user?.avatarUrl ? (
+                            <Image
+                              source={{ uri: getFullAvatarUrl(avatarUrl || user.avatarUrl) }}
+                              style={{ width: '100%', height: '100%', borderRadius: 50 }}
+                            />
+                          ) : (
+                            <Text style={styles.avatarEmoji}>🧑</Text>
+                          )}
+                          <View style={[styles.avatarEditBadge, { backgroundColor: colors.primary }]}>
+                            <Ionicons name="camera" size={12} color="#FFFFFF" />
+                          </View>
                         </View>
-                      </View>
+                      </TouchableOpacity>
                       <View style={styles.userInfo}>
                         <View style={styles.nameRow}>
                           <Text style={styles.userName}>{userData.name}</Text>

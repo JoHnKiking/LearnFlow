@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import { skillRoutes, authRoutes, monsterRoutes, noteRoutes, rewardRoutes, domainRoutes, aiRoutes, proRoutes } from './routes';
 import dotenv from 'dotenv';
 
@@ -90,6 +91,9 @@ app.use(
   })
 );
 app.use(express.json());
+
+// 静态文件：头像等上传资源
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // API路由
 app.use('/api/skills', skillRoutes);

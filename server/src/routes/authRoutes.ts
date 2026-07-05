@@ -30,4 +30,7 @@ router.post('/forgot-password', AuthController.forgotPassword);
 // 重置密码
 router.post('/reset-password', AuthController.resetPassword);
 
+// 上传头像
+router.post('/avatar-upload', AuthController.uploadAvatar);
+
 export default router;

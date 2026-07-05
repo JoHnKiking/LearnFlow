@@ -1,6 +1,30 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/authService';
 import { LoginRequest, CreateUserRequest } from '../models';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+
+// 头像上传配置
+const uploadsDir = path.join(__dirname, '../../uploads/avatars');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: uploadsDir,
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, `avatar_${Date.now()}${ext}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (_req, file, cb) => {
+    const allowed = /\.(jpg|jpeg|png|gif|webp)$/i;
+    cb(null, allowed.test(path.extname(file.originalname)));
+  },
+}).single('avatar');
 
 export class AuthController {
   // 用户注册
@@ -229,6 +253,40 @@ export class AuthController {
         error: error instanceof Error ? error.message : '重置失败',
       });
     }
+  }
+
+  // 上传头像
+  static async uploadAvatar(req: Request, res: Response) {
+    upload(req, res, async (err) => {
+      if (err) {
+        console.error('[AuthController] 头像上传失败:', err.message);
+        return res.status(400).json({ error: '上传失败: ' + err.message });
+      }
+      if (!req.file) {
+        return res.status(400).json({ error: '未选择文件' });
+      }
+
+      const userId = parseInt(req.body.userId);
+      if (!userId) {
+        return res.status(400).json({ error: '缺少用户ID' });
+      }
+
+      try {
+        const connection = await (await import('../config/database')).DatabaseConnection.getConnection();
+        const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+
+        await connection.execute(
+          'UPDATE users SET avatar_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+          [avatarUrl, userId]
+        );
+
+        console.log(`[AuthController] 头像上传成功 - 用户ID: ${userId}`);
+        res.json({ success: true, data: { avatarUrl } });
+      } catch (error) {
+        console.error('[AuthController] 更新头像URL失败:', error);
+        res.status(500).json({ error: '服务器错误' });
+      }
+    });
   }
 
   // 用户登出

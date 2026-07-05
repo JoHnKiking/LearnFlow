@@ -166,6 +166,21 @@ export const authService = {
     await api.post('/auth/logout');
   },
 
+  // 上传头像
+  uploadAvatar: async (userId: number, uri: string): Promise<{ avatarUrl: string }> => {
+    const formData = new FormData();
+    formData.append('userId', String(userId));
+    formData.append('avatar', {
+      uri,
+      type: 'image/jpeg',
+      name: 'avatar.jpg',
+    } as any);
+    const response = await api.post('/auth/avatar-upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data.data;
+  },
+
   // 忘记密码 — 发送重置验证码
   forgotPassword: async (email: string): Promise<{ message: string; email: string }> => {
     const response = await api.post('/auth/forgot-password', { email });
