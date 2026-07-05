@@ -6,9 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import SubscriptionModal from '../../src/components/SubscriptionModal';
-import { proService } from '../../src/services/api';
-import { SUBSCRIPTION_STORAGE_KEY } from '../../src/utils/pricing';
-import { getCurrentUser } from '../../src/utils/auth';
+import { useProStatus } from '../../src/hooks/useProStatus';
 import { getSkillTreeByDomain } from '../../src/data/skillTrees';
 
 interface Module {
@@ -117,19 +115,7 @@ const MapScreen = () => {
   const { isDark, colors } = useTheme();
   const [modules, setModules] = useState<Module[]>([]);
   const [showProModal, setShowProModal] = useState(false);
-  const [isPro, setIsPro] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const user = await getCurrentUser();
-        if (user?.id) {
-          const status = await proService.getStatus(user.id);
-          setIsPro(status.isPro);
-        }
-      } catch {}
-    })();
-  }, []);
+  const { isPro, expiresAt, refresh: refreshPro } = useProStatus();
 
   // 动态样式
   const dynamicStyles = useMemo(() => ({
@@ -357,8 +343,16 @@ const MapScreen = () => {
             <Text style={dynamicStyles.subtitle}>选择一个模块开始学习</Text>
           </View>
           <TouchableOpacity
-            onPress={() => { if (!isPro) setShowProModal(true); }}
-            activeOpacity={isPro ? 1 : 0.7}
+            onPress={() => {
+              if (isPro) {
+                Alert.alert('PRO 会员', expiresAt
+                  ? `Pro 会员有效期至 ${new Date(expiresAt).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}`
+                  : '永久 Pro 会员，感谢支持！');
+              } else {
+                setShowProModal(true);
+              }
+            }}
+            activeOpacity={0.7}
             style={{
               flexDirection: 'row', alignItems: 'center', gap: 4,
               paddingHorizontal: 10, paddingVertical: 6,
@@ -454,7 +448,7 @@ const MapScreen = () => {
         <View style={staticStyles.bottomPadding} />
       </ScrollView>
 
-      <SubscriptionModal visible={showProModal} onClose={() => setShowProModal(false)} onProActivated={() => setIsPro(true)} />
+      <SubscriptionModal visible={showProModal} onClose={() => setShowProModal(false)} onProActivated={refreshPro} />
     </SafeAreaView>
   );
 };

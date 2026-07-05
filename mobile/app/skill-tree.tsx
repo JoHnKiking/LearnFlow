@@ -27,7 +27,7 @@ import { SkillTree, PlatformType, StageType, SkillNode, SkillStage } from '../sr
 import { useTheme } from '../src/contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { monsterService } from '../src/services/api';
-import { proService } from '../src/services/api';
+import { useProStatus } from '../src/hooks/useProStatus';
 import { getCurrentUser } from '../src/utils/auth';
 import { SUBSCRIPTION_STORAGE_KEY } from '../src/utils/pricing';
 import { MONSTER_CONFIG } from '../src/utils/constants';
@@ -55,20 +55,7 @@ interface CustomNode {
 const SkillTreeScreen = () => {
   const { domain } = useLocalSearchParams();
   const { colors } = useTheme();
-  const [isPro, setIsPro] = useState(false);
-
-  // 加载 Pro 状态（以数据库 is_pro 字段为准）
-  useEffect(() => {
-    (async () => {
-      try {
-        const user = await getCurrentUser();
-        if (user?.id) {
-          const status = await proService.getStatus(user.id);
-          setIsPro(status.isPro);
-        }
-      } catch {}
-    })();
-  }, []);
+  const { isPro } = useProStatus();
 
   // ---- 样式表（依赖 colors） ----
   const s = useMemo(() => StyleSheet.create({

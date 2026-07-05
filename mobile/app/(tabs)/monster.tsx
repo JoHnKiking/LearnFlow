@@ -12,8 +12,7 @@ import { MONSTER_CONFIG } from '../../src/utils/constants';
 import { formatTimer } from '../../src/utils/helpers';
 import { useFocusEffect, router } from 'expo-router';
 import { noteService, rewardService, monsterService } from '../../src/services/api';
-import { proService } from '../../src/services/api';
-import { getCurrentUser } from '../../src/utils/auth';
+import { useProStatus } from '../../src/hooks/useProStatus';
 import { SUBSCRIPTION_STORAGE_KEY } from '../../src/utils/pricing';
 
 type ActiveTab = 'tasks' | 'notes' | 'chat';
@@ -276,33 +275,20 @@ const MonsterManageScreen = () => {
   const [chatInput, setChatInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [showChatInput, setShowChatInput] = useState(false);
-  const [isPro, setIsPro] = useState(false);
+  const { isPro, refresh: refreshPro } = useProStatus();
   const flatListRef = useRef<FlatList>(null);
 
   useFocusEffect(
     useCallback(() => {
       loadData();
       loadChatMessages();
-      checkProStatus();
     }, [])
   );
 
   useEffect(() => {
     loadData();
     loadChatMessages();
-    checkProStatus();
   }, []);
-
-  // 检查 Pro 状态（以数据库 is_pro 字段为准）
-  const checkProStatus = async () => {
-    try {
-      const user = await getCurrentUser();
-      if (user?.id) {
-        const status = await proService.getStatus(user.id);
-        setIsPro(status.isPro);
-      }
-    } catch {}
-  };
 
   const pomodoroTimeLeft = selectedTime * 60;
 
@@ -618,6 +604,13 @@ const MonsterManageScreen = () => {
   };
 
   const handleInputBarPress = () => {
+    if (!isPro) {
+      Alert.alert('Pro 专属功能', '怪兽对话为 Pro 会员专属功能，升级后即可与小怪兽畅聊', [
+        { text: '稍后再说', style: 'cancel' },
+        { text: '了解 Pro', onPress: () => setShowProModal(true) },
+      ]);
+      return;
+    }
     setShowChatInput(true);
   };
 
@@ -827,14 +820,14 @@ const MonsterManageScreen = () => {
 
       {/* 非 Pro 用户提示条 */}
       {!isPro && (
-        <View style={{ paddingHorizontal: 16, paddingVertical: 12, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.hairline }}>
-          <TouchableOpacity 
+        <View style={{ paddingHorizontal: 16, paddingVertical: 12, backgroundColor: colors.proBg, borderBottomWidth: 1, borderBottomColor: colors.proBorder }}>
+          <TouchableOpacity
             onPress={() => setShowProModal(true)}
             activeOpacity={0.7}
             style={{ alignItems: 'center' }}
           >
-            <Text style={{ color: colors.textSecondary, fontSize: 14, textAlign: 'center' }}>
-              升级 <Text style={{ color: colors.primary, fontWeight: '600' }}>Pro</Text> 领取每日 1000 点能量
+            <Text style={{ color: colors.pro, fontSize: 14, textAlign: 'center' }}>
+              升级 <Text style={{ color: colors.pro, fontWeight: '700' }}>Pro</Text> 解锁对话 · 每日 1000 能量 · 无限跳转
             </Text>
           </TouchableOpacity>
         </View>
@@ -885,18 +878,32 @@ const MonsterManageScreen = () => {
           </View>
         )}
       />
-      {/* 临时输入栏：点击后弹出浮动输入框 */}
+      {/* 输入栏：非 Pro 显示升级提示，Pro 正常输入 */}
       <TouchableOpacity
         style={[staticStyles.chatInputBar, dynamicStyles.chatInputBar]}
         onPress={() => handleInputBarPress()}
         activeOpacity={0.8}
       >
-        <Text style={{ flex: 1, color: colors.textTertiary, fontSize: 14 }}>
-          {chatInput || `和 ${monsterData.name} 说点什么...`}
-        </Text>
-        <View style={[staticStyles.sendButton, dynamicStyles.sendButton, !chatInput.trim() && staticStyles.sendButtonDisabled]}>
-          <Ionicons name="send" size={18} color="#FFFFFF" />
-        </View>
+        {isPro ? (
+          <>
+            <Text style={{ flex: 1, color: colors.textTertiary, fontSize: 14 }}>
+              {chatInput || `和 ${monsterData.name} 说点什么...`}
+            </Text>
+            <View style={[staticStyles.sendButton, dynamicStyles.sendButton, !chatInput.trim() && staticStyles.sendButtonDisabled]}>
+              <Ionicons name="send" size={18} color="#FFFFFF" />
+            </View>
+          </>
+        ) : (
+          <>
+            <Ionicons name="lock-closed" size={16} color={colors.pro} style={{ marginRight: 8 }} />
+            <Text style={{ flex: 1, color: colors.textTertiary, fontSize: 14 }}>
+              升级 Pro 解锁 AI 对话
+            </Text>
+            <View style={[staticStyles.sendButton, { backgroundColor: colors.pro, width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }]}>
+              <Ionicons name="diamond" size={16} color="#FFFFFF" />
+            </View>
+          </>
+        )}
       </TouchableOpacity>
 
       {/* 浮动输入模态 */}
@@ -1161,7 +1168,7 @@ const MonsterManageScreen = () => {
         </SafeAreaView>
       </Modal>
 
-      <SubscriptionModal visible={showProModal} onClose={() => setShowProModal(false)} onProActivated={() => { checkProStatus(); }} />
+      <SubscriptionModal visible={showProModal} onClose={() => setShowProModal(false)} onProActivated={refreshPro} />
     </SafeAreaView>
   );
 };

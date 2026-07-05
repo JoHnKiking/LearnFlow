@@ -15,7 +15,7 @@ import { storage, STORAGE_KEYS } from '../src/utils/storage';
 import SubscriptionModal from '../src/components/SubscriptionModal';
 import { getCurrentUser } from '../src/utils/auth';
 import { proService } from '../src/services/api';
-import { SUBSCRIPTION_STORAGE_KEY } from '../src/utils/pricing';
+import { useProStatus } from '../src/hooks/useProStatus';
 
 
 // ---- 平台选项（与 skill-tree 保持一致） ----
@@ -199,20 +199,7 @@ const ModuleSelectionScreen = () => {
   };
 
   // ---- Pro 检测（以数据库 is_pro 字段为准） ----
-  const [isPro, setIsPro] = useState(false);
-
-  useEffect(() => {
-    const checkPro = async () => {
-      try {
-        const user = await getCurrentUser();
-        if (user?.id) {
-          const proStatus = await proService.getStatus(user.id);
-          setIsPro(proStatus.isPro);
-        }
-      } catch {}
-    };
-    checkPro();
-  }, []);
+  const { isPro, refresh: refreshPro } = useProStatus();
 
   // ===================== 自定义模块：大标题操作 =====================
 
@@ -1072,35 +1059,32 @@ const ModuleSelectionScreen = () => {
                 <Text style={styles.selectedCount}>
                   已选择 {selectedModules.length}/3 个模块
                 </Text>
+
+                {/* 确认按钮放在 ScrollView 内，确保可滚动到 */}
+                <TouchableOpacity
+                  style={[
+                    styles.startButton,
+                    {
+                      backgroundColor: selectedModules.length === 0 ? colors.border : colors.primary,
+                      opacity: selectedModules.length === 0 ? 0.5 : 1,
+                      shadowColor: selectedModules.length === 0 ? 'transparent' : colors.shadow,
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: selectedModules.length === 0 ? 0 : 0.08,
+                      shadowRadius: 12,
+                      elevation: selectedModules.length === 0 ? 0 : 3,
+                      marginTop: 16,
+                    },
+                  ]}
+                  onPress={handleConfirmPreset}
+                  disabled={selectedModules.length === 0}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.startButtonText}>开始学习之旅 ✨</Text>
+                </TouchableOpacity>
               </>
             )}
           </View>
         </ScrollView>
-
-        {/* 底部固定按钮（非添加模式） */}
-        {!isAddMode && (
-          <View style={[styles.bottomBar, { backgroundColor: colors.background }]}>
-            <TouchableOpacity
-              style={[
-                styles.startButton,
-                {
-                  backgroundColor: selectedModules.length === 0 ? colors.border : colors.primary,
-                  opacity: selectedModules.length === 0 ? 0.5 : 1,
-                  shadowColor: selectedModules.length === 0 ? 'transparent' : colors.shadow,
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: selectedModules.length === 0 ? 0 : 0.08,
-                  shadowRadius: 12,
-                  elevation: selectedModules.length === 0 ? 0 : 3,
-                },
-              ]}
-              onPress={handleConfirmPreset}
-              disabled={selectedModules.length === 0}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.startButtonText}>开始学习之旅 ✨</Text>
-            </TouchableOpacity>
-          </View>
-        )}
       </KeyboardAvoidingView>
 
       {/* ---- Toast 提示 ---- */}
@@ -1123,7 +1107,7 @@ const ModuleSelectionScreen = () => {
           </View>
         </View>
       </Modal>
-      <SubscriptionModal visible={showProModal} onClose={() => setShowProModal(false)} />
+      <SubscriptionModal visible={showProModal} onClose={() => setShowProModal(false)} onProActivated={refreshPro} />
     </SafeAreaView>
   );
 };

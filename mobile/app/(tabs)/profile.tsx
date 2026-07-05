@@ -8,8 +8,7 @@ import { getCurrentUser, clearAuthData } from '../../src/utils/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import HelpModal from '../../src/components/HelpModal';
 import SubscriptionModal from '../../src/components/SubscriptionModal';
-import { proService } from '../../src/services/api';
-import { SUBSCRIPTION_STORAGE_KEY } from '../../src/utils/pricing';
+import { useProStatus } from '../../src/hooks/useProStatus';
 
 const ProfileScreen = () => {
   const { isDark, colors, toggleTheme } = useTheme();
@@ -25,7 +24,7 @@ const ProfileScreen = () => {
   const [domainCount, setDomainCount] = useState(0);
   const [activeDomainCount, setActiveDomainCount] = useState(0);
   const [showProModal, setShowProModal] = useState(false);
-  const [isPro, setIsPro] = useState(false);
+  const { isPro, planId, expiresAt, refresh: refreshPro } = useProStatus();
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -42,17 +41,12 @@ const ProfileScreen = () => {
     };
 
     loadUserData();
-    checkPro();
   }, []);
 
-  const checkPro = async () => {
-    try {
-      const user = await getCurrentUser();
-      if (user?.id) {
-        const status = await proService.getStatus(user.id);
-        setIsPro(status.isPro);
-      }
-    } catch {}
+  const formatExpiryText = (): string => {
+    if (!expiresAt) return '永久有效';
+    const d = new Date(expiresAt);
+    return d.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }) + ' 到期';
   };
 
   const userData = {
@@ -116,7 +110,7 @@ const ProfileScreen = () => {
             )}
           </View>
         ))}
-        {/* 了解充值 — 在深浅模式下方、隐私设置上方 */}
+        {/* Pro 状态行 */}
         <View style={[styles.settingItem, styles.settingItemBorder]}>
           <TouchableOpacity
             onPress={() => setShowProModal(true)}
@@ -126,10 +120,19 @@ const ProfileScreen = () => {
             <View style={[styles.settingIconContainer, { backgroundColor: colors.proBg, borderWidth: 1.5, borderColor: colors.proBorder }]}>
               <Ionicons name="diamond" size={16} color={colors.pro} />
             </View>
-            <Text style={[styles.settingLabel, { color: colors.pro, fontWeight: '700' as const }]}>了解充值</Text>
-            <View style={styles.settingRight}>
-              <Ionicons name="chevron-forward" size={16} color={colors.pro} />
-            </View>
+            {isPro ? (
+              <>
+                <Text style={[styles.settingLabel, { color: colors.pro, fontWeight: '700' as const, flex: 1 }]}>PRO 会员</Text>
+                <Text style={{ color: colors.textSecondary, fontSize: 12, marginRight: 4 }}>{formatExpiryText()}</Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.settingLabel, { color: colors.pro, fontWeight: '700' as const }]}>了解充值</Text>
+                <View style={styles.settingRight}>
+                  <Ionicons name="chevron-forward" size={16} color={colors.pro} />
+                </View>
+              </>
+            )}
           </TouchableOpacity>
         </View>
         {/* 隐私设置 */}
@@ -754,7 +757,7 @@ const ProfileScreen = () => {
       )}
 
       {/* Pro 付费弹窗 */}
-      <SubscriptionModal visible={showProModal} onClose={() => setShowProModal(false)} />
+      <SubscriptionModal visible={showProModal} onClose={() => setShowProModal(false)} onProActivated={refreshPro} />
     </SafeAreaView>
   );
 
