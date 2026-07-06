@@ -1,0 +1,1096 @@
+/**
+ * ================================================================
+ * LearnFlow — 技能学习 App
+ * 软件著作权申请 — 源代码前 30 页
+ * ================================================================
+ * 提交内容：服务端核心代码
+ *   1. AuthService — 用户认证服务（JWT + bcrypt + 邮箱验证）
+ *   2. ProService — Pro 付费激活码系统
+ *   3. EmailService — QQ 邮箱 SMTP 邮件发送
+ *   4. DatabaseConnection — MySQL 数据库连接池管理
+ *   5. AuthController — 认证接口控制器
+ *   6. User/Request/Response — 数据模型定义
+ *   7. Routes — Express 路由注册
+ * ================================================================
+ */
+
+// --- 文件: server/src/services/authService.ts ---
+
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { DatabaseConnection } from '../config/database';
+import { DatabaseService } from './databaseService';
+import { EmailService } from './emailService';
+import { 
+  User, CreateUserRequest, LoginRequest, AuthResponse, UserResponse 
+} from '../models';
+
+export class AuthService {
+  private static JWT_SECRET = process.env.JWT_SECRET || 'learnflow-secret-key';
+  private static JWT_EXPIRES_IN = '7d';
+  private static REFRESH_TOKEN_EXPIRES_IN = '30d';
+
+  // 邮箱登录
+  static async emailLogin(request: LoginRequest): Promise<AuthResponse> {
+    const startTime = Date.now();
+    const { email, password, deviceId, deviceType, deviceName } = request;
+
+    console.log(`[AuthService] 开始用户登录流程 - 邮箱: ${email}`);
+
+    if (!email || !password) {
+      console.log('[AuthService] 登录验证失败 - 邮箱或密码为空');
+      throw new Error('邮箱和密码不能为空');
+    }
+
+    const connection = await DatabaseConnection.getConnection();
+    const [rows] = await connection.execute(
+      'SELECT * FROM users WHERE email = ?',
+      [email]
+    );
+
+    const rawUser = (rows as any[])[0];
+    if (!rawUser) {
+      console.log(`[AuthService] 登录失败 - 用户不存在: ${email}`);
+      throw new Error('用户不存在');
+    }
+
+    if (rawUser.status === 'inactive') {
+      console.log(`[AuthService] 登录失败 - 邮箱未验证: ${email}`);
+      throw new Error('邮箱未验证，请先完成验证');
+    }
+
+    if (rawUser.status !== 'active') {
+      console.log(`[AuthService] 登录失败 - 账户状态异常: ${email}`);
+      throw new Error('账户状态异常，无法登录');
+    }
+
+    const user = this.mapUserFromDB(rawUser);
+
+    const isValidPassword = await bcrypt.compare(password, user.passwordHash || '');
+    if (!isValidPassword) {
+      console.log(`[AuthService] 登录失败 - 密码错误: ${email}`);
+      throw new Error('密码错误');
+    }
+
+    const authResponse = await this.generateAuthResponse(user, deviceId, deviceType, deviceName);
+
+    const duration = Date.now() - startTime;
+    console.log(`[AuthService] 用户登录流程完成 - 邮箱: ${email}, 总耗时: ${duration}ms`);
+
+    return authResponse;
+  }
+
+  // 用户注册（邮箱验证流程：先创建未激活用户，发送验证码）
+  static async registerUser(request: CreateUserRequest): Promise<{ message: string; email: string }> {
+    const startTime = Date.now();
+    const { username, email, password } = request;
+
+    console.log(`[AuthService] 开始用户注册流程 - 用户名: ${username}, 邮箱: ${email}`);
+
+    if (!username || !email || !password) {
+      console.log('[AuthService] 注册验证失败 - 缺少必填字段');
+      throw new Error('用户名、邮箱和密码不能为空');
+    }
+
+    if (username.trim().length < 2) {
+      throw new Error('用户名至少2个字符');
+    }
+
+    if (password.length < 6) {
+      console.log(`[AuthService] 注册验证失败 - 密码长度不足`);
+      throw new Error('密码长度至少6位');
+    }
+
+    const finalUsername = username.trim();
+
+    const connection = await DatabaseConnection.getConnection();
+    
+    // 检查邮箱是否已存在
+    const [existingUsers] = await connection.execute(
+      'SELECT id, status FROM users WHERE email = ?',
+      [email]
+    );
+
+    const existingUser = (existingUsers as any[])[0];
+    if (existingUser) {
+      if (existingUser.status === 'inactive') {
+        // 用户已注册但未激活，重新发送验证码
+        console.log(`[AuthService] 邮箱已注册但未激活，重新发送验证码: ${email}`);
+        const code = await this.generateAndStoreCode(email);
+        await EmailService.sendVerificationCode(email, code);
+        return { message: '验证码已重新发送至邮箱', email };
+      }
+      console.log(`[AuthService] 邮箱已被注册: ${email}`);
+      throw new Error('邮箱已被注册');
+    }
+
+    // 检查用户名是否已存在
+    let uniqueUsername = finalUsername;
+    let suffix = 1;
+    while (true) {
+      const [existingUsernames] = await connection.execute(
+        'SELECT id FROM users WHERE username = ?',
+        [uniqueUsername]
+      );
+      if ((existingUsernames as any[]).length === 0) break;
+      uniqueUsername = `${finalUsername}${suffix}`;
+      suffix++;
+    }
+
+    // 密码加密
+    const saltRounds = 12;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+
+    // 创建未激活用户
+    const [result] = await connection.execute(
+      `INSERT INTO users (username, email, password_hash, status, created_at, updated_at) 
+       VALUES (?, ?, ?, 'inactive', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      [uniqueUsername, email, passwordHash]
+    );
+
+    const userId = (result as any).insertId;
+    console.log(`[AuthService] 未激活用户创建成功 - 用户ID: ${userId}, 用户名: ${uniqueUsername}`);
+
+    // 生成验证码并发送邮件
+    const code = await this.generateAndStoreCode(email);
+    await EmailService.sendVerificationCode(email, code);
+
+    const duration = Date.now() - startTime;
+    console.log(`[AuthService] 用户注册流程完成 - 用户名: ${uniqueUsername}, 总耗时: ${duration}ms`);
+    
+    return { message: '验证码已发送至邮箱，请查收', email };
+  }
+
+  // 生成并存储6位验证码
+  private static async generateAndStoreCode(email: string): Promise<string> {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10分钟有效
+
+    const connection = await DatabaseConnection.getConnection();
+    // 删除该邮箱过期的旧验证码
+    await connection.execute(
+      'DELETE FROM email_verification_tokens WHERE email = ?',
+      [email]
+    );
+    // 插入新验证码
+    await connection.execute(
+      'INSERT INTO email_verification_tokens (email, token, expires_at) VALUES (?, ?, ?)',
+      [email, code, expiresAt]
+    );
+
+    console.log(`[AuthService] 验证码已生成 - 邮箱: ${email}, 过期时间: ${expiresAt}`);
+    return code;
+  }
+
+  // 验证邮箱验证码并激活用户
+  static async verifyEmail(email: string, token: string): Promise<AuthResponse> {
+    const connection = await DatabaseConnection.getConnection();
+
+    // 查找有效验证码
+    const [rows] = await connection.execute(
+      'SELECT * FROM email_verification_tokens WHERE email = ? AND token = ? AND expires_at > NOW()',
+      [email, token]
+    );
+
+    const record = (rows as any[])[0];
+    if (!record) {
+      throw new Error('验证码无效或已过期');
+    }
+
+    // 检查尝试次数（最多3次）
+    if (record.attempts >= 3) {
+      await connection.execute(
+        'DELETE FROM email_verification_tokens WHERE id = ?',
+        [record.id]
+      );
+      throw new Error('验证码错误次数过多，请重新发送');
+    }
+
+    // 增加尝试次数
+    await connection.execute(
+      'UPDATE email_verification_tokens SET attempts = attempts + 1 WHERE id = ?',
+      [record.id]
+    );
+
+    // 激活用户
+    await connection.execute(
+      "UPDATE users SET status = 'active', updated_at = CURRENT_TIMESTAMP WHERE email = ? AND status = 'inactive'",
+      [email]
+    );
+
+    // 清理验证码
+    await connection.execute(
+      'DELETE FROM email_verification_tokens WHERE email = ?',
+      [email]
+    );
+
+    // 获取用户信息并生成token
+    const [userRows] = await connection.execute(
+      'SELECT * FROM users WHERE email = ?',
+      [email]
+    );
+
+    const user = this.mapUserFromDB((userRows as any[])[0]);
+    console.log(`[AuthService] 邮箱验证成功 - 用户ID: ${user.id}`);
+
+    return this.generateAuthResponse(user, 'default-device', 'web', '注册设备');
+  }
+
+  // 重新发送验证码
+  static async resendVerificationCode(email: string): Promise<{ message: string }> {
+    const connection = await DatabaseConnection.getConnection();
+
+    // 检查60秒冷却
+    const [recent] = await connection.execute(
+      'SELECT created_at FROM email_verification_tokens WHERE email = ? ORDER BY created_at DESC LIMIT 1',
+      [email]
+    );
+
+    const lastRecord = (recent as any[])[0];
+    if (lastRecord) {
+      const secondsSinceLast = (Date.now() - new Date(lastRecord.created_at).getTime()) / 1000;
+      if (secondsSinceLast < 60) {
+        const waitSeconds = Math.ceil(60 - secondsSinceLast);
+        throw new Error(`请等待 ${waitSeconds} 秒后再发送`);
+      }
+    }
+
+    const code = await this.generateAndStoreCode(email);
+    await EmailService.sendVerificationCode(email, code);
+    console.log(`[AuthService] 验证码已重新发送 - 邮箱: ${email}`);
+    return { message: '验证码已重新发送至邮箱' };
+  }
+
+  // 直接发送验证码（已登录用户修改邮箱等场景）
+  static async sendVerificationEmail(email: string): Promise<{ message: string }> {
+    const code = await this.generateAndStoreCode(email);
+    await EmailService.sendVerificationCode(email, code);
+    console.log(`[AuthService] 验证码已发送 - 邮箱: ${email}`);
+    return { message: '验证码已发送至邮箱' };
+  }
+
+  // 生成认证响应
+  private static async generateAuthResponse(
+    user: User, 
+    deviceId: string, 
+    deviceType: 'ios' | 'android' | 'web',
+    deviceName?: string
+  ): Promise<AuthResponse> {
+    console.log(`[AuthService] 生成认证令牌 - 用户ID: ${user.id}`);
+    
+    // 生成JWT令牌
+    const accessToken = jwt.sign(
+      { userId: user.id, type: 'access' },
+      this.JWT_SECRET,
+      { expiresIn: this.JWT_EXPIRES_IN as any }
+    );
+
+    const refreshToken = jwt.sign(
+      { userId: user.id, type: 'refresh' },
+      this.JWT_SECRET,
+      { expiresIn: this.REFRESH_TOKEN_EXPIRES_IN as any }
+    );
+
+    // 检查是否已存在设备会话
+    const existingSession = await DatabaseService.getDeviceSession(user.id, deviceId);
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30天
+    
+    if (existingSession) {
+      // 更新现有会话的过期时间
+      console.log(`[AuthService] 更新现有设备会话 - 会话ID: ${existingSession.id}`);
+      await DatabaseService.updateDeviceSession(existingSession.id, {
+        expiresAt,
+        lastActiveAt: new Date()
+      });
+    } else {
+      // 创建新的设备会话
+      console.log(`[AuthService] 创建设备会话 - 用户ID: ${user.id}, 设备ID: ${deviceId}`);
+      await DatabaseService.createDeviceSession({
+        userId: user.id,
+        deviceId,
+        deviceType,
+        deviceName,
+        expiresAt
+      });
+    }
+
+    // 更新用户登录信息
+    await DatabaseService.updateUserLoginInfo(user.id);
+
+    return {
+      user: this.mapToUserResponse(user),
+      accessToken,
+      refreshToken,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    };
+  }
+
+  // 验证令牌
+  static async verifyToken(token: string): Promise<{ userId: number; type: string }> {
+    try {
+      const decoded = jwt.verify(token, this.JWT_SECRET) as any;
+      return { userId: decoded.userId, type: decoded.type };
+    } catch (error) {
+      throw new Error('令牌无效或已过期');
+    }
+  }
+
+  // 刷新令牌
+  static async refreshToken(refreshToken: string, deviceId: string): Promise<AuthResponse> {
+    const decoded = await this.verifyToken(refreshToken);
+    
+    if (decoded.type !== 'refresh') {
+      throw new Error('无效的刷新令牌');
+    }
+
+    // 检查设备会话
+    const session = await DatabaseService.getDeviceSession(decoded.userId, deviceId);
+    if (!session || new Date(session.expiresAt) < new Date()) {
+      throw new Error('设备会话已过期');
+    }
+
+    // 获取用户信息
+    const user = await DatabaseService.getUserById(decoded.userId);
+    if (!user) {
+      throw new Error('用户不存在');
+    }
+
+    // 生成新的访问令牌
+    const newAccessToken = jwt.sign(
+      { userId: user.id, type: 'access' },
+      this.JWT_SECRET,
+      { expiresIn: this.JWT_EXPIRES_IN as any }
+    );
+
+    return {
+      user: this.mapToUserResponse(user),
+      accessToken: newAccessToken,
+      refreshToken, // 使用原来的刷新令牌
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    };
+  }
+
+  // 密码加密
+  static async hashPassword(password: string): Promise<string> {
+    return await bcrypt.hash(password, 12);
+  }
+
+  // 忘记密码 — 发送重置验证码
+  static async forgotPassword(email: string): Promise<{ message: string; email: string }> {
+    const connection = await DatabaseConnection.getConnection();
+
+    // 检查用户是否存在且已激活
+    const [rows] = await connection.execute(
+      'SELECT * FROM users WHERE email = ?',
+      [email]
+    );
+    const user = (rows as any[])[0];
+    if (!user) {
+      throw new Error('该邮箱未注册');
+    }
+    if (user.status !== 'active') {
+      throw new Error('该账户尚未激活，无法重置密码');
+    }
+
+    // 检查 60 秒冷却
+    const [recent] = await connection.execute(
+      'SELECT created_at FROM email_verification_tokens WHERE email = ? ORDER BY created_at DESC LIMIT 1',
+      [email]
+    );
+    const lastRecord = (recent as any[])[0];
+    if (lastRecord) {
+      const secondsSinceLast = (Date.now() - new Date(lastRecord.created_at).getTime()) / 1000;
+      if (secondsSinceLast < 60) {
+        const waitSeconds = Math.ceil(60 - secondsSinceLast);
+        throw new Error(`请等待 ${waitSeconds} 秒后再发送`);
+      }
+    }
+
+    const code = await this.generateAndStoreCode(email);
+    await EmailService.sendPasswordResetCode(email, code);
+    console.log(`[AuthService] 密码重置验证码已发送 - 邮箱: ${email}`);
+    return { message: '重置验证码已发送至邮箱', email };
+  }
+
+  // 重置密码 — 验证验证码并更新密码
+  static async resetPassword(
+    email: string,
+    code: string,
+    newPassword: string
+  ): Promise<{ message: string }> {
+    if (newPassword.length < 6) {
+      throw new Error('新密码长度至少6位');
+    }
+
+    const connection = await DatabaseConnection.getConnection();
+
+    // 查找有效验证码
+    const [rows] = await connection.execute(
+      'SELECT * FROM email_verification_tokens WHERE email = ? AND token = ? AND expires_at > NOW()',
+      [email, code]
+    );
+    const record = (rows as any[])[0];
+    if (!record) {
+      throw new Error('验证码无效或已过期');
+    }
+
+    // 检查尝试次数
+    if (record.attempts >= 3) {
+      await connection.execute(
+        'DELETE FROM email_verification_tokens WHERE id = ?',
+        [record.id]
+      );
+      throw new Error('验证码错误次数过多，请重新发送');
+    }
+
+    // 增加尝试次数
+    await connection.execute(
+      'UPDATE email_verification_tokens SET attempts = attempts + 1 WHERE id = ?',
+      [record.id]
+    );
+
+    // 更新密码
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await connection.execute(
+      'UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE email = ?',
+      [passwordHash, email]
+    );
+
+    // 清理验证码
+    await connection.execute(
+      'DELETE FROM email_verification_tokens WHERE email = ?',
+      [email]
+    );
+
+    console.log(`[AuthService] 密码重置成功 - 邮箱: ${email}`);
+    return { message: '密码重置成功，请重新登录' };
+  }
+
+  // 数据库行到User对象映射
+  private static mapUserFromDB(row: any): User {
+    return {
+      id: row.id,
+      username: row.username,
+      email: row.email,
+      phone: row.phone,
+      passwordHash: row.password_hash,
+      nickname: row.nickname,
+      avatarUrl: row.avatar_url,
+      lastLoginAt: row.last_login_at ? new Date(row.last_login_at) : undefined,
+      loginCount: row.login_count,
+      status: row.status,
+      createdAt: new Date(row.created_at),
+      updatedAt: new Date(row.updated_at)
+    };
+  }
+
+  // User到UserResponse映射
+  private static mapToUserResponse(user: User): UserResponse {
+    return {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      phone: user.phone,
+      nickname: user.nickname,
+      avatarUrl: user.avatarUrl,
+      loginCount: user.loginCount,
+      lastLoginAt: user.lastLoginAt,
+      createdAt: user.createdAt
+    };
+  }
+}
+
+// --- 文件: server/src/services/proService.ts ---
+
+import crypto from 'crypto';
+import { DatabaseConnection } from '../config/database';
+
+const PLAN_DURATION: Record<string, number | null> = {
+  monthly: 30,       // 30 days
+  yearly: 365,       // 365 days
+  lifetime: null,    // permanent
+};
+
+export class ProService {
+  // 生成一批激活码
+  static async generateCodes(count: number, planId: string, createdBy?: string): Promise<string[]> {
+    if (!PLAN_DURATION[planId] && planId !== 'lifetime') {
+      throw new Error('无效的套餐类型');
+    }
+
+    const connection = await DatabaseConnection.getConnection();
+    const codes: string[] = [];
+
+    for (let i = 0; i < count; i++) {
+      const code = 'LF-' + crypto.randomBytes(6).toString('hex').toUpperCase();
+      await connection.execute(
+        'INSERT INTO activation_codes (code, plan_id, created_by, status) VALUES (?, ?, ?, ?)',
+        [code, planId, createdBy || null, 'unused']
+      );
+      codes.push(code);
+    }
+
+    console.log(`[ProService] 生成 ${count} 个激活码, 套餐: ${planId}`);
+    return codes;
+  }
+
+  // 验证并激活
+  static async activateCode(code: string, userId: number): Promise<{
+    success: boolean;
+    planId?: string;
+    expiresAt?: string;
+  }> {
+    const connection = await DatabaseConnection.getConnection();
+
+    // 查找未使用的激活码
+    const [rows] = await connection.execute(
+      'SELECT * FROM activation_codes WHERE code = ? AND status = ?',
+      [code, 'unused']
+    );
+
+    const record = (rows as any[])[0];
+    if (!record) {
+      throw new Error('激活码无效或已被使用');
+    }
+
+    // 计算过期时间
+    const duration = PLAN_DURATION[record.plan_id];
+    let expiresAt: Date | null = null;
+    if (duration !== null && duration !== undefined) {
+      expiresAt = new Date(Date.now() + duration * 24 * 60 * 60 * 1000);
+    }
+
+    // 更新激活码状态
+    await connection.execute(
+      'UPDATE activation_codes SET status = ?, used_by = ?, used_at = NOW() WHERE id = ?',
+      ['used', userId, record.id]
+    );
+
+    // 更新用户 Pro 状态
+    if (expiresAt) {
+      await connection.execute(
+        'UPDATE users SET is_pro = 1, pro_activated_at = NOW(), pro_expires_at = ? WHERE id = ?',
+        [expiresAt, userId]
+      );
+    } else {
+      // 永久会员
+      await connection.execute(
+        'UPDATE users SET is_pro = 1, pro_activated_at = NOW(), pro_expires_at = NULL WHERE id = ?',
+        [userId]
+      );
+    }
+
+    console.log(`[ProService] 激活码使用成功 - 用户ID: ${userId}, 套餐: ${record.plan_id}, 过期: ${expiresAt || '永久'}`);
+    return {
+      success: true,
+      planId: record.plan_id,
+      expiresAt: expiresAt?.toISOString(),
+    };
+  }
+
+  // 查询用户 Pro 状态
+  static async getProStatus(userId: number): Promise<{
+    isPro: boolean;
+    planId?: string;
+    activatedAt?: string;
+    expiresAt?: string;
+  }> {
+    const connection = await DatabaseConnection.getConnection();
+    const [rows] = await connection.execute(
+      'SELECT is_pro, pro_activated_at, pro_expires_at FROM users WHERE id = ?',
+      [userId]
+    );
+
+    const user = (rows as any[])[0];
+    if (!user) {
+      throw new Error('用户不存在');
+    }
+
+    // 检查是否过期
+    if (user.is_pro && user.pro_expires_at && new Date(user.pro_expires_at) < new Date()) {
+      // 已过期，自动取消 Pro
+      await connection.execute(
+        'UPDATE users SET is_pro = 0 WHERE id = ?',
+        [userId]
+      );
+      return { isPro: false };
+    }
+
+    // 查询使用的激活码类型
+    let planId: string | undefined;
+    if (user.is_pro) {
+      const [codeRows] = await connection.execute(
+        'SELECT plan_id FROM activation_codes WHERE used_by = ? ORDER BY used_at DESC LIMIT 1',
+        [userId]
+      );
+      const codeRecord = (codeRows as any[])[0];
+      planId = codeRecord?.plan_id;
+    }
+
+    return {
+      isPro: !!user.is_pro,
+      planId,
+      activatedAt: user.pro_activated_at ? new Date(user.pro_activated_at).toISOString() : undefined,
+      expiresAt: user.pro_expires_at ? new Date(user.pro_expires_at).toISOString() : undefined,
+    };
+  }
+
+  // 列出所有激活码（管理用）
+  static async listCodes(filter?: { status?: string; planId?: string }): Promise<any[]> {
+    const connection = await DatabaseConnection.getConnection();
+    let sql = 'SELECT * FROM activation_codes WHERE 1=1';
+    const params: any[] = [];
+
+    if (filter?.status) {
+      sql += ' AND status = ?';
+      params.push(filter.status);
+    }
+    if (filter?.planId) {
+      sql += ' AND plan_id = ?';
+      params.push(filter.planId);
+    }
+
+    sql += ' ORDER BY created_at DESC LIMIT 100';
+    const [rows] = await connection.execute(sql, params);
+    return rows as any[];
+  }
+}
+
+// --- 文件: server/src/services/emailService.ts ---
+
+import nodemailer from 'nodemailer';
+
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.qq.com',
+  port: parseInt(process.env.SMTP_PORT || '587'),
+  secure: false,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
+const FROM = process.env.SMTP_FROM || 'LearnFlow <noreply@learnflow.app>';
+
+export class EmailService {
+  static async sendVerificationCode(email: string, code: string): Promise<void> {
+    const html = `
+      <div style="max-width:480px;margin:0 auto;padding:32px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#1a1a2e;border-radius:16px;color:#e8e8ff">
+        <h2 style="color:#7b75d8;margin:0 0 8px">LearnFlow</h2>
+        <p style="font-size:18px;font-weight:600;margin:16px 0 8px;color:#fff">邮箱验证码</p>
+        <p style="color:#a0a0c0;font-size:14px;margin:0 0 24px">您正在注册 LearnFlow 账号，请输入以下验证码完成验证：</p>
+        <div style="background:#2a2a4a;border-radius:12px;padding:20px;text-align:center;margin:0 0 24px">
+          <span style="font-size:36px;font-weight:700;letter-spacing:8px;color:#7b75d8;font-family:'Courier New',monospace">${code}</span>
+        </div>
+        <p style="color:#888;font-size:12px;margin:0">验证码 10 分钟内有效，请勿泄露给他人。</p>
+      </div>
+    `;
+
+    await transporter.sendMail({
+      from: FROM,
+      to: email,
+      subject: 'LearnFlow 邮箱验证码',
+      html,
+    });
+  }
+
+  static async sendPasswordResetCode(email: string, code: string): Promise<void> {
+    const html = `
+      <div style="max-width:480px;margin:0 auto;padding:32px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#1a1a2e;border-radius:16px;color:#e8e8ff">
+        <h2 style="color:#7b75d8;margin:0 0 8px">LearnFlow</h2>
+        <p style="font-size:18px;font-weight:600;margin:16px 0 8px;color:#fff">重置密码</p>
+        <p style="color:#a0a0c0;font-size:14px;margin:0 0 24px">您正在申请重置 LearnFlow 账号密码，请输入以下验证码完成重置：</p>
+        <div style="background:#2a2a4a;border-radius:12px;padding:20px;text-align:center;margin:0 0 24px">
+          <span style="font-size:36px;font-weight:700;letter-spacing:8px;color:#7b75d8;font-family:'Courier New',monospace">${code}</span>
+        </div>
+        <p style="color:#888;font-size:12px;margin:0">验证码 10 分钟内有效，请勿泄露给他人。</p>
+      </div>
+    `;
+
+    await transporter.sendMail({
+      from: FROM,
+      to: email,
+      subject: 'LearnFlow 密码重置验证码',
+      html,
+    });
+  }
+}
+
+// --- 文件: server/src/config/database.ts ---
+
+import mysql from 'mysql2/promise';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+export interface DatabaseConfig {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  database: string;
+}
+
+export const dbConfig: DatabaseConfig = {
+  host: process.env.DB_HOST || '127.0.0.1', 
+  port: parseInt(process.env.DB_PORT || '3306'),
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'learnflow'
+};
+
+const poolConfig = {
+  ...dbConfig,
+  connectionLimit: 10,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 10000,
+};
+
+export const pool = mysql.createPool(poolConfig);
+
+export class DatabaseConnection {
+  private static connection: mysql.Connection | null = null;
+
+  static async getConnection(): Promise<mysql.Connection> {
+    if (this.connection) {
+      try {
+        await this.connection.ping();
+        return this.connection;
+      } catch {
+        this.connection = null;
+      }
+    }
+
+    try {
+      this.connection = await mysql.createConnection(poolConfig);
+      console.log('MySQL数据库连接成功');
+    } catch (error) {
+      console.error('MySQL数据库连接失败:', error);
+      console.error('连接配置:', {
+        host: dbConfig.host,
+        port: dbConfig.port,
+        user: dbConfig.user,
+        database: dbConfig.database
+      });
+      const err = error as { code?: string };
+      if (err.code === 'ER_ACCESS_DENIED_ERROR') {
+        console.error(
+          '提示: 用户名或密码不对。请检查 DB_USER 和 DB_PASSWORD 配置。'
+        );
+      }
+      throw new Error(`数据库连接失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+    return this.connection;
+  }
+
+  static async closeConnection(): Promise<void> {
+    if (this.connection) {
+      await this.connection.end();
+      this.connection = null;
+      console.log('MySQL数据库连接已关闭');
+    }
+  }
+
+  static async testConnection(): Promise<boolean> {
+    try {
+      const connection = await this.getConnection();
+      await connection.execute('SELECT 1');
+      return true;
+    } catch (error) {
+      console.error('数据库连接测试失败:', error);
+      return false;
+    }
+  }
+}
+
+// --- 文件: server/src/controllers/authController.ts ---
+
+import { Request, Response } from 'express';
+import { AuthService } from '../services/authService';
+import { LoginRequest, CreateUserRequest } from '../models';
+import multer, { FileFilterCallback } from 'multer';
+import path from 'path';
+import fs from 'fs';
+
+// 头像上传配置
+const uploadsDir = path.join(__dirname, '../../uploads/avatars');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: uploadsDir,
+    filename: (_req: Express.Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
+      const ext = path.extname(file.originalname);
+      cb(null, `avatar_${Date.now()}${ext}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req: Express.Request, file: Express.Multer.File, cb: FileFilterCallback) => {
+    const allowed = /\.(jpg|jpeg|png|gif|webp)$/i;
+    cb(null, allowed.test(path.extname(file.originalname)));
+  },
+}).single('avatar');
+
+export class AuthController {
+  // 用户注册
+  static async register(req: Request, res: Response) {
+    const startTime = Date.now();
+    const { username, email } = req.body;
+    
+    try {
+      console.log(`[AuthController] 开始处理用户注册 - 用户名: ${username}, 邮箱: ${email}`);
+      const registerRequest: CreateUserRequest = req.body;
+      
+      if (!registerRequest.username || !registerRequest.email || !registerRequest.password) {
+        console.log(`[AuthController] 注册验证失败 - 缺少必填字段`);
+        return res.status(400).json({ error: '用户名、邮箱和密码不能为空' });
+      }
+      
+      if (registerRequest.password.length < 6) {
+        console.log(`[AuthController] 注册验证失败 - 密码长度不足`);
+        return res.status(400).json({ error: '密码长度至少6位' });
+      }
+      
+      const result = await AuthService.registerUser(registerRequest);
+      const duration = Date.now() - startTime;
+      console.log(`[AuthController] 用户注册成功 - 用户名: ${username}, 耗时: ${duration}ms`);
+      
+      res.json({ success: true, data: result });
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`[AuthController] 注册失败 - 用户名: ${username}, 错误: ${error}, 耗时: ${duration}ms`);
+      res.status(400).json({ success: false, error: error instanceof Error ? error.message : '注册失败' });
+    }
+  }
+
+  // 验证邮箱
+  static async verifyEmail(req: Request, res: Response) {
+    try {
+      const { email, token } = req.body;
+      if (!email || !token) {
+        return res.status(400).json({ error: '邮箱和验证码不能为空' });
+      }
+      const authResponse = await AuthService.verifyEmail(email, token);
+      res.json({ success: true, data: authResponse });
+    } catch (error) {
+      res.status(400).json({ success: false, error: error instanceof Error ? error.message : '验证失败' });
+    }
+  }
+
+  // 用户登录
+  static async login(req: Request, res: Response) {
+    const startTime = Date.now();
+    try {
+      const loginRequest: LoginRequest = req.body;
+      if (!loginRequest.type) {
+        return res.status(400).json({ error: '登录类型不能为空' });
+      }
+
+      let authResponse;
+      if (loginRequest.type === 'email') {
+        authResponse = await AuthService.emailLogin(loginRequest);
+      } else {
+        return res.status(400).json({ error: '不支持的登录类型' });
+      }
+
+      const duration = Date.now() - startTime;
+      console.log(`[AuthController] 登录成功 - 邮箱: ${loginRequest.email || 'N/A'}, 耗时: ${duration}ms`);
+      res.json({ success: true, data: authResponse });
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`[AuthController] 登录失败 - 错误: ${error}, 耗时: ${duration}ms`);
+      res.status(400).json({ success: false, error: error instanceof Error ? error.message : '登录失败' });
+    }
+  }
+
+  // 重新发送验证码
+  static async resendVerification(req: Request, res: Response) {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: '邮箱不能为空' });
+      }
+      const result = await AuthService.resendVerificationCode(email);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      res.status(400).json({ success: false, error: error instanceof Error ? error.message : '重发失败' });
+    }
+  }
+
+  // 刷新访问令牌
+  static async refreshToken(req: Request, res: Response) {
+    try {
+      const { refreshToken, deviceId } = req.body;
+      if (!refreshToken || !deviceId) {
+        return res.status(400).json({ error: '刷新令牌和设备ID不能为空' });
+      }
+      const authResponse = await AuthService.refreshToken(refreshToken, deviceId);
+      res.json({ success: true, data: authResponse });
+    } catch (error) {
+      res.status(400).json({ success: false, error: error instanceof Error ? error.message : '刷新令牌失败' });
+    }
+  }
+
+  // 验证令牌
+  static async verifyToken(req: Request, res: Response) {
+    try {
+      const { token } = req.body;
+      if (!token) {
+        return res.status(400).json({ error: '令牌不能为空' });
+      }
+      const decoded = await AuthService.verifyToken(token);
+      res.json({ success: true, data: decoded });
+    } catch (error) {
+      res.status(400).json({ success: false, error: error instanceof Error ? error.message : '令牌无效' });
+    }
+  }
+
+  // 忘记密码 — 发送重置验证码
+  static async forgotPassword(req: Request, res: Response) {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: '邮箱不能为空' });
+      }
+      const result = await AuthService.forgotPassword(email);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      res.status(400).json({ success: false, error: error instanceof Error ? error.message : '发送失败' });
+    }
+  }
+
+  // 重置密码
+  static async resetPassword(req: Request, res: Response) {
+    try {
+      const { email, code, newPassword } = req.body;
+      if (!email || !code || !newPassword) {
+        return res.status(400).json({ error: '邮箱、验证码和新密码不能为空' });
+      }
+      const result = await AuthService.resetPassword(email, code, newPassword);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      res.status(400).json({ success: false, error: error instanceof Error ? error.message : '重置失败' });
+    }
+  }
+
+  // 上传头像
+  static async uploadAvatar(req: Request, res: Response) {
+    upload(req, res, async (err: any) => {
+      if (err) {
+        return res.status(400).json({ error: '上传失败: ' + err.message });
+      }
+      const file = (req as any).file;
+      if (!file) {
+        return res.status(400).json({ error: '未选择文件' });
+      }
+      const userId = req.user!.userId;
+      try {
+        const connection = await (await import('../config/database')).DatabaseConnection.getConnection();
+        const avatarUrl = `/api/uploads/avatars/${file.filename}`;
+        await connection.execute(
+          'UPDATE users SET avatar_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+          [avatarUrl, userId]
+        );
+        res.json({ success: true, data: { avatarUrl } });
+      } catch (error) {
+        res.status(500).json({ error: '服务器错误' });
+      }
+    });
+  }
+
+  // 用户登出
+  static async logout(req: Request, res: Response) {
+    try {
+      res.json({ success: true, message: '登出成功' });
+    } catch (error) {
+      res.status(500).json({ success: false, error: '登出失败' });
+    }
+  }
+}
+
+// --- 文件: server/src/models/User.ts ---
+
+export interface User {
+  id: number;
+  username?: string;
+  email?: string;
+  phone?: string;
+  passwordHash?: string;
+  nickname?: string;
+  avatarUrl?: string;
+  lastLoginAt?: Date;
+  loginCount: number;
+  status: 'active' | 'inactive' | 'banned';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateUserRequest {
+  username?: string;
+  email?: string;
+  password?: string;
+  nickname?: string;
+  avatarUrl?: string;
+}
+
+export interface LoginRequest {
+  type: 'email';
+  email?: string;
+  password?: string;
+  deviceId: string;
+  deviceType: 'ios' | 'android' | 'web';
+  deviceName?: string;
+}
+
+export interface UserResponse {
+  id: number;
+  username?: string;
+  email?: string;
+  phone?: string;
+  nickname?: string;
+  avatarUrl?: string;
+  loginCount: number;
+  lastLoginAt?: Date;
+  createdAt: Date;
+}
+
+export interface AuthResponse {
+  user: UserResponse;
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: string;
+}
+
+// --- 文件: server/src/routes/index.ts ---
+
+export { default as skillRoutes } from './skillRoutes';
+export { default as authRoutes } from './authRoutes';
+export { default as monsterRoutes } from './monsterRoutes';
+export { default as noteRoutes } from './noteRoutes';
+export { default as rewardRoutes } from './rewardRoutes';
+export { default as domainRoutes } from './domainRoutes';
+export { default as aiRoutes } from './aiRoutes';
+export { default as proRoutes } from './proRoutes';
+
+// --- 文件: server/src/routes/authRoutes.ts ---
+
+import express from 'express';
+import { AuthController } from '../controllers/authController';
+import { authMiddleware } from '../middleware';
+
+const router = express.Router();
+
+router.post('/register', AuthController.register);
+router.post('/verify-email', AuthController.verifyEmail);
+router.post('/resend-verification', AuthController.resendVerification);
+router.post('/login', AuthController.login);
+router.post('/refresh-token', AuthController.refreshToken);
+router.post('/verify-token', AuthController.verifyToken);
+router.post('/logout', AuthController.logout);
+router.post('/forgot-password', AuthController.forgotPassword);
+router.post('/reset-password', AuthController.resetPassword);
+router.post('/avatar-upload', authMiddleware, AuthController.uploadAvatar);
+
+export default router;

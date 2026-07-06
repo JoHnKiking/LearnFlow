@@ -1,0 +1,1188 @@
+/**
+ * ================================================================
+ * LearnFlow — 技能学习 App
+ * 软件著作权申请 — 源代码后 30 页
+ * ================================================================
+ * 提交内容：React Native 移动端核心代码
+ *   1. SplashScreen — 启动路由分流
+ *   2. OnboardingScreen — 欢迎页（图1）
+ *   3. OnboardingPage2 — 怪兽引导页（图2）
+ *   4. OnboardingPage3 — 体力与成长引导页（图3）
+ *   5. VerifyEmailScreen — 邮箱验证码
+ *   6. MonsterSelectionScreen — 怪兽选择与命名
+ * ================================================================
+ */
+
+// --- 文件: mobile/app/splash.tsx ---
+
+import React, { useEffect, useMemo, useRef } from 'react';
+import { View, Text, StyleSheet, Animated } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { useTheme } from '../src/contexts/ThemeContext';
+import { checkAuthStatus } from '../src/utils/auth';
+
+const SplashScreen = () => {
+  const { colors } = useTheme();
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const translateYAnim = React.useRef(new Animated.Value(20)).current;
+  const scaleAnim = React.useRef(new Animated.Value(0.8)).current;
+  const dotsAnim = React.useRef([
+    new Animated.Value(0.3),
+    new Animated.Value(0.3),
+    new Animated.Value(0.3)
+  ]).current;
+  const hasNavigated = useRef(false);
+
+  useEffect(() => {
+    console.log('[Splash] 启动页加载');
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateYAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 100,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    dotsAnim.forEach((anim, i) => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(anim, {
+            toValue: 1,
+            duration: 1000,
+            delay: i * 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(anim, {
+            toValue: 0.3,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    });
+
+    const timer = setTimeout(async () => {
+      if (hasNavigated.current) return;
+      hasNavigated.current = true;
+
+      try {
+        const isLoggedIn = await checkAuthStatus();
+        if (isLoggedIn) {
+          console.log('[Splash] 老用户，直接进入主应用');
+          router.replace('/(tabs)');
+        } else {
+          console.log('[Splash] 新用户，进入 onboarding 欢迎页');
+          router.replace('/onboarding');
+        }
+      } catch (error) {
+        console.error('[Splash] 启动状态判断失败:', error);
+        router.replace('/onboarding');
+      }
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const styles = useMemo(() => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    paddingHorizontal: 20,
+  },
+  starsContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  star: {
+    position: 'absolute',
+    width: 4,
+    height: 4,
+    backgroundColor: '#FFE66D',
+  },
+  planetContainer: {
+    marginBottom: 48,
+  },
+  planet: {
+    width: 120,
+    height: 120,
+  },
+  planetRing: {
+    position: 'absolute',
+    width: 160,
+    height: 40,
+    borderRadius: 80,
+    borderWidth: 3,
+    borderColor: colors.decorCircle,
+    opacity: 0.4,
+    top: 42,
+    left: -20,
+    transform: [{ rotateX: '60deg' }],
+  },
+  planetBody: {
+    position: 'relative',
+    width: 72,
+    height: 72,
+    top: 24,
+    left: 24,
+  },
+  planetLayer: {
+    position: 'absolute',
+    backgroundColor: colors.primary,
+  },
+  continent: {
+    position: 'absolute',
+    backgroundColor: colors.success,
+  },
+  titleContainer: {
+    alignItems: 'center',
+  },
+  title: {
+    color: colors.textPrimary,
+    fontSize: 32,
+    fontWeight: '600',
+    letterSpacing: -0.5,
+    marginBottom: 8,
+  },
+  subtitle: {
+    color: colors.primary,
+    fontSize: 16,
+    letterSpacing: 2,
+  },
+  dotsContainer: {
+    position: 'absolute',
+    bottom: 64,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    backgroundColor: colors.primary,
+  },
+}), [colors]);
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <View style={styles.content}>
+        <View style={styles.starsContainer}>
+          {[...Array(20)].map((_, i) => (
+            <Animated.View
+              key={i}
+              style={[
+                styles.star,
+                {
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                },
+              ]}
+            />
+          ))}
+        </View>
+
+        <Animated.View
+          style={[
+            styles.planetContainer,
+            {
+              transform: [{ scale: scaleAnim }],
+            },
+          ]}
+        >
+          <View style={styles.planet}>
+            <View style={styles.planetRing} />
+            <View style={styles.planetBody}>
+              <View style={[styles.planetLayer, { top: 0, left: 8, width: 56, height: 8 }]} />
+              <View style={[styles.planetLayer, { top: 8, left: 0, width: 72, height: 56 }]} />
+              <View style={[styles.planetLayer, { top: 64, left: 8, width: 56, height: 8 }]} />
+              <View style={[styles.continent, { top: 16, left: 16, width: 16, height: 8 }]} />
+              <View style={[styles.continent, { top: 24, left: 12, width: 20, height: 12 }]} />
+              <View style={[styles.continent, { top: 28, left: 44, width: 12, height: 12 }]} />
+              <View style={[styles.continent, { top: 40, left: 40, width: 20, height: 8 }]} />
+            </View>
+          </View>
+        </Animated.View>
+
+        <Animated.View
+          style={[
+            styles.titleContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: translateYAnim }],
+            },
+          ]}
+        >
+          <Text style={styles.title}>学了么？</Text>
+          <Text style={styles.subtitle}>Learnflow Monster</Text>
+        </Animated.View>
+
+        <View style={styles.dotsContainer}>
+          {dotsAnim.map((anim, i) => (
+            <Animated.View
+              key={i}
+              style={[
+                styles.dot,
+                {
+                  opacity: anim,
+                  transform: [
+                    {
+                      scale: anim.interpolate({
+                        inputRange: [0.3, 1],
+                        outputRange: [1, 1.5],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            />
+          ))}
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+};
+
+export default SplashScreen;
+
+// --- 文件: mobile/app/onboarding.tsx ---
+
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { SPACING } from '../src/utils/constants';
+import { useTheme } from '../src/contexts/ThemeContext';
+
+const OnboardingScreen = () => {
+  const { colors } = useTheme();
+  const handleStart = () => {
+    console.log('[Onboarding] 用户点击开始探索，跳转至登录页');
+    router.replace('/login');
+  };
+
+  const styles = useMemo(() => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SPACING.XLARGE,
+  },
+  illustrationContainer: {
+    width: 160,
+    height: 160,
+    marginBottom: 40,
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  planet: { width: 120, height: 120, position: 'relative' },
+  planetSurface: {
+    width: 120, height: 120, borderRadius: 60, backgroundColor: colors.primary,
+  },
+  planetRing: {
+    position: 'absolute', top: 45, left: 0, width: 180, height: 30,
+    borderWidth: 4, borderColor: 'rgba(255,255,255,0.3)', borderRadius: 60,
+  },
+  piSymbol: { position: 'absolute', top: 10, right: 10 },
+  piText: { fontSize: 32, fontWeight: 'bold', color: '#FFD60A' },
+  title: {
+    fontSize: 28, fontWeight: 'bold', color: colors.textPrimary,
+    textAlign: 'center', marginBottom: SPACING.SMALL,
+  },
+  subtitle: {
+    fontSize: 16, color: colors.textSecondary, textAlign: 'center', marginBottom: 40,
+  },
+  featureList: { width: '100%', marginBottom: 40 },
+  featureItem: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12,
+    padding: SPACING.MEDIUM, marginBottom: SPACING.SMALL,
+  },
+  featureIcon: { fontSize: 24, marginRight: SPACING.MEDIUM },
+  featureText: { fontSize: 16, color: colors.textPrimary, fontWeight: '500' },
+  startButton: {
+    backgroundColor: colors.primary, paddingVertical: 16, paddingHorizontal: 48,
+    borderRadius: 30,
+    shadowColor: colors.primary, shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35, shadowRadius: 24, elevation: 5,
+  },
+  startButtonText: { color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
+}), [colors]);
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        <View style={styles.illustrationContainer}>
+          <View style={styles.planet}>
+            <View style={styles.planetSurface} />
+            <View style={styles.planetRing} />
+          </View>
+          <View style={styles.piSymbol}>
+            <Text style={styles.piText}>Π</Text>
+          </View>
+        </View>
+
+        <Text style={styles.title}>欢迎来到 LearnFlow</Text>
+        <Text style={styles.subtitle}>你的个性化学习伙伴</Text>
+
+        <View style={styles.featureList}>
+          <View style={styles.featureItem}>
+            <Text style={styles.featureIcon}>🎯</Text>
+            <Text style={styles.featureText}>智能学习路径规划</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <Text style={styles.featureIcon}>🎮</Text>
+            <Text style={styles.featureText}>趣味游戏恢复体力</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <Text style={styles.featureIcon}>📊</Text>
+            <Text style={styles.featureText}>学习数据可视化</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity style={styles.startButton} onPress={handleStart}>
+          <Text style={styles.startButtonText}>开始探索</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+};
+
+export default OnboardingScreen;
+
+// --- 文件: mobile/app/onboarding2.tsx ---
+
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { useTheme } from '../src/contexts/ThemeContext';
+import MonsterIcon from '../src/components/MonsterIcon';
+import { SPACING } from '../src/utils/constants';
+
+const OnboardingPage2Screen = () => {
+  const { colors } = useTheme();
+
+  const handleNext = () => {
+    console.log('[OnboardingPage2] 进入下一页');
+    router.replace('/onboarding3');
+  };
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: SPACING.XLARGE,
+      paddingBottom: 100,
+    },
+    monstersRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 24,
+    },
+    monsterGap: {
+      width: 16,
+    },
+    dotsDecoration: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      width: 220,
+      marginBottom: 24,
+    },
+    dot: {
+      width: 14,
+      height: 14,
+      borderRadius: 7,
+      margin: 4,
+      backgroundColor: colors.primary,
+      opacity: 0.6,
+    },
+    companionText: {
+      fontSize: 14,
+      color: colors.textTertiary,
+      marginBottom: 40,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: 'bold',
+      color: colors.textPrimary,
+      textAlign: 'center',
+      marginBottom: SPACING.MEDIUM,
+    },
+    text: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginBottom: SPACING.SMALL,
+      lineHeight: 24,
+    },
+    highlightText: {
+      fontSize: 15,
+      color: colors.primary,
+      textAlign: 'center',
+      marginTop: SPACING.MEDIUM,
+    },
+    footer: {
+      position: 'absolute',
+      bottom: 40,
+      left: 0,
+      right: 0,
+      paddingHorizontal: SPACING.XLARGE,
+    },
+    button: {
+      backgroundColor: colors.primary,
+      paddingVertical: 16,
+      borderRadius: 30,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    buttonText: {
+      color: '#FFFFFF',
+      fontSize: 18,
+      fontWeight: '700',
+    },
+    buttonRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+  }), [colors]);
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <View style={styles.content}>
+        <View style={styles.monstersRow}>
+          <MonsterIcon type="lively" size={80} />
+          <View style={styles.monsterGap} />
+          <MonsterIcon type="calm" size={80} />
+          <View style={styles.monsterGap} />
+          <MonsterIcon type="rebel" size={80} />
+        </View>
+
+        <View style={styles.dotsDecoration}>
+          {Array.from({ length: 24 }).map((_, i) => (
+            <View key={i} style={[styles.dot, { opacity: 0.3 + (i % 3) * 0.2 }]} />
+          ))}
+        </View>
+
+        <Text style={styles.companionText}>三只小伙伴等你一起学习</Text>
+        <Text style={styles.title}>一键生成学习路径</Text>
+        <Text style={styles.text}>解锁学习节点，跳转学习资源，完成冒险</Text>
+        <Text style={styles.highlightText}>完成不同时长的学习，会获得不同数量的 Π 能量</Text>
+      </View>
+
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.button} onPress={handleNext} activeOpacity={0.8}>
+          <View style={styles.buttonRow}>
+            <Text style={styles.buttonText}>开始</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+};
+
+export default OnboardingPage2Screen;
+
+// --- 文件: mobile/app/onboarding3.tsx ---
+
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { useTheme } from '../src/contexts/ThemeContext';
+import { SPACING } from '../src/utils/constants';
+
+const OnboardingPage3Screen = () => {
+  const { colors } = useTheme();
+
+  const handleNext = () => {
+    console.log('[OnboardingPage3] 进入怪兽选择');
+    router.replace('/monster-selection');
+  };
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: SPACING.XLARGE,
+      paddingBottom: 100,
+    },
+    nodeGraph: {
+      width: 220,
+      height: 220,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 40,
+    },
+    centerNode: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 2,
+    },
+    centerNodeText: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: '#FFFFFF',
+    },
+    topNode: {
+      position: 'absolute',
+      top: 0,
+      alignItems: 'center',
+    },
+    leftNode: {
+      position: 'absolute',
+      left: 0,
+      top: '50%',
+      marginTop: -30,
+      alignItems: 'center',
+    },
+    rightNode: {
+      position: 'absolute',
+      right: 0,
+      top: '50%',
+      marginTop: -30,
+      alignItems: 'center',
+    },
+    bottomNode: {
+      position: 'absolute',
+      bottom: 0,
+      alignItems: 'center',
+    },
+    iconCircle: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: 'rgba(255,255,255,0.08)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 6,
+    },
+    iconText: {
+      fontSize: 24,
+    },
+    nodeLabel: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    lineHorizontal: {
+      position: 'absolute',
+      width: 60,
+      height: 2,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      top: '50%',
+      marginTop: -16,
+    },
+    lineVertical: {
+      position: 'absolute',
+      width: 2,
+      height: 50,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      left: '50%',
+      marginLeft: -1,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: 'bold',
+      color: colors.textPrimary,
+      textAlign: 'center',
+      marginBottom: SPACING.MEDIUM,
+    },
+    text: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginBottom: SPACING.SMALL,
+      lineHeight: 24,
+    },
+    highlightText: {
+      fontSize: 15,
+      color: colors.primary,
+      textAlign: 'center',
+      marginTop: SPACING.MEDIUM,
+    },
+    footer: {
+      position: 'absolute',
+      bottom: 40,
+      left: 0,
+      right: 0,
+      paddingHorizontal: SPACING.XLARGE,
+    },
+    button: {
+      backgroundColor: colors.primary,
+      paddingVertical: 16,
+      borderRadius: 30,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    buttonText: {
+      color: '#FFFFFF',
+      fontSize: 18,
+      fontWeight: '700',
+    },
+    buttonRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+  }), [colors]);
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <View style={styles.content}>
+        <View style={styles.nodeGraph}>
+          <View style={styles.lineVertical} />
+          <View style={[styles.lineHorizontal, { left: 30 }]} />
+          <View style={[styles.lineHorizontal, { right: 30 }]} />
+
+          <View style={styles.topNode}>
+            <View style={styles.iconCircle}>
+              <Text style={styles.iconText}>🔗</Text>
+            </View>
+            <Text style={styles.nodeLabel}>学习资源</Text>
+          </View>
+          <View style={styles.leftNode}>
+            <View style={styles.iconCircle}>
+              <Text style={styles.iconText}>🍅</Text>
+            </View>
+            <Text style={styles.nodeLabel}>番茄钟</Text>
+          </View>
+          <View style={styles.centerNode}>
+            <Text style={styles.centerNodeText}>知识节点</Text>
+          </View>
+          <View style={styles.rightNode}>
+            <View style={styles.iconCircle}>
+              <Text style={styles.iconText}>⭐</Text>
+            </View>
+            <Text style={styles.nodeLabel}>成就奖励</Text>
+          </View>
+          <View style={styles.bottomNode}>
+            <View style={styles.iconCircle}>
+              <Text style={styles.iconText}>🎯</Text>
+            </View>
+            <Text style={styles.nodeLabel}>学习目标</Text>
+          </View>
+        </View>
+
+        <Text style={styles.title}>体力与成长</Text>
+        <Text style={styles.text}>每次跳转学习会消耗体力，请珍惜</Text>
+        <Text style={styles.highlightText}>通过趣味游戏可以恢复体力，继续前进</Text>
+      </View>
+
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.button} onPress={handleNext} activeOpacity={0.8}>
+          <View style={styles.buttonRow}>
+            <Text style={styles.buttonText}>开始冒险</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+};
+
+export default OnboardingPage3Screen;
+
+// --- 文件: mobile/app/verify-email.tsx ---
+
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import {
+  View, Text, StyleSheet, TextInput, TouchableOpacity, Alert,
+  KeyboardAvoidingView, Platform,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../src/contexts/ThemeContext';
+import { authService } from '../src/services/api';
+import { saveAuthData } from '../src/utils/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { STORAGE_KEYS } from '../src/utils/storage';
+
+const CODE_LENGTH = 6;
+
+const VerifyEmailScreen = () => {
+  const { colors } = useTheme();
+  const { email, username } = useLocalSearchParams<{ email: string; username: string }>();
+
+  const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(''));
+  const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+
+  const inputRefs = useRef<(TextInput | null)[]>([]);
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    scrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24 },
+    title: { color: colors.textPrimary, fontSize: 24, fontWeight: '600', textAlign: 'center' },
+    subtitle: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 20 },
+    emailHighlight: { color: colors.primary, fontWeight: '600' },
+    codeRow: { flexDirection: 'row', justifyContent: 'center', gap: 10, marginTop: 32 },
+    codeBox: {
+      width: 48, height: 56, borderRadius: 12,
+      backgroundColor: colors.surface, borderWidth: 1.5,
+      borderColor: colors.borderLight, alignItems: 'center', justifyContent: 'center',
+    },
+    codeBoxActive: { borderColor: colors.primary, backgroundColor: colors.primary + '10' },
+    codeText: { color: colors.textPrimary, fontSize: 24, fontWeight: '700' },
+    hiddenInput: { position: 'absolute', opacity: 0, width: 0, height: 0 },
+    verifyBtn: {
+      backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 16,
+      alignItems: 'center', marginTop: 32, opacity: 1,
+    },
+    verifyBtnDisabled: { opacity: 0.4 },
+    verifyBtnText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
+    resendRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
+    resendText: { color: colors.textSecondary, fontSize: 13 },
+    resendLink: { color: colors.primary, fontSize: 13, fontWeight: '600' },
+    resendDisabled: { color: colors.textTertiary },
+  }), [colors]);
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setInterval(() => setCountdown(c => c - 1), 1000);
+    return () => clearInterval(timer);
+  }, [countdown]);
+
+  const handleCodeChange = (text: string, index: number) => {
+    const digits = text.replace(/[^0-9]/g, '');
+    if (digits.length > 1) {
+      const newCode = [...code];
+      const chars = digits.split('');
+      for (let i = 0; i < CODE_LENGTH && i < chars.length; i++) {
+        newCode[i] = chars[i];
+      }
+      setCode(newCode);
+      const nextIndex = Math.min(chars.length, CODE_LENGTH - 1);
+      inputRefs.current[nextIndex]?.focus();
+      return;
+    }
+    const newCode = [...code];
+    newCode[index] = digits;
+    setCode(newCode);
+
+    if (digits && index < CODE_LENGTH - 1) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyPress = (key: string, index: number) => {
+    if (key === 'Backspace' && !code[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleVerify = async () => {
+    const fullCode = code.join('');
+    if (fullCode.length !== CODE_LENGTH) {
+      Alert.alert('提示', '请输入完整的6位验证码');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const authResponse = await authService.verifyEmail(email, fullCode);
+      await saveAuthData(authResponse);
+      await AsyncStorage.setItem(STORAGE_KEYS.IS_NEW_USER, 'true');
+
+      setLoading(false);
+      Alert.alert('验证成功', '欢迎加入 LearnFlow！', [
+        { text: '开始冒险', onPress: () => router.replace('/onboarding2') },
+      ]);
+    } catch (error: any) {
+      setLoading(false);
+      const msg = error?.message || '验证失败';
+      if (msg.includes('次数过多')) {
+        Alert.alert('验证失败', '错误次数过多，请重新发送验证码');
+      } else if (msg.includes('已过期')) {
+        Alert.alert('验证失败', '验证码错误，请再次验证或重新发送');
+      } else {
+        Alert.alert('验证失败', msg);
+      }
+    }
+  };
+
+  const handleResend = async () => {
+    if (countdown > 0) return;
+    setResending(true);
+    try {
+      await authService.resendVerification(email);
+      setCountdown(60);
+      Alert.alert('已发送', '验证码已重新发送至邮箱');
+    } catch (error: any) {
+      Alert.alert('发送失败', error?.message || '请稍后再试');
+    } finally {
+      setResending(false);
+    }
+  };
+
+  const isComplete = code.every(c => c !== '');
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
+        </TouchableOpacity>
+
+        <View style={styles.scrollContent}>
+          <Text style={styles.title}>验证邮箱</Text>
+          <Text style={styles.subtitle}>
+            验证码已发送至{' '}
+            <Text style={styles.emailHighlight}>{email}</Text>
+          </Text>
+
+          <View style={styles.codeRow}>
+            {code.map((digit, i) => (
+              <TouchableOpacity
+                key={i}
+                activeOpacity={1}
+                onPress={() => inputRefs.current[i]?.focus()}
+              >
+                <View style={[styles.codeBox, digit !== '' && styles.codeBoxActive]}>
+                  <Text style={styles.codeText}>{digit}</Text>
+                </View>
+                <TextInput
+                  ref={ref => { inputRefs.current[i] = ref; }}
+                  style={styles.hiddenInput}
+                  value={digit}
+                  onChangeText={text => handleCodeChange(text, i)}
+                  onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, i)}
+                  keyboardType="number-pad"
+                  maxLength={1}
+                  selectTextOnFocus
+                  autoFocus={i === 0}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <TouchableOpacity
+            style={[styles.verifyBtn, (!isComplete || loading) && styles.verifyBtnDisabled]}
+            onPress={handleVerify}
+            disabled={!isComplete || loading}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.verifyBtnText}>
+              {loading ? '验证中...' : '验证'}
+            </Text>
+          </TouchableOpacity>
+
+          <View style={styles.resendRow}>
+            <Text style={styles.resendText}>
+              {countdown > 0 ? `${countdown} 秒后可重新发送` : '没收到验证码？'}
+            </Text>
+            <TouchableOpacity
+              onPress={handleResend}
+              disabled={countdown > 0 || resending}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.resendLink, (countdown > 0 || resending) && styles.resendDisabled]}>
+                {resending ? '发送中...' : '重新发送'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+};
+
+export default VerifyEmailScreen;
+
+// --- 文件: mobile/app/monster-selection.tsx ---
+
+import React, { useState, useMemo, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Animated, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../src/contexts/ThemeContext';
+import { storage, STORAGE_KEYS } from '../src/utils/storage';
+import { MONSTER_CONFIG } from '../src/utils/constants';
+import { monsterService } from '../src/services/api';
+import { getCurrentUser } from '../src/utils/auth';
+import MonsterIcon from '../src/components/MonsterIcon';
+
+type MonsterType = 'lively' | 'calm' | 'rebel';
+
+const MonsterSelectionScreen = () => {
+  const { colors } = useTheme();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const user = await getCurrentUser();
+      if (!user) {
+        router.replace('/login');
+      }
+    };
+    checkAuth();
+  }, []);
+
+  const [selectedType, setSelectedType] = useState<MonsterType>('calm');
+  const [monsterName, setMonsterName] = useState('');
+  const [step, setStep] = useState<'select' | 'name'>('select');
+  const [fadeAnim] = useState(new Animated.Value(1));
+
+  const monsters = useMemo(() => [
+    {
+      id: 'lively' as MonsterType,
+      name: '活力小怪',
+      personality: '元气满满',
+      color: colors.orange,
+      selectedBg: '#f1ddc5fe',
+      description: '适合快节奏碎片化学习',
+      trait: '专属特权：单次学习任务时长直接减少 5 分钟',
+    },
+    {
+      id: 'calm' as MonsterType,
+      name: '沉稳小怪',
+      personality: '冷静沉着',
+      color: MONSTER_CONFIG.COLORS.calm.primary,
+      selectedBg: '#f1c0d0ff',
+      description: '擅长深度思考',
+      trait: '专属特权：每日额外赠送 20 点体力，可多 2 次跳转',
+    },
+    {
+      id: 'rebel' as MonsterType,
+      name: '叛逆小怪',
+      personality: '个性独立',
+      color: MONSTER_CONFIG.COLORS.rebel.primary,
+      selectedBg: '#d0c0e8ff',
+      description: '有主见爱探索、敢于挑战',
+      trait: '专属特权：小游戏获得的体力、能量双倍',
+    },
+  ], [colors]);
+
+  const handleSelectMonster = (type: MonsterType) => {
+    console.log('[MonsterSelection] 选择怪物类型:', type);
+    setSelectedType(type);
+  };
+
+  const handleContinue = async () => {
+    if (step === 'select') {
+      console.log('[MonsterSelection] 进入命名步骤');
+      Animated.sequence([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setStep('name');
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
+      });
+    } else {
+      const maxStamina = selectedType === 'calm' ? 120 : 100;
+      const monsterData = {
+        type: selectedType,
+        name: monsterName || monsters.find(m => m.id === selectedType)?.name || '小怪兽',
+        level: 1,
+        exp: 0,
+        stamina: maxStamina,
+        maxStamina,
+        paiEnergy: 50,
+        maxPaiEnergy: 50,
+        knowledgePoints: 0,
+        createdAt: new Date().toISOString(),
+      };
+      console.log('[MonsterSelection] 创建怪物数据:', monsterData.name, '类型:', selectedType);
+      await storage.setItem(STORAGE_KEYS.MONSTER, monsterData);
+      console.log('[MonsterSelection] 怪物数据已保存到本地');
+
+      try {
+        const user = await getCurrentUser();
+        if (user?.id) {
+          console.log('[MonsterSelection] 同步怪物到服务端 - 用户ID:', user.id);
+          await monsterService.createMonster({
+            name: monsterData.name,
+            personality: selectedType,
+          });
+          console.log('[MonsterSelection] 怪物已同步到服务端');
+        }
+      } catch (error) {
+        console.error('[MonsterSelection] 同步怪物到服务端失败:', error);
+      }
+
+      router.replace('/identity-selection');
+    }
+  };
+
+  const selectedMonster = monsters.find(m => m.id === selectedType);
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    scrollContent: { flexGrow: 1 },
+    content: { flex: 1, paddingHorizontal: 24, paddingTop: 32, paddingBottom: 32, position: 'relative' },
+    header: { alignItems: 'center', marginBottom: 32 },
+    title: { color: colors.textPrimary, fontSize: 26, fontWeight: '600', marginBottom: 8 },
+    subtitle: { color: colors.textSecondary, fontSize: 14 },
+    monstersContainer: { gap: 16 },
+    monsterCard: { borderRadius: 20, borderWidth: 2, overflow: 'hidden' },
+    monsterCardContent: { padding: 20, flexDirection: 'row', alignItems: 'center', gap: 16 },
+    monsterIconContainer: { flexShrink: 0 },
+    monsterInfo: { flex: 1 },
+    monsterName: { fontSize: 18, fontWeight: '600', marginBottom: 4 },
+    monsterDescription: { fontSize: 12, marginBottom: 6 },
+    traitBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+    traitText: { fontSize: 11, fontWeight: '600' },
+    checkMark: {
+      width: 32, height: 32, borderRadius: 20,
+      backgroundColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center',
+    },
+    nameInputContainer: { alignItems: 'center' },
+    nameInput: {
+      width: '100%', paddingHorizontal: 24, paddingVertical: 16,
+      backgroundColor: colors.inputBg, borderRadius: 10, borderWidth: 1,
+      borderColor: colors.inputBorder, color: colors.textPrimary,
+      fontSize: 20, fontWeight: '600', textAlign: 'center',
+    },
+    charCount: { marginTop: 12, color: colors.textSecondary, fontSize: 12 },
+    continueButton: {
+      backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 20,
+      alignItems: 'center', marginTop: 24,
+    },
+    continueButtonText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
+  }), [colors]);
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.content}>
+          <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
+            <Text style={styles.title}>
+              {step === 'select' ? '选择你的怪兽伙伴' : '给它起个名字吧'}
+            </Text>
+            <Text style={styles.subtitle}>
+              {step === 'select' ? '每种怪兽都有独特的性格' : '这将是你最好的学习伙伴'}
+            </Text>
+          </Animated.View>
+
+          {step === 'select' ? (
+            <Animated.View style={[styles.monstersContainer, { opacity: fadeAnim }]}>
+              {monsters.map((monster) => {
+                const isSelected = selectedType === monster.id;
+                return (
+                  <TouchableOpacity
+                    key={monster.id}
+                    onPress={() => handleSelectMonster(monster.id)}
+                    activeOpacity={0.7}
+                  >
+                    <View
+                      style={[
+                        styles.monsterCard,
+                        {
+                          backgroundColor: isSelected ? monster.selectedBg : colors.card,
+                          borderColor: monster.color,
+                        },
+                      ]}
+                    >
+                      <View style={styles.monsterCardContent}>
+                        <View style={styles.monsterIconContainer}>
+                          <MonsterIcon type={monster.id} size={80} />
+                        </View>
+                        <View style={styles.monsterInfo}>
+                          <Text style={[styles.monsterName, { color: isSelected ? monster.color : colors.textPrimary }]}>
+                            {monster.name}
+                          </Text>
+                          <Text style={[styles.monsterDescription, { color: isSelected ? (monster.color + 'CC') : colors.textSecondary }]}>
+                            {monster.description}
+                          </Text>
+                          <View
+                            style={[styles.traitBadge, { backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : colors.borderLight }]}
+                          >
+                            <Text style={[styles.traitText, { color: monster.color }]}>
+                              ✨ {monster.trait}
+                            </Text>
+                          </View>
+                        </View>
+                        {isSelected && (
+                          <View style={styles.checkMark}>
+                            <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </Animated.View>
+          ) : (
+            <Animated.View style={[styles.nameInputContainer, { opacity: fadeAnim }]}>
+              <View>
+                <MonsterIcon type={selectedType} size={120} />
+              </View>
+              <TextInput
+                style={[styles.nameInput, { borderColor: selectedMonster?.color }]}
+                value={monsterName}
+                onChangeText={setMonsterName}
+                placeholder={selectedMonster?.name || '小怪兽'}
+                placeholderTextColor={colors.textTertiary}
+                maxLength={12}
+                autoFocus
+              />
+              <Text style={styles.charCount}>
+                {monsterName.length}/12 字符
+              </Text>
+            </Animated.View>
+          )}
+
+          <TouchableOpacity
+            style={styles.continueButton}
+            onPress={handleContinue}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.continueButtonText}>
+              {step === 'select' ? '确认选择' : '开始冒险'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+export default MonsterSelectionScreen;
