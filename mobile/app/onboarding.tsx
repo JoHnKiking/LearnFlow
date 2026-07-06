@@ -2,35 +2,20 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { SPACING } from '../src/utils/constants';
 import { useTheme } from '../src/contexts/ThemeContext';
 
 const OnboardingScreen = () => {
   const { colors } = useTheme();
   const handleStart = () => {
-    console.log('[Onboarding] 用户点击开始探索，跳转至故事页');
-    router.replace('/story?mode=tutorial');
+    console.log('[Onboarding] 用户点击开始探索，进入登录');
+    router.replace('/login');
   };
 
   const styles = useMemo(() => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.MEDIUM,
-    paddingVertical: SPACING.SMALL,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   content: {
     flex: 1,
@@ -131,11 +116,6 @@ const OnboardingScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={22} color={colors.textSecondary} />
-        </TouchableOpacity>
-      </View>
       <View style={styles.content}>
         <View style={styles.illustrationContainer}>
           <View style={styles.planet}>

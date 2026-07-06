@@ -84,7 +84,7 @@ const LoginScreen = () => {
       const monsterData = await storage.getItem(STORAGE_KEYS.MONSTER);
       if (!monsterData) {
         Alert.alert('登录成功', '欢迎来到 LearnFlow！');
-        router.replace('/story?mode=tutorial');
+        router.replace('/onboarding2');
       } else {
         Alert.alert('登录成功', '欢迎回来！');
         router.replace('/(tabs)');

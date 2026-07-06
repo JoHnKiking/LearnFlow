@@ -111,7 +111,7 @@ const VerifyEmailScreen = () => {
 
       setLoading(false);
       Alert.alert('验证成功', '欢迎加入 LearnFlow！', [
-        { text: '开始冒险', onPress: () => router.replace('/onboarding') },
+        { text: '开始冒险', onPress: () => router.replace('/onboarding2') },
       ]);
     } catch (error: any) {
       setLoading(false);

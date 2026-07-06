@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useTheme } from '../src/contexts/ThemeContext';
+import { checkAuthStatus } from '../src/utils/auth';
 
 const SplashScreen = () => {
   const { colors } = useTheme();
@@ -14,9 +15,10 @@ const SplashScreen = () => {
     new Animated.Value(0.3),
     new Animated.Value(0.3)
   ]).current;
+  const hasNavigated = useRef(false);
 
   useEffect(() => {
-    console.log('[Splash] 启动页加载，2秒后跳转至故事页');
+    console.log('[Splash] 启动页加载');
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -54,8 +56,23 @@ const SplashScreen = () => {
       ).start();
     });
 
-    const timer = setTimeout(() => {
-      router.replace('/story');
+    const timer = setTimeout(async () => {
+      if (hasNavigated.current) return;
+      hasNavigated.current = true;
+
+      try {
+        const isLoggedIn = await checkAuthStatus();
+        if (isLoggedIn) {
+          console.log('[Splash] 老用户，直接进入主应用');
+          router.replace('/(tabs)');
+        } else {
+          console.log('[Splash] 新用户，进入 onboarding 欢迎页');
+          router.replace('/onboarding');
+        }
+      } catch (error) {
+        console.error('[Splash] 启动状态判断失败:', error);
+        router.replace('/onboarding');
+      }
     }, 2000);
 
     return () => clearTimeout(timer);
@@ -176,7 +193,18 @@ const SplashScreen = () => {
             },
           ]}
         >
-          <PixelPlanet />
+          <View style={styles.planet}>
+            <View style={styles.planetRing} />
+            <View style={styles.planetBody}>
+              <View style={[styles.planetLayer, { top: 0, left: 8, width: 56, height: 8 }]} />
+              <View style={[styles.planetLayer, { top: 8, left: 0, width: 72, height: 56 }]} />
+              <View style={[styles.planetLayer, { top: 64, left: 8, width: 56, height: 8 }]} />
+              <View style={[styles.continent, { top: 16, left: 16, width: 16, height: 8 }]} />
+              <View style={[styles.continent, { top: 24, left: 12, width: 20, height: 12 }]} />
+              <View style={[styles.continent, { top: 28, left: 44, width: 12, height: 12 }]} />
+              <View style={[styles.continent, { top: 40, left: 40, width: 20, height: 8 }]} />
+            </View>
+          </View>
         </Animated.View>
 
         <Animated.View
@@ -217,24 +245,5 @@ const SplashScreen = () => {
     </SafeAreaView>
   );
 };
-
-const PixelPlanet = () => (
-  <View style={styles.planet}>
-    {/* 星球环 — 超过星球本体 */}
-    <View style={styles.planetRing} />
-    <View style={styles.planetBody}>
-      <View style={[styles.planetLayer, { top: 0, left: 8, width: 56, height: 8 }]} />
-      <View style={[styles.planetLayer, { top: 8, left: 0, width: 72, height: 56 }]} />
-      <View style={[styles.planetLayer, { top: 64, left: 8, width: 56, height: 8 }]} />
-      
-      <View style={[styles.continent, { top: 16, left: 16, width: 16, height: 8 }]} />
-      <View style={[styles.continent, { top: 24, left: 12, width: 20, height: 12 }]} />
-      <View style={[styles.continent, { top: 28, left: 44, width: 12, height: 12 }]} />
-      <View style={[styles.continent, { top: 40, left: 40, width: 20, height: 8 }]} />
-    </View>
-  </View>
-);
-
-
 
 export default SplashScreen;
