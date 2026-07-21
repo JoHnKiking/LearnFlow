@@ -212,7 +212,7 @@ export const PRIVACY_POLICY_CONTENT = () => {
 
       <Text style={sectionH}>十三、联系我们</Text>
       <Text style={bullet}>• 运营主体：Learnflow学了么</Text>
-      <Text style={bullet}>• 联系邮箱：j971117427@qq.com</Text>
+      <Text style={bullet}>• 联系邮箱：971117427@qq.com</Text>
 
       <Text style={{ height: 40 }} />
     </ScrollView>
