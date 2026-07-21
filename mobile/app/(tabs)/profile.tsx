@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Switch, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Switch, Image, Modal, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import HelpModal from '../../src/components/HelpModal';
 import SubscriptionModal from '../../src/components/SubscriptionModal';
 import { useProStatus } from '../../src/hooks/useProStatus';
+import { PRIVACY_POLICY_CONTENT, TERMS_OF_SERVICE_CONTENT } from '../../src/constants/legal';
 
 const ProfileScreen = () => {
   const { isDark, colors, toggleTheme } = useTheme();
@@ -27,6 +28,7 @@ const ProfileScreen = () => {
   const [domainCount, setDomainCount] = useState(0);
   const [activeDomainCount, setActiveDomainCount] = useState(0);
   const [showProModal, setShowProModal] = useState(false);
+  const [legalModal, setLegalModal] = useState<'privacy' | 'terms' | null>(null);
   const { isPro, planId, expiresAt, refresh: refreshPro } = useProStatus();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
@@ -204,6 +206,27 @@ const ProfileScreen = () => {
             onPress={item.onPress}
             disabled={!item.onPress}
             activeOpacity={item.onPress ? 0.7 : 1}
+          >
+            <View style={[styles.settingIconContainer, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
+              <Ionicons name={item.icon} size={16} color={colors.textSecondary} />
+            </View>
+            <Text style={styles.settingLabel}>{item.label}</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* 服务条款与隐私政策 */}
+      <View style={styles.settingsGroup}>
+        {[
+          { label: '服务条款', icon: 'document-text' as const, onPress: () => setLegalModal('terms') },
+          { label: '隐私政策', icon: 'shield-checkmark' as const, onPress: () => setLegalModal('privacy') },
+        ].map((item, i) => (
+          <TouchableOpacity 
+            key={item.label} 
+            style={[styles.settingItem, i === 0 && styles.settingItemBorder]}
+            onPress={item.onPress}
+            activeOpacity={0.7}
           >
             <View style={[styles.settingIconContainer, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
               <Ionicons name={item.icon} size={16} color={colors.textSecondary} />
@@ -826,6 +849,23 @@ const ProfileScreen = () => {
 
       {/* Pro 付费弹窗 */}
       <SubscriptionModal visible={showProModal} onClose={() => setShowProModal(false)} onProActivated={refreshPro} />
+
+      {/* 法律文件弹窗 */}
+      <Modal visible={legalModal !== null} animationType="slide" transparent onRequestClose={() => setLegalModal(null)}>
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }} onPress={() => setLegalModal(null)}>
+          <Pressable style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '80%', overflow: 'hidden' }} onPress={() => {}}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.hairline }}>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: colors.textPrimary }}>
+                {legalModal === 'privacy' ? '隐私政策' : '服务条款'}
+              </Text>
+              <TouchableOpacity style={{ padding: 4 }} onPress={() => setLegalModal(null)}>
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            {legalModal === 'privacy' ? <PRIVACY_POLICY_CONTENT /> : <TERMS_OF_SERVICE_CONTENT />}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 

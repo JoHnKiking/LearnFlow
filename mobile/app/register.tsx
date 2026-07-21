@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, Alert, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Alert, ScrollView, TouchableOpacity, Dimensions, Modal, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +10,7 @@ import { showErrorAlert, toErrorMessage } from '../src/utils';
 import InputDialog from '../src/components/InputDialog';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '../src/utils/storage';
+import { PRIVACY_POLICY_CONTENT, TERMS_OF_SERVICE_CONTENT } from '../src/constants/legal';
 
 const RegisterScreen = () => {
   const { colors } = useTheme();
@@ -21,6 +22,7 @@ const RegisterScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [activeFieldId, setActiveFieldId] = useState<string | null>(null);
+  const [legalModal, setLegalModal] = useState<'privacy' | 'terms' | null>(null);
 
   // ---- 当前激活字段的配置 ----
   const activeField = (() => {
@@ -291,6 +293,23 @@ const RegisterScreen = () => {
   termsLink: {
     color: colors.primary,
   },
+  legalModalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end',
+  },
+  legalModalCard: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+    overflow: 'hidden',
+  },
+  legalModalHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12,
+    borderBottomWidth: 1, borderBottomColor: colors.hairline,
+  },
+  legalModalTitle: { fontSize: 18, fontWeight: '700', color: colors.textPrimary },
+  legalCloseBtn: { padding: 4 },
 }), [colors]);
 
   return (
@@ -441,10 +460,27 @@ const RegisterScreen = () => {
           {/* 底部条款 */}
           <Text style={styles.termsText}>
             继续即表示你同意我们的{' '}
-            <Text style={styles.termsLink}>服务条款</Text> 和{' '}
-            <Text style={styles.termsLink}>隐私政策</Text>
+            <Text style={styles.termsLink} onPress={() => setLegalModal('terms')}>服务条款</Text> 和{' '}
+            <Text style={styles.termsLink} onPress={() => setLegalModal('privacy')}>隐私政策</Text>
           </Text>
         </ScrollView>
+
+      {/* 法律文件弹窗 */}
+      <Modal visible={legalModal !== null} animationType="slide" transparent onRequestClose={() => setLegalModal(null)}>
+        <Pressable style={styles.legalModalOverlay} onPress={() => setLegalModal(null)}>
+          <Pressable style={styles.legalModalCard} onPress={() => {}}>
+            <View style={styles.legalModalHeader}>
+              <Text style={styles.legalModalTitle}>
+                {legalModal === 'privacy' ? '隐私政策' : '服务条款'}
+              </Text>
+              <TouchableOpacity style={styles.legalCloseBtn} onPress={() => setLegalModal(null)}>
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            {legalModal === 'privacy' ? <PRIVACY_POLICY_CONTENT /> : <TERMS_OF_SERVICE_CONTENT />}
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* 键盘上方浮动输入栏 */}
       <InputDialog
