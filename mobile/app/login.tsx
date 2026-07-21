@@ -296,16 +296,6 @@ const LoginScreen = () => {
   termsLink: {
     color: colors.primary,
   },
-  legalModalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end',
-  },
-  legalModalCard: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '80%',
-    overflow: 'hidden',
-  },
   legalModalHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12,
@@ -448,8 +438,9 @@ const LoginScreen = () => {
 
       {/* 法律文件弹窗 */}
       <Modal visible={legalModal !== null} animationType="slide" transparent onRequestClose={() => setLegalModal(null)}>
-        <Pressable style={styles.legalModalOverlay} onPress={() => setLegalModal(null)}>
-          <Pressable style={styles.legalModalCard} onPress={() => {}}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <Pressable style={{ flex: 1.5 }} onPress={() => setLegalModal(null)} />
+          <View style={{ flex: 8.5, backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' }}>
             <View style={styles.legalModalHeader}>
               <Text style={styles.legalModalTitle}>
                 {legalModal === 'privacy' ? '隐私政策' : '服务条款'}
@@ -459,8 +450,8 @@ const LoginScreen = () => {
               </TouchableOpacity>
             </View>
             {legalModal === 'privacy' ? <PRIVACY_POLICY_CONTENT /> : <TERMS_OF_SERVICE_CONTENT />}
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
 
       {/* 居中弹窗输入 */}

@@ -852,8 +852,9 @@ const ProfileScreen = () => {
 
       {/* 法律文件弹窗 */}
       <Modal visible={legalModal !== null} animationType="slide" transparent onRequestClose={() => setLegalModal(null)}>
-        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }} onPress={() => setLegalModal(null)}>
-          <Pressable style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '80%', overflow: 'hidden' }} onPress={() => {}}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <Pressable style={{ flex: 1.5 }} onPress={() => setLegalModal(null)} />
+          <View style={{ flex: 8.5, backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.hairline }}>
               <Text style={{ fontSize: 18, fontWeight: '700', color: colors.textPrimary }}>
                 {legalModal === 'privacy' ? '隐私政策' : '服务条款'}
@@ -863,8 +864,8 @@ const ProfileScreen = () => {
               </TouchableOpacity>
             </View>
             {legalModal === 'privacy' ? <PRIVACY_POLICY_CONTENT /> : <TERMS_OF_SERVICE_CONTENT />}
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
