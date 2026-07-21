@@ -420,3 +420,18 @@ export const domainService = {
     return response.data?.count || 0;
   },
 };
+
+// ============================================================
+// 反馈服务（需要 token）
+// ============================================================
+export const feedbackService = {
+  submitFeedback: async (category: string, content: string): Promise<{ success: boolean; feedbackId: number }> => {
+    const response = await api.post('/feedback/submit', { category, content });
+    return response.data.data;
+  },
+
+  getFeedbackList: async (): Promise<{ feedbacks: any[] }> => {
+    const response = await api.get('/feedback/list');
+    return response.data.data;
+  },
+};

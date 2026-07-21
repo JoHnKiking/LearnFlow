@@ -10,3 +10,4 @@ export * from './NodeProgress';
 export * from './StudyRecord';
 export * from './Note';
 export * from './Reward';
+export * from './Feedback';

@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
-import { skillRoutes, authRoutes, monsterRoutes, noteRoutes, rewardRoutes, domainRoutes, aiRoutes, proRoutes } from './routes';
+import { skillRoutes, authRoutes, monsterRoutes, noteRoutes, rewardRoutes, domainRoutes, aiRoutes, proRoutes, feedbackRoutes } from './routes';
 import { authMiddleware } from './middleware';
 import dotenv from 'dotenv';
 
@@ -132,6 +132,7 @@ export function createApp() {
   app.use('/api/domains', authMiddleware, domainRoutes);
   app.use('/api/ai', authMiddleware, aiRoutes);
   app.use('/api/pro', authMiddleware, proRoutes);
+  app.use('/api/feedback', authMiddleware, feedbackRoutes);
 
   // 404处理
   app.use('*', (req, res) => {

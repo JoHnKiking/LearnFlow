@@ -6,3 +6,4 @@ export * from './domainService';
 export * from './noteService';
 export * from './rewardService';
 export * from './llmService';
+export * from './feedbackService';

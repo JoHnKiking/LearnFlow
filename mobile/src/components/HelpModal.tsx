@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
+import { feedbackService } from '../services/api';
 
 /**
  * 帮助与反馈弹窗组件属性
@@ -15,14 +16,15 @@ interface HelpModalProps {
 
 /**
  * 反馈问题示例数据
+ * id 对应服务端的 category 字段
  */
 const feedbackExamples = [
-  { id: 1, title: '体力异常扣除', description: '进入游戏时体力未正确扣除，或游戏结束后奖励未正确添加' },
-  { id: 2, title: '学习资源不存在', description: '跳转后的学习资源页面无法打开或内容为空' },
-  { id: 3, title: '游戏无法正常进行', description: '推箱子/数独游戏无法正常开始、关卡无法切换或无法提交' },
-  { id: 4, title: '怪兽数据异常', description: '怪兽等级、经验、体力值等数据显示异常或无法保存' },
-  { id: 5, title: '任务系统问题', description: '任务无法添加、完成或删除，进度无法保存' },
-  { id: 6, title: '专注计时问题', description: '专注计时器无法启动、暂停或计时不准确' },
+  { id: 1, category: 'stamina',  title: '体力异常扣除', description: '进入游戏时体力未正确扣除，或游戏结束后奖励未正确添加' },
+  { id: 2, category: 'resource', title: '学习资源不存在', description: '跳转后的学习资源页面无法打开或内容为空' },
+  { id: 3, category: 'game',     title: '游戏无法正常进行', description: '推箱子/数独游戏无法正常开始、关卡无法切换或无法提交' },
+  { id: 4, category: 'monster',  title: '怪兽数据异常', description: '怪兽等级、经验、体力值等数据显示异常或无法保存' },
+  { id: 5, category: 'task',     title: '任务系统问题', description: '任务无法添加、完成或删除，进度无法保存' },
+  { id: 6, category: 'pomodoro', title: '专注计时问题', description: '专注计时器无法启动、暂停或计时不准确' },
 ];
 
 /**
@@ -35,26 +37,48 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
   const [selectedExample, setSelectedExample] = useState<number | null>(null);
   /** 输入的反馈内容 */
   const [feedbackText, setFeedbackText] = useState('');
+  /** 提交中状态 */
+  const [submitting, setSubmitting] = useState(false);
 
   /**
-   * 提交反馈处理
+   * 提交反馈处理 — 调用真实 API
    */
-  const handleSubmitFeedback = () => {
+  const handleSubmitFeedback = async () => {
     // 验证反馈内容不为空
     if (!feedbackText.trim()) {
       Alert.alert('提示', '请输入问题描述');
       return;
     }
 
-    // 显示提交成功提示（模拟）
-    Alert.alert(
-      '✅ 提交成功',
-      '感谢您的反馈，我们会尽快处理！',
-      [{ text: '确定', onPress: () => {
-        setFeedbackText('');
-        setSelectedExample(null);
-      }}]
-    );
+    // 防止重复提交
+    if (submitting) return;
+
+    setSubmitting(true);
+
+    try {
+      // 从选中的示例获取 category，没选中则默认 'other'
+      const selected = feedbackExamples.find(e => e.id === selectedExample);
+      const category = selected ? selected.category : 'other';
+
+      const result = await feedbackService.submitFeedback(category, feedbackText.trim());
+
+      Alert.alert(
+        '✅ 提交成功',
+        '感谢您的反馈，我们会尽快处理！',
+        [{ text: '确定', onPress: () => {
+          setFeedbackText('');
+          setSelectedExample(null);
+        }}]
+      );
+    } catch (error) {
+      Alert.alert(
+        '❌ 提交失败',
+        error instanceof Error ? error.message : '网络异常，请稍后重试',
+        [{ text: '确定' }]
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const styles = useMemo(() => StyleSheet.create({
@@ -199,6 +223,10 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
       borderRadius: 12,
       padding: 14,
       alignItems: 'center',
+      opacity: 1,
+    },
+    submitBtnDisabled: {
+      opacity: 0.6,
     },
     submitBtnText: {
       color: '#FFFFFF',
@@ -309,12 +337,21 @@ const HelpModal = ({ visible, onClose }: HelpModalProps) => {
                 onChangeText={setFeedbackText}
                 multiline
                 numberOfLines={4}
+                editable={!submitting}
               />
             </View>
 
             {/* 提交按钮 */}
-            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmitFeedback}>
-              <Text style={styles.submitBtnText}>提交反馈</Text>
+            <TouchableOpacity
+              style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
+              onPress={handleSubmitFeedback}
+              disabled={submitting}
+            >
+              {submitting ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Text style={styles.submitBtnText}>提交反馈</Text>
+              )}
             </TouchableOpacity>
           </View>
 

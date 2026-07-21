@@ -6,3 +6,4 @@ export { default as rewardRoutes } from './rewardRoutes';
 export { default as domainRoutes } from './domainRoutes';
 export { default as aiRoutes } from './aiRoutes';
 export { default as proRoutes } from './proRoutes';
+export { default as feedbackRoutes } from './feedbackRoutes';

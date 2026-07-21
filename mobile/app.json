@@ -27,14 +27,16 @@
       "supportsTablet": true
     },
     "android": {
+      "icon": "./assets/icon.png",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.johnkiwu.learnflow"
     },
     "web": {},
     "extra": {
-      "apiBaseUrl": "https://heterotrichous-gerty-catadromous.ngrok-free.dev/api",
+      "apiBaseUrl": "http://119.91.133.45/api",
       "eas": {
         "projectId": "a4114c63-9fd5-43d7-9771-accfb461b82c"
       }
