@@ -108,6 +108,7 @@ const MonsterSelectionScreen = () => {
         if (user?.id) {
           console.log('[MonsterSelection] 同步怪物到服务端 - 用户ID:', user.id);
           await monsterService.createMonster({
+            userId: user.id,
             name: monsterData.name,
             personality: selectedType,
           });

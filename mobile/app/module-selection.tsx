@@ -14,7 +14,7 @@ import { API_BASE_URL, MONSTER_CONFIG } from '../src/utils/constants';
 import { storage, STORAGE_KEYS } from '../src/utils/storage';
 import SubscriptionModal from '../src/components/SubscriptionModal';
 import { getCurrentUser } from '../src/utils/auth';
-import { proService } from '../src/services/api';
+import { proService, aiService } from '../src/services/api';
 import { useProStatus } from '../src/hooks/useProStatus';
 
 
@@ -304,28 +304,9 @@ const ModuleSelectionScreen = () => {
 
     setAiLoading(true);
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const result = await aiService.fillModule(customName.trim(), customDescription.trim());
 
-      const response = await fetch(`${API_BASE_URL}/ai/fill-module`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          moduleName: customName.trim(),
-          moduleDescription: customDescription.trim(),
-        }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error('AI生成失败，请重试');
-      }
-
-      const result: AIFillResponse = await response.json();
-
-      if (!result.data || !result.data.moduleDescription || !Array.isArray(result.data.nodes)) {
+      if (!result || !result.moduleDescription || !Array.isArray(result.nodes)) {
         throw new Error('数据解析异常，请重试');
       }
 
@@ -336,7 +317,7 @@ const ModuleSelectionScreen = () => {
       const newStages: CustomStageDraft[] = [];
       const newNodes: CustomNodeDraft[] = [];
 
-      result.data.nodes.forEach((node, si) => {
+      result.nodes.forEach((node, si) => {
         const stageId = `ai_stage_${Date.now()}_${si}`;
         newStages.push({ localId: stageId, name: node.nodeName });
 

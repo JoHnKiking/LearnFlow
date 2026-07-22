@@ -422,6 +422,16 @@ export const domainService = {
 };
 
 // ============================================================
+// AI 服务（需要 token，拦截器自动注入）
+// ============================================================
+export const aiService = {
+  fillModule: async (moduleName: string, moduleDescription: string): Promise<any> => {
+    const response = await api.post('/ai/fill-module', { moduleName, moduleDescription });
+    return response.data.data;
+  },
+};
+
+// ============================================================
 // 反馈服务（需要 token）
 // ============================================================
 export const feedbackService = {
