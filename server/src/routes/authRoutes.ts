@@ -6,6 +6,12 @@ const router = express.Router();
 // 用户注册
 router.post('/register', AuthController.register);
 
+// 邮箱验证
+router.post('/verify-email', AuthController.verifyEmail);
+
+// 重新发送验证码
+router.post('/resend-verification', AuthController.resendVerification);
+
 // 用户登录
 router.post('/login', AuthController.login);
 

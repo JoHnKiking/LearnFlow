@@ -89,7 +89,8 @@ const SkillTreeNode: React.FC<SkillTreeNodeProps> = ({
             <Text style={styles.linkIcon}>→</Text>
           </TouchableOpacity>
         ))}
-      </View>
+        </View>
+      )}
 
       {/* 子节点 - 递归渲染 */}
       {isExpanded && hasChildren && (

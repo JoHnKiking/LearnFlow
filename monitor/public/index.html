@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LearnFlow 管理后台</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f2f5;color:#1a1a2e;display:flex;min-height:100vh}
+/* 侧边栏 */
+.sidebar{width:200px;background:#1a1a2e;color:#ccc;padding:16px 0;flex-shrink:0;display:flex;flex-direction:column}
+.sidebar h2{color:#fff;font-size:16px;padding:0 16px 16px;border-bottom:1px solid #333}
+.nav-item{display:block;width:100%;padding:12px 16px;font-size:13px;color:#aaa;cursor:pointer;border:none;background:none;text-align:left;transition:all .2s}
+.nav-item:hover{background:#2a2a4e;color:#fff}
+.nav-item.active{background:#1a73e8;color:#fff;font-weight:600}
+/* 主内容 */
+.main{flex:1;padding:20px;overflow-y:auto;max-height:100vh}
+.page{display:none}
+.page.active{display:block}
+h1{font-size:20px;margin-bottom:4px}
+.subtitle{font-size:12px;color:#888;margin-bottom:16px}
+/* 卡片 */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.card{background:#fff;border-radius:8px;padding:12px 14px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.card .lbl{font-size:11px;color:#999}.card .val{font-size:20px;font-weight:700;margin-top:4px}
+.card .sub{font-size:11px;color:#bbb;margin-top:2px}
+.c-blue{color:#1a73e8}.c-green{color:#34a853}.c-orange{color:#f9a825}.c-purple{color:#7c4dff}.c-red{color:#e53935}
+/* 工具栏 */
+.toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.toolbar input[type=text],.toolbar select{border:1px solid #ddd;border-radius:6px;padding:6px 10px;font-size:12px;min-width:140px}
+.toolbar label{font-size:12px;color:#666;display:flex;align-items:center;gap:4px}
+.btn{padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:500;border:none}
+.btn-primary{background:#1a73e8;color:#fff}.btn-primary:hover{background:#1558b8}
+.btn-ghost{background:transparent;color:#1a73e8;border:1px solid #1a73e8}
+.btn-ghost:hover{background:#e8f0fe}
+.btn-active{background:#1a73e8!important;color:#fff!important;border-color:#1a73e8!important}
+.btn-sm{padding:4px 10px;font-size:11px}
+/* 表格 */
+.panel{background:#fff;border-radius:8px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.06);margin-bottom:16px}
+.panel h3{font-size:14px;margin-bottom:10px;font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid #eee}
+th{color:#888;font-weight:500;white-space:nowrap}
+td{color:#333}
+tr:hover td{background:#f8f9fb}
+.status-badge{padding:2px 8px;border-radius:10px;font-size:11px}
+.s-active{background:#e6f7ee;color:#34a853}
+.s-inactive{background:#f5f5f5;color:#999}
+.s-banned{background:#fff2f0;color:#e53935}
+.s-pro{background:#f3e8ff;color:#7c4dff}
+.pagination{display:flex;gap:6px;margin-top:10px;align-items:center}
+.pagination button{padding:4px 10px;border:1px solid #ddd;border-radius:4px;background:#fff;font-size:11px;cursor:pointer}
+.pagination button:hover{background:#f0f0f0}
+.pagination span{font-size:12px;color:#888}
+/* 图表 */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+@media(max-width:860px){.charts-grid{grid-template-columns:1fr}}
+.chart-wrap{position:relative;width:100%;height:220px}
+/* 登录页 */
+.login-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:999}
+.login-box{background:#fff;border-radius:12px;padding:32px;width:320px;text-align:center}
+.login-box h2{margin-bottom:16px}
+.login-box input{display:block;width:100%;padding:10px;margin-bottom:10px;border:1px solid #ddd;border-radius:6px;font-size:13px}
+.login-box button{width:100%;padding:10px;margin-top:4px}
+.login-error{color:#e53935;font-size:12px;margin-top:8px}
+/* 表单 */
+.form-row{display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap}
+.form-row label{font-size:12px;color:#666;min-width:80px}
+.form-row input,.form-row select,.form-row textarea{border:1px solid #ddd;border-radius:6px;padding:6px 10px;font-size:12px;flex:1;min-width:120px}
+.form-row textarea{min-height:60px}
+.toast{position:fixed;top:16px;right:16px;background:#34a853;color:#fff;padding:10px 16px;border-radius:6px;font-size:12px;z-index:1000;display:none}
+/* 选项卡 */
+.tab-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tab-btn{padding:6px 14px;border:1px solid #ddd;border-radius:6px;font-size:12px;background:#fff;cursor:pointer}
+.tab-btn:hover{background:#f0f0f0}
+.tab-btn.active{background:#1a73e8;color:#fff;border-color:#1a73e8}
+</style>
+</head>
+<body>
+
+<!-- 侧边栏 -->
+<div class="sidebar">
+  <h2>LearnFlow 后台</h2>
+  <button class="nav-item active" onclick="showPage('dashboard')" data-nav="dashboard">📊 系统看板</button>
+  <button class="nav-item" onclick="showPage('users')" data-nav="users">👤 用户管理</button>
+  <button class="nav-item" onclick="showPage('content')" data-nav="content">📚 内容资源</button>
+  <button class="nav-item" onclick="showPage('commerce')" data-nav="commerce">💰 商业 & VIP</button>
+  <button class="nav-item" onclick="showPage('ops')" data-nav="ops">⚙️ 功能运营</button>
+  <button class="nav-item" onclick="showPage('admin')" data-nav="admin">🔐 权限 & 系统</button>
+  <div style="margin-top:auto;padding:12px 16px;font-size:11px;color:#666" id="sidebarUser">未登录</div>
+</div>
+
+<!-- 主内容 -->
+<div class="main" id="mainContent">
+  <div class="toast" id="toast"></div>
+
+  <!-- ==================== 模板：系统看板 ==================== -->
+  <div class="page active" id="page-dashboard"><div style="color:#aaa;padding:20px">加载中...</div></div>
+
+  <!-- ==================== 模板：用户管理 ==================== -->
+  <div class="page" id="page-users"><div style="color:#aaa;padding:20px">加载中...</div></div>
+
+  <!-- ==================== 模板：内容资源 ==================== -->
+  <div class="page" id="page-content"><div style="color:#aaa;padding:20px">加载中...</div></div>
+
+  <!-- ==================== 模板：商业 & VIP ==================== -->
+  <div class="page" id="page-commerce"><div style="color:#aaa;padding:20px">加载中...</div></div>
+
+  <!-- ==================== 模板：功能运营 ==================== -->
+  <div class="page" id="page-ops"><div style="color:#aaa;padding:20px">加载中...</div></div>
+
+  <!-- ==================== 模板：权限 & 系统 ==================== -->
+  <div class="page" id="page-admin"><div style="color:#aaa;padding:20px">加载中...</div></div>
+</div>
+
+<!-- 登录弹窗 -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <h2>管理员登录</h2>
+    <input type="text" id="loginUsername" placeholder="用户名" autocomplete="username"/>
+    <input type="password" id="loginPassword" placeholder="密码" autocomplete="current-password"/>
+    <div class="login-error" id="loginError"></div>
+    <button class="btn btn-primary" onclick="doLogin()">登 录</button>
+    <div style="font-size:11px;color:#aaa;margin-top:8px">默认账号: admin / admin123</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ============ 全局状态 ============
+let TOKEN = localStorage.getItem('adminToken') || '';
+let currentPage = 'dashboard';
+
+function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  if (TOKEN) headers['Authorization'] = 'Bearer ' + TOKEN;
+  return fetch(path, { ...opts, headers }).then(r => {
+    if (r.status === 401) { TOKEN = ''; localStorage.removeItem('adminToken'); showLogin(); throw new Error('请重新登录'); }
+    if (!r.ok) return r.json().then(e => { throw new Error(e.error || '请求失败'); });
+    return r.json();
+  });
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast'); t.textContent = msg; t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2000);
+}
+
+function showPage(name) {
+  currentPage = name;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelector(`[data-nav="${name}"]`).classList.add('active');
+  loadPage(name);
+}
+
+// ============ 登录 ============
+function showLogin() { document.getElementById('loginOverlay').style.display = 'flex'; }
+function hideLogin() { document.getElementById('loginOverlay').style.display = 'none'; }
+
+async function doLogin() {
+  const u = document.getElementById('loginUsername').value;
+  const p = document.getElementById('loginPassword').value;
+  try {
+    const r = await fetch('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u, password: p }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    TOKEN = d.token;
+    localStorage.setItem('adminToken', TOKEN);
+    document.getElementById('sidebarUser').textContent = d.user.username + ' (' + d.user.role + ')';
+    hideLogin();
+    loadPage(currentPage);
+  } catch (e) { document.getElementById('loginError').textContent = e.message; }
+}
+
+// 回车登录
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('loginOverlay').style.display !== 'none') doLogin();
+});
+
+// ============ 页面加载器 ============
+async function loadPage(name) {
+  const el = document.getElementById('page-' + name);
+  try {
+    switch (name) {
+      case 'dashboard': await renderDashboard(el); break;
+      case 'users': await renderUsers(el); break;
+      case 'content': await renderContent(el); break;
+      case 'commerce': await renderCommerce(el); break;
+      case 'ops': await renderOps(el); break;
+      case 'admin': await renderAdmin(el); break;
+    }
+  } catch (e) { el.innerHTML = '<div style="color:#e53935">加载失败: ' + e.message + '</div>'; }
+}
+
+// ==================== 模块1：系统看板 ====================
+let chartStore = {};
+function fmtDate(iso, range) {
+  if (!iso) return ''; const d = new Date(iso); const p = n => String(n).padStart(2, '0');
+  switch (range) {
+    case 'day': return p(d.getHours()) + ':' + p(d.getMinutes());
+    case 'week': return (d.getMonth()+1)+'/'+d.getDate()+' '+p(d.getHours())+':00';
+    default: return (d.getMonth()+1)+'/'+d.getDate();
+  }
+}
+
+async function renderDashboard(el) {
+  const range = localStorage.getItem('dashRange') || 'day';
+  const [snapshots, latest] = await Promise.all([
+    api('/api/snapshots?range=' + range),
+    api('/api/snapshots/latest').catch(() => null),
+  ]);
+
+  let cards = '';
+  if (latest) {
+    cards = `<div class="cards">
+      <div class="card"><div class="lbl">总用户数</div><div class="val c-blue">${latest.total_users}</div><div class="sub">近7天活跃: ${latest.active_users_7d}</div></div>
+      <div class="card"><div class="lbl">今日 DAU</div><div class="val c-green">${latest.dau}</div><div class="sub">新注册: ${latest.new_users_today}</div></div>
+      <div class="card"><div class="lbl">今日完成数</div><div class="val c-orange">${latest.node_completions_today}</div><div class="sub">学习时长: ${latest.study_minutes_today} min</div></div>
+      <div class="card"><div class="lbl">Pro 用户</div><div class="val c-purple">${latest.pro_users}</div><div class="sub">领域/模块: ${latest.total_domains}/${latest.total_skill_trees}</div></div>
+      <div class="card"><div class="lbl">今日互动</div><div class="val">${latest.monster_messages_today}</div><div class="sub">笔记: ${latest.notes_created_today}</div></div>
+      <div class="card"><div class="lbl">今日模块</div><div class="val">${latest.module_creations_today}</div><div class="sub">快照 ${new Date(latest.snapshot_at).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}</div></div>
+    </div>`;
+  }
+
+  el.innerHTML = `<h1>系统看板</h1><div class="subtitle">快照间隔 5 分钟 · 上次刷新: ${new Date().toLocaleTimeString('zh-CN')}</div>
+    ${cards}
+    <div class="tab-row">
+      <button class="tab-btn ${range==='day'?'active':''}" onclick="switchDashRange('day')">日线</button>
+      <button class="tab-btn ${range==='week'?'active':''}" onclick="switchDashRange('week')">周线</button>
+      <button class="tab-btn ${range==='month'?'active':''}" onclick="switchDashRange('month')">月线</button>
+      <button class="tab-btn ${range==='all'?'active':''}" onclick="switchDashRange('all')">全部</button>
+    </div>
+    <div class="charts-grid">
+      <div class="panel"><h3>DAU & 近7天活跃</h3><div class="chart-wrap"><canvas id="ch1"></canvas></div></div>
+      <div class="panel"><h3>总用户 & 今日新增</h3><div class="chart-wrap"><canvas id="ch2"></canvas></div></div>
+      <div class="panel"><h3>节点完成 & 学习时长</h3><div class="chart-wrap"><canvas id="ch3"></canvas></div></div>
+      <div class="panel"><h3>对话 & 笔记 & 新模块</h3><div class="chart-wrap"><canvas id="ch4"></canvas></div></div>
+    </div>`;
+
+  if (snapshots.length >= 2) renderDashCharts(snapshots, range);
+}
+
+function switchDashRange(range) { localStorage.setItem('dashRange', range); loadPage('dashboard'); }
+
+function renderDashCharts(s, range) {
+  const labels = s.map(x => fmtDate(x.snapshot_at, range));
+  const L = (l,d,c,y) => ({label:l,data:d,borderColor:c,backgroundColor:c+'18',fill:true,tension:.35,pointRadius:range==='day'?0:1.5,borderWidth:1.5,yAxisID:y});
+  const B = (l,d,c,y) => ({label:l,data:d,backgroundColor:c+'88',borderRadius:2,yAxisID:y});
+  const mk = (id,t,ds,o) => {
+    if (chartStore[id]) chartStore[id].destroy();
+    chartStore[id] = new Chart(document.getElementById(id), {type:t,data:{labels,datasets:ds()},options:Object.assign({responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10,font:{size:10}}}},scales:{x:{ticks:{font:{size:9},maxTicksLimit:20,maxRotation:0}},y:{beginAtZero:true,ticks:{font:{size:10}}}}},o||{})});
+  };
+  mk('ch1','line',()=>[L('DAU',s.map(x=>x.dau),'#1a73e8'),L('7天活跃',s.map(x=>x.active_users_7d),'#34a853')]);
+  mk('ch2','line',()=>[L('总用户',s.map(x=>x.total_users),'#1a73e8','y'),L('新增',s.map(x=>x.new_users_today),'#f9a825','y1')],{scales:{y:{beginAtZero:true,position:'left',title:{display:true,text:'总用户',font:{size:10}},ticks:{font:{size:10}}},y1:{beginAtZero:true,position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'新增',font:{size:10}},ticks:{font:{size:10}}},x:{ticks:{font:{size:9},maxTicksLimit:20,maxRotation:0}}}});
+  mk('ch3','bar',()=>[B('完成',s.map(x=>x.node_completions_today),'#34a853','y'),L('时长min',s.map(x=>x.study_minutes_today),'#f9a825','y1')],{scales:{y:{beginAtZero:true,position:'left',title:{display:true,text:'完成数',font:{size:10}},ticks:{font:{size:10}}},y1:{beginAtZero:true,position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'min',font:{size:10}},ticks:{font:{size:10}}},x:{ticks:{font:{size:9},maxTicksLimit:20,maxRotation:0}}}});
+  mk('ch4','line',()=>[L('对话',s.map(x=>x.monster_messages_today),'#7c4dff'),L('笔记',s.map(x=>x.notes_created_today),'#e53935'),L('模块',s.map(x=>x.module_creations_today),'#f9a825')]);
+}
+
+// ==================== 模块2：用户管理 ====================
+async function renderUsers(el) {
+  const [stats, list] = await Promise.all([
+    api('/api/users/stats'),
+    api('/api/users?page=1'),
+  ]);
+  el.innerHTML = `<h1>用户管理</h1><div class="subtitle">总 ${stats.total} 人 · 近7天活跃 ${stats.active7d} · Pro ${stats.pro} · 封禁 ${stats.banned} · 留存 ${stats.retentionRate}%</div>
+    <div class="toolbar">
+      <input type="text" id="userSearch" placeholder="搜索用户名/邮箱"/>
+      <select id="userStatus"><option value="">全部状态</option><option value="active">活跃</option><option value="inactive">未激活</option><option value="banned">已封禁</option></select>
+      <select id="userPro"><option value="">全部VIP</option><option value="1">Pro用户</option><option value="0">免费用户</option></select>
+      <button class="btn btn-primary" onclick="searchUsers(1)">搜索</button>
+    </div>
+    ${renderTable(list.list, list.total, list.page, 'users')}`;
+}
+
+function searchUsers(p) {
+  const s = document.getElementById('userSearch').value;
+  const status = document.getElementById('userStatus').value;
+  const isPro = document.getElementById('userPro').value;
+  api(`/api/users?search=${encodeURIComponent(s)}&status=${status}&isPro=${isPro}&page=${p}`).then(data => {
+    document.getElementById('userTableWrap').innerHTML = renderTable(data.list, data.total, data.page, 'users');
+  });
+}
+
+function renderTable(rows, total, page, type) {
+  if (!rows.length) return '<div style="color:#aaa;padding:12px">无数据</div>';
+  let html = '<div class="panel" id="' + type + 'TableWrap"><table>';
+  if (type === 'users') {
+    html += '<tr><th>ID</th><th>用户名</th><th>邮箱</th><th>状态</th><th>VIP</th><th>学习时长</th><th>最后登录</th><th>操作</th></tr>';
+    rows.forEach(r => {
+      html += `<tr><td>${r.id}</td><td>${esc(r.username)}</td><td>${esc(r.email)}</td><td><span class="status-badge s-${r.status}">${r.status}</span></td>
+        <td>${r.is_pro ? '<span class="status-badge s-pro">Pro</span>' : '免费'}</td><td>${r.total_study_min||0}min</td>
+        <td>${r.last_login_at ? new Date(r.last_login_at).toLocaleDateString('zh-CN') : '-'}</td>
+        <td><button class="btn btn-sm btn-ghost" onclick="banUser(${r.id})">${r.status==='banned'?'解封':'封禁'}</button></td></tr>`;
+    });
+  }
+  html += '</table><div class="pagination"><span>共 ' + total + ' 条</span>';
+  const maxP = Math.ceil(total / 20);
+  for (let i = 1; i <= Math.min(maxP, 10); i++) html += `<button ${i===page?'style="background:#1a73e8;color:#fff"':''} onclick="search${type.charAt(0).toUpperCase()+type.slice(1)}(${i})">${i}</button>`;
+  html += '</div></div>';
+  return html;
+}
+
+async function banUser(id) {
+  if (!confirm('确认操作？')) return;
+  const u = await api('/api/users/' + id);
+  const newStatus = u.user.status === 'banned' ? 'active' : 'banned';
+  await api('/api/users/' + id + '/status', { method: 'PUT', body: JSON.stringify({ status: newStatus }) });
+  toast(newStatus === 'banned' ? '已封禁' : '已解封');
+  loadPage('users');
+}
+
+// ==================== 模块3：内容资源 ====================
+async function renderContent(el) {
+  const [domains, skillTrees, popular] = await Promise.all([
+    api('/api/content/domains?page=1'),
+    api('/api/content/skill-trees?page=1'),
+    api('/api/content/popular-domains?limit=10'),
+  ]);
+
+  let popularHtml = '<div class="panel"><h3>热门领域 TOP10</h3><table><tr><th>领域</th><th>搜索次数</th><th>生成次数</th></tr>';
+  popular.forEach(r => { popularHtml += `<tr><td>${esc(r.domain)}</td><td>${r.search_count}</td><td>${r.generated_count}</td></tr>`; });
+  popularHtml += '</table></div>';
+
+  el.innerHTML = `<h1>内容资源管理</h1><div class="subtitle">领域 ${domains.total} · 模块 ${skillTrees.total}</div>
+    ${popularHtml}
+    <div class="panel"><h3>学习领域</h3>
+      <div class="toolbar"><input type="text" id="domSearch" placeholder="搜索领域"/><select id="domType"><option value="">全部</option><option value="preset">官方</option><option value="custom">用户自建</option></select><button class="btn btn-primary" onclick="searchDomains()">搜索</button></div>
+      <div id="domTable"><table><tr><th>ID</th><th>名称</th><th>类型</th><th>创建者</th><th>总节点</th><th>已完成</th><th>进度</th></tr>
+      ${domains.list.map(r => `<tr><td>${r.id}</td><td>${esc(r.name)}</td><td>${r.type}</td><td>${esc(r.username)}</td><td>${r.total_nodes||0}</td><td>${r.done_nodes||0}</td><td>${r.progress||0}%</td></tr>`).join('')}
+      </table></div></div>
+    <div class="panel"><h3>技能树模块</h3><table><tr><th>ID</th><th>标题</th><th>领域</th><th>创建者</th><th>进度</th><th>公开</th></tr>
+    ${skillTrees.list.map(r => `<tr><td>${r.id}</td><td>${esc(r.title)}</td><td>${esc(r.domain)}</td><td>${esc(r.username)}</td><td>${r.progress||0}%</td><td>${r.is_public?'是':'否'}</td></tr>`).join('')}
+    </table></div>`;
+}
+
+function searchDomains() { /* 简化实现，后续可加 */ loadPage('content'); }
+
+// ==================== 模块4：商业 & VIP ====================
+async function renderCommerce(el) {
+  const [stats, proUsers, codes] = await Promise.all([
+    api('/api/commerce/stats'),
+    api('/api/commerce/pro-users?page=1'),
+    api('/api/commerce/activation-codes?page=1'),
+  ]);
+  el.innerHTML = `<h1>商业 & VIP 管理</h1><div class="subtitle">Pro ${stats.proTotal} 人 · 今日激活 ${stats.proToday} · 转化率 ${stats.conversionRate}% · 7天到期 ${stats.expiring7d}</div>
+    <div class="cards">
+      <div class="card"><div class="lbl">Pro用户</div><div class="val c-purple">${stats.proTotal}</div></div>
+      <div class="card"><div class="lbl">转化率</div><div class="val c-blue">${stats.conversionRate}%</div></div>
+      <div class="card"><div class="lbl">今日激活</div><div class="val c-green">${stats.proToday}</div></div>
+      <div class="card"><div class="lbl">7天到期</div><div class="val c-orange">${stats.expiring7d}</div></div>
+    </div>
+    <div class="panel"><h3>Pro 用户</h3><table><tr><th>ID</th><th>用户名</th><th>邮箱</th><th>激活时间</th><th>到期时间</th></tr>
+    ${proUsers.list.map(r => `<tr><td>${r.id}</td><td>${esc(r.username)}</td><td>${esc(r.email)}</td><td>${r.pro_activated_at?new Date(r.pro_activated_at).toLocaleDateString('zh-CN'):'-'}</td><td>${r.pro_expires_at?new Date(r.pro_expires_at).toLocaleDateString('zh-CN'):'永久'}</td></tr>`).join('')}
+    </table></div>
+    <div class="panel"><h3>激活码管理</h3>
+      <div class="toolbar">
+        <select id="genPlan"><option value="monthly">月卡 ¥9.9</option><option value="yearly">年卡 ¥148</option><option value="forever">永久 ¥228</option></select>
+        <input type="number" id="genCount" value="1" min="1" max="100" style="width:60px"/>
+        <button class="btn btn-primary" onclick="genCodes()">生成激活码</button>
+      </div>
+      <table><tr><th>ID</th><th>激活码</th><th>套餐</th><th>状态</th><th>使用者</th><th>使用时间</th></tr>
+      ${codes.list.map(r => `<tr><td>${r.id}</td><td>${r.code}</td><td>${r.plan_id}</td><td>${r.status}</td><td>${r.used_by_name||'-'}</td><td>${r.used_at?new Date(r.used_at).toLocaleString('zh-CN'):'-'}</td></tr>`).join('')}
+      </table></div>`;
+}
+
+async function genCodes() {
+  const plan = document.getElementById('genPlan').value;
+  const count = document.getElementById('genCount').value;
+  const r = await api('/api/commerce/activation-codes', { method: 'POST', body: JSON.stringify({ planId: plan, count: Number(count) }) });
+  toast('已生成 ' + r.codes.join(', '));
+  loadPage('commerce');
+}
+
+// ==================== 模块5：功能运营 ====================
+async function renderOps(el) {
+  const [tomato, ai, game, pushLogs] = await Promise.all([
+    api('/api/ops/tomato'),
+    api('/api/ops/ai'),
+    api('/api/ops/game'),
+    api('/api/ops/push-logs?page=1'),
+  ]);
+  el.innerHTML = `<h1>功能运营配置</h1>
+    <div class="panel"><h3>番茄钟规则</h3>
+      <div class="form-row"><label>专注时长(min)</label><input id="tWork" value="${tomato.work_minutes}" type="number"/><label>短休息(min)</label><input id="tSBreak" value="${tomato.short_break}" type="number"/></div>
+      <div class="form-row"><label>长休息(min)</label><input id="tLBreak" value="${tomato.long_break}" type="number"/><label>几轮后长休</label><input id="tAfter" value="${tomato.long_break_after}" type="number"/></div>
+      <div class="form-row"><label>自动开始休息</label><input id="tAutoBreak" type="checkbox" ${tomato.auto_start_break?'checked':''}/><label>自动开始专注</label><input id="tAutoWork" type="checkbox" ${tomato.auto_start_work?'checked':''}/><label>音效</label><input id="tSound" type="checkbox" ${tomato.sound_enabled?'checked':''}/></div>
+      <button class="btn btn-primary" onclick="saveTomato()">保存番茄钟配置</button></div>
+    <div class="panel"><h3>AI 对话参数</h3>
+      <div class="form-row"><label>提供商</label><input id="aProvider" value="${esc(ai.provider||'')}"/><label>模型</label><input id="aModel" value="${esc(ai.model||'')}"/></div>
+      <div class="form-row"><label>Temperature</label><input id="aTemp" value="${ai.temperature||0.7}" type="number" step="0.1"/><label>Max Tokens</label><input id="aMax" value="${ai.max_tokens||2048}" type="number"/></div>
+      <div class="form-row"><label>系统提示词</label><textarea id="aPrompt">${esc(ai.system_prompt||'')}</textarea></div>
+      <button class="btn btn-primary" onclick="saveAI()">保存 AI 配置</button></div>
+    <div class="panel"><h3>游戏化参数</h3>
+      ${['base_stamina','stamina_recover_rate','base_energy','energy_recover_rate','exp_per_completion','level_up_base','level_up_multiplier','free_jumps_per_day','free_energy_per_day','free_stamina_per_day','games_per_day','pro_free_jumps','pro_energy_per_day','pro_stamina_per_day','pro_games_per_day'].map(f =>
+        `<div class="form-row"><label>${f}</label><input id="g_${f}" value="${game[f]||0}" type="number" step="0.1"/></div>`
+      ).join('')}
+      <button class="btn btn-primary" onclick="saveGame()">保存游戏化配置</button></div>
+    <div class="panel"><h3>推送记录</h3><table><tr><th>ID</th><th>目标</th><th>标题</th><th>类型</th><th>状态</th><th>时间</th></tr>
+    ${pushLogs.list.map(r => `<tr><td>${r.id}</td><td>${r.username||'全员'}</td><td>${esc(r.title)}</td><td>${r.type}</td><td>${r.status}</td><td>${r.created_at?new Date(r.created_at).toLocaleString('zh-CN'):'-'}</td></tr>`).join('')}
+    </table></div>`;
+}
+
+async function saveTomato() {
+  await api('/api/ops/tomato', { method: 'PUT', body: JSON.stringify({
+    work_minutes: +D('tWork'),short_break:+D('tSBreak'),long_break:+D('tLBreak'),long_break_after:+D('tAfter'),
+    auto_start_break:!!document.getElementById('tAutoBreak').checked,auto_start_work:!!document.getElementById('tAutoWork').checked,sound_enabled:!!document.getElementById('tSound').checked,
+  })}); toast('已保存');
+}
+async function saveAI() {
+  await api('/api/ops/ai', { method: 'PUT', body: JSON.stringify({
+    provider: D('aProvider'),model:D('aModel'),temperature:+D('aTemp'),max_tokens:+D('aMax'),system_prompt:D('aPrompt'),
+  })}); toast('已保存');
+}
+async function saveGame() {
+  const fields = ['base_stamina','stamina_recover_rate','base_energy','energy_recover_rate','exp_per_completion','level_up_base','level_up_multiplier','free_jumps_per_day','free_energy_per_day','free_stamina_per_day','games_per_day','pro_free_jumps','pro_energy_per_day','pro_stamina_per_day','pro_games_per_day'];
+  const data = {}; fields.forEach(f => data[f] = +document.getElementById('g_'+f).value);
+  await api('/api/ops/game', { method: 'PUT', body: JSON.stringify(data) }); toast('已保存');
+}
+
+// ==================== 模块6：权限 & 系统 ====================
+async function renderAdmin(el) {
+  const [admins, logs] = await Promise.all([
+    api('/api/admin/users'),
+    api('/api/admin/audit-logs?page=1'),
+  ]);
+  el.innerHTML = `<h1>权限 & 系统设置</h1>
+    <div class="panel"><h3>管理员账号</h3>
+      <div class="toolbar">
+        <input type="text" id="newAdminName" placeholder="用户名"/>
+        <input type="password" id="newAdminPwd" placeholder="密码"/>
+        <select id="newAdminRole"><option value="viewer">viewer</option><option value="editor">editor</option><option value="super">super</option></select>
+        <button class="btn btn-primary" onclick="createAdmin()">创建管理员</button>
+      </div>
+      <table><tr><th>ID</th><th>用户名</th><th>角色</th><th>状态</th><th>最后登录</th><th>操作</th></tr>
+      ${admins.map(r => `<tr><td>${r.id}</td><td>${esc(r.username)}</td><td>${r.role}</td><td>${r.status?'启用':'禁用'}</td><td>${r.last_login_at?new Date(r.last_login_at).toLocaleString('zh-CN'):'-'}</td><td><button class="btn btn-sm btn-ghost" onclick="toggleAdmin(${r.id},${r.status})">${r.status?'禁用':'启用'}</button></td></tr>`).join('')}
+      </table></div>
+    <div class="panel"><h3>操作日志</h3><table><tr><th>ID</th><th>操作者</th><th>操作</th><th>对象</th><th>详情</th><th>时间</th></tr>
+    ${logs.list.map(r => `<tr><td>${r.id}</td><td>${esc(r.username)}</td><td>${r.action}</td><td>${esc(r.target||'')}</td><td>${esc(r.detail||'')}</td><td>${r.created_at?new Date(r.created_at).toLocaleString('zh-CN'):'-'}</td></tr>`).join('')}
+    </table></div>`;
+}
+
+async function createAdmin() {
+  const u = D('newAdminName'), p = D('newAdminPwd'), r = D('newAdminRole');
+  if (!u || !p) return toast('请输入用户名和密码');
+  await api('/api/admin/users', { method: 'POST', body: JSON.stringify({ username: u, password: p, role: r }) });
+  toast('已创建'); loadPage('admin');
+}
+async function toggleAdmin(id, cur) {
+  await api('/api/admin/users/' + id + '/status', { method: 'PUT', body: JSON.stringify({ status: cur ? 0 : 1 }) });
+  toast(cur ? '已禁用' : '已启用'); loadPage('admin');
+}
+
+// ============ 工具函数 ============
+function D(id) { return document.getElementById(id)?.value || ''; }
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ============ 初始化 ============
+if (TOKEN) {
+  api('/api/admin/me').then(u => {
+    document.getElementById('sidebarUser').textContent = u.username + ' (' + u.role + ')';
+    hideLogin();
+    loadPage('dashboard');
+  }).catch(() => { TOKEN = ''; showLogin(); });
+} else {
+  showLogin();
+}
+</script>
+</body>
+</html>

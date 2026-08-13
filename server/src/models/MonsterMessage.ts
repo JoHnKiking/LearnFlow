@@ -21,9 +21,13 @@ export const createMessage = async (messageData: {
 };
 
 export const getMessagesByUserId = async (userId: number, limit: number = 50): Promise<MonsterMessage[]> => {
-  const [rows] = await pool.execute(
-    'SELECT * FROM monster_messages WHERE user_id = ? ORDER BY created_at DESC LIMIT ?',
-    [userId, limit]
+  // mysql2 prepared statements do not support parameterised LIMIT
+  // use query() instead of execute() for this pattern
+  const userIdNum = Number(userId);
+  const limitNum = Number(limit);
+  const [rows] = await pool.query(
+    `SELECT * FROM monster_messages WHERE user_id = ? ORDER BY created_at DESC LIMIT ${limitNum}`,
+    [userIdNum]
   );
   return rows as MonsterMessage[];
 };

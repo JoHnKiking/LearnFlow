@@ -50,13 +50,13 @@ const GameHelpModal: React.FC<GameHelpModalProps> = ({ visible, onClose }) => {
     sectionDesc: {
       color: colors.textSecondary,
       fontSize: 14,
-      lineHeight: 1.6,
+      lineHeight: 22,
     },
     rulesList: { gap: 6 },
     ruleItem: {
       color: colors.textSecondary,
       fontSize: 14,
-      lineHeight: 1.6,
+      lineHeight: 22,
     },
   }), [colors]);
 

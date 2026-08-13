@@ -21,6 +21,28 @@ USE learnflow;
 -- SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ 'd78eb278-0e54-11f1-b1e1-cdea2e252e7b:1-265';
 
 --
+-- Table structure for table `activation_codes`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `activation_codes` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `code` varchar(16) NOT NULL,
+  `plan_id` varchar(20) NOT NULL,
+  `created_by` varchar(50) DEFAULT NULL,
+  `status` enum('unused','used') NOT NULL DEFAULT 'unused',
+  `used_by` int DEFAULT NULL,
+  `used_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `code` (`code`),
+  KEY `idx_status` (`status`),
+  CONSTRAINT `activation_codes_ibfk_1` FOREIGN KEY (`used_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `device_sessions`
 --
 
@@ -63,6 +85,25 @@ CREATE TABLE `domains` (
   PRIMARY KEY (`id`),
   KEY `idx_user_id` (`user_id`),
   CONSTRAINT `domains_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `email_verification_tokens`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `email_verification_tokens` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `email` varchar(100) NOT NULL,
+  `token` varchar(6) NOT NULL,
+  `attempts` int DEFAULT '0',
+  `expires_at` timestamp NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_email` (`email`),
+  KEY `idx_token` (`token`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -129,8 +170,8 @@ CREATE TABLE `monsters` (
   `max_stamina` int NOT NULL DEFAULT '100',
   `level` int DEFAULT '1' COMMENT '等级',
   `exp` int DEFAULT '0' COMMENT '经验值',
-  `energy` int NOT NULL DEFAULT '50',
-  `max_energy` int NOT NULL DEFAULT '50',
+  `energy` decimal(10,1) NOT NULL DEFAULT '50.0',
+  `max_energy` decimal(10,1) NOT NULL DEFAULT '50.0',
   `last_energy_recover` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '上次能量恢复时间',
   `last_stamina_recover` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
@@ -304,6 +345,9 @@ CREATE TABLE `users` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `onboarding_completed` tinyint(1) DEFAULT '0' COMMENT '是否完成新手引导',
+  `is_pro` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否Pro会员',
+  `pro_activated_at` timestamp NULL DEFAULT NULL COMMENT 'Pro激活时间',
+  `pro_expires_at` timestamp NULL DEFAULT NULL COMMENT 'Pro过期时间(永久会员为NULL)',
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`),
   UNIQUE KEY `email` (`email`),

@@ -5,7 +5,11 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { getCurrentUser, clearAuthData } from '../../src/utils/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import HelpModal from '../../src/components/HelpModal';
+import SubscriptionModal from '../../src/components/SubscriptionModal';
+import { proService } from '../../src/services/api';
+import { SUBSCRIPTION_STORAGE_KEY } from '../../src/utils/pricing';
 
 const ProfileScreen = () => {
   const { isDark, colors, toggleTheme } = useTheme();
@@ -13,6 +17,14 @@ const ProfileScreen = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showGuideModal, setShowGuideModal] = useState(false);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [avatarType, setAvatarType] = useState<'male' | 'female' | 'monster'>('male');
+  const [pendingAvatarType, setPendingAvatarType] = useState<'male' | 'female' | 'monster'>('male');
+  const [daysSinceJoin, setDaysSinceJoin] = useState(0);
+  const [domainCount, setDomainCount] = useState(0);
+  const [showProModal, setShowProModal] = useState(false);
+  const [isPro, setIsPro] = useState(false);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -29,7 +41,18 @@ const ProfileScreen = () => {
     };
 
     loadUserData();
+    checkPro();
   }, []);
+
+  const checkPro = async () => {
+    try {
+      const user = await getCurrentUser();
+      if (user?.id) {
+        const status = await proService.getStatus(user.id);
+        setIsPro(status.isPro);
+      }
+    } catch {}
+  };
 
   const userData = {
     name: user?.username || 'LearnFlow用户',
@@ -77,9 +100,10 @@ const ProfileScreen = () => {
 
   const renderSettings = () => (
     <View style={styles.tabContent}>
+      {/* 设置卡片组：学习提醒、深浅模式 */}
       <View style={styles.settingsGroup}>
-        {settings.map((s, i) => (
-          <View key={s.label} style={[styles.settingItem, i < settings.length - 1 && styles.settingItemBorder]}>
+        {settings.slice(0, 2).map((s, i) => (
+          <View key={s.label} style={[styles.settingItem, i < 1 && styles.settingItemBorder]}>
             <View style={styles.settingIconContainer}>
               <Ionicons name={s.icon} size={16} color={colors.primary} />
             </View>
@@ -99,6 +123,32 @@ const ProfileScreen = () => {
             )}
           </View>
         ))}
+        {/* 了解充值 — 在深浅模式下方、隐私设置上方 */}
+        <View style={[styles.settingItem, styles.settingItemBorder]}>
+          <TouchableOpacity
+            onPress={() => setShowProModal(true)}
+            activeOpacity={0.7}
+            style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 12 }}
+          >
+            <View style={[styles.settingIconContainer, { backgroundColor: colors.proBg, borderWidth: 1.5, borderColor: colors.proBorder }]}>
+              <Ionicons name="diamond" size={16} color={colors.pro} />
+            </View>
+            <Text style={[styles.settingLabel, { color: colors.pro, fontWeight: '700' as const }]}>了解充值</Text>
+            <View style={styles.settingRight}>
+              <Ionicons name="chevron-forward" size={16} color={colors.pro} />
+            </View>
+          </TouchableOpacity>
+        </View>
+        {/* 隐私设置 */}
+        <View style={styles.settingItem}>
+          <View style={styles.settingIconContainer}>
+            <Ionicons name="shield" size={16} color={colors.textSecondary} />
+          </View>
+          <Text style={styles.settingLabel}>隐私设置</Text>
+          <View style={styles.settingRight}>
+            <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+          </View>
+        </View>
       </View>
 
       <View style={styles.settingsGroup}>
@@ -168,32 +218,37 @@ const ProfileScreen = () => {
   },
   headerTitle: {
     color: colors.textPrimary,
-    fontWeight: '800',
-    fontSize: 20,
+    fontWeight: '600',
+    fontSize: 28,
+    marginBottom: 4,
   },
   settingsButton: {
     width: 40,
     height: 40,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 10,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   profileCard: {
-    borderRadius: 20,
-    backgroundColor: colors.card,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
-    shadowRadius: 12,
+    shadowRadius: 3,
     elevation: 2,
   },
   profileCardDark: {
-    backgroundColor: 'rgba(100,100,160,0.08)',
-    borderWidth: 0.5,
-    borderColor: 'rgba(255,255,255,0.06)',
-    shadowOpacity: 0,
-    elevation: 0,
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: 'rgba(108,91,123,0.5)',
+    shadowOpacity: 1,
+    elevation: 4,
   },
   profileCardContent: {
     padding: 20,
@@ -206,46 +261,53 @@ const ProfileScreen = () => {
   },
   avatarContainer: { position: 'relative' },
   avatar: {
-    width: 64, height: 64, borderRadius: 20,
-    backgroundColor: '#EAE8F6', alignItems: 'center', justifyContent: 'center',
+    width: 64, height: 64, borderRadius: 16,
+    backgroundColor: colors.borderLight, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: colors.hairline,
   },
   avatarDark: {
-    backgroundColor: '#6B65C0',
-    shadowColor: '#7B75D8', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 16, elevation: 6,
+    backgroundColor: colors.borderDark,
+    shadowColor: colors.shadow, shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04, shadowRadius: 3, elevation: 2,
   },
   avatarEmoji: { fontSize: 32 },
+  avatarEditBadge: {
+    position: 'absolute', bottom: -2, right: -2,
+    width: 22, height: 22, borderRadius: 6,
+    backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, borderColor: colors.background,
+  },
   levelBadge: {
     position: 'absolute', bottom: -4, right: -4,
-    width: 24, height: 24, borderRadius: 12,
+    width: 24, height: 24, borderRadius: 6,
     backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: '#FFFFFF',
+    borderWidth: 1.5, borderColor: colors.background,
   },
   levelBadgeDark: {
     borderColor: '#0D0D1A',
     shadowColor: colors.primary, shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4, shadowRadius: 8, elevation: 4,
   },
-  levelBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700', fontFamily: 'Courier' },
+  levelBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '600',  },
   userInfo: { flex: 1, paddingTop: 4 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  userName: { color: colors.textPrimary, fontSize: 22, fontWeight: '700', fontFamily: 'Courier' },
-  titleBadge: { backgroundColor: '#EAE8F6', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20 },
+  userName: { color: colors.textPrimary, fontSize: 22, fontWeight: '600',  },
+  titleBadge: { backgroundColor: colors.borderLight, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 2 },
   titleBadgeDark: {
     backgroundColor: 'rgba(120,100,220,0.2)', borderWidth: 0.5, borderColor: 'rgba(160,140,240,0.15)',
   },
-  titleBadgeText: { color: colors.primary, fontSize: 11, fontWeight: '500', fontFamily: 'Courier' },
+  titleBadgeText: { color: colors.primary, fontSize: 11, fontWeight: '500',  },
   userMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  streakText: { color: colors.textSecondary, fontSize: 12, fontFamily: 'Courier' },
+  streakText: { color: colors.textSecondary, fontSize: 12,  },
   metaSeparator: { color: colors.textTertiary, fontSize: 12, marginHorizontal: 4 },
-  levelText: { color: colors.textSecondary, fontSize: 12, fontFamily: 'Courier' },
+  levelText: { color: colors.textSecondary, fontSize: 12,  },
   xpSection: {},
   xpHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  xpText: { color: colors.textSecondary, fontSize: 12, fontFamily: 'Courier' },
-  xpPercent: { color: colors.primary, fontSize: 12, fontWeight: '600', fontFamily: 'Courier' },
-  xpBar: { height: 8, backgroundColor: '#EAE8F6', borderRadius: 4, overflow: 'hidden' },
+  xpText: { color: colors.textSecondary, fontSize: 12,  },
+  xpPercent: { color: colors.primary, fontSize: 12, fontWeight: '600',  },
+  xpBar: { height: 8, backgroundColor: colors.border, borderRadius: 0, overflow: 'hidden' },
   xpBarDark: { backgroundColor: 'rgba(255,255,255,0.06)' },
-  xpProgress: { height: '100%', backgroundColor: colors.primary, borderRadius: 4 },
+  xpProgress: { height: '100%', backgroundColor: colors.primary, borderRadius: 0 },
   statsRow: {
     paddingHorizontal: 20,
     marginBottom: 20,
@@ -254,19 +316,24 @@ const ProfileScreen = () => {
   },
   statCard: {
     flex: 1,
-    borderRadius: 16,
-    backgroundColor: colors.backgroundLight,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: colors.hairline,
     padding: 12,
     alignItems: 'center',
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 2,
   },
   statIcon: {
     fontSize: 18,
     marginBottom: 2,
   },
   statValue: {
-    fontWeight: '800',
+    fontWeight: '600',
     fontSize: 16,
     marginTop: 2,
   },
@@ -282,22 +349,22 @@ const ProfileScreen = () => {
     flexDirection: 'row',
     gap: 4,
     padding: 4,
-    borderRadius: 16,
-    backgroundColor: colors.backgroundDark,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
   },
   tabButton: {
     flex: 1,
     paddingVertical: 8,
-    borderRadius: 12,
+    borderRadius: 10,
     alignItems: 'center',
   },
   tabButtonActive: {
-    backgroundColor: 'rgba(123,117,216,0.2)',
+    backgroundColor: colors.primary + '15',
     borderWidth: 1,
-    borderColor: 'rgba(123,117,216,0.3)',
+    borderColor: colors.primary + '30',
     flex: 1,
     paddingVertical: 8,
-    borderRadius: 12,
+    borderRadius: 10,
     alignItems: 'center',
   },
   tabButtonText: {
@@ -307,18 +374,23 @@ const ProfileScreen = () => {
   },
   tabButtonTextActive: {
     color: colors.primary,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   tabContent: {
     paddingHorizontal: 20,
   },
   settingsGroup: {
-    borderRadius: 16,
-    backgroundColor: colors.backgroundLight,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: colors.hairline,
     overflow: 'hidden',
     marginBottom: 12,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 2,
   },
   settingItem: {
     flexDirection: 'row',
@@ -334,8 +406,8 @@ const ProfileScreen = () => {
   settingIconContainer: {
     width: 32,
     height: 32,
-    borderRadius: 12,
-    backgroundColor: 'rgba(123,117,216,0.12)',
+    borderRadius: 8,
+    backgroundColor: colors.borderLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -356,19 +428,19 @@ const ProfileScreen = () => {
   loginButton: {
     width: '100%',
     paddingVertical: 16,
-    borderRadius: 16,
+    borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: 'rgba(123,117,216,0.12)',
+    backgroundColor: colors.primary + '12',
     borderWidth: 1,
-    borderColor: 'rgba(123,117,216,0.25)',
+    borderColor: colors.primary + '25',
     marginTop: 12,
   },
   loginText: {
     color: colors.primary,
-    fontWeight: '700',
+    fontWeight: '600',
     fontSize: 14,
   },
   loginPrompt: {
@@ -378,7 +450,7 @@ const ProfileScreen = () => {
   loginPromptTitle: {
     color: colors.textPrimary,
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '600',
     marginBottom: 8,
   },
   loginPromptDesc: {
@@ -392,31 +464,162 @@ const ProfileScreen = () => {
     gap: 8,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 14,
     backgroundColor: colors.primary,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
   loginPromptButtonText: {
-    color: '#fff',
+    color: colors.onPrimary,
     fontWeight: '600',
     fontSize: 14,
   },
   logoutButton: {
     width: '100%',
     paddingVertical: 16,
-    borderRadius: 16,
+    borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: 'rgba(233,69,96,0.12)',
+    backgroundColor: colors.error + '12',
     borderWidth: 1,
-    borderColor: 'rgba(233,69,96,0.25)',
+    borderColor: colors.error + '25',
     marginTop: 12,
   },
   logoutText: {
     color: colors.error,
-    fontWeight: '700',
+    fontWeight: '600',
     fontSize: 15,
+  },
+  // ---- Pro 升级板块 ----
+  proSection: {
+    marginHorizontal: 24,
+    marginTop: 4,
+    marginBottom: 20,
+  },
+  proCard: {
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1.5,
+    borderColor: colors.proBorder,
+    backgroundColor: colors.proBg,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  proCardGlow: {
+    position: 'absolute',
+    top: -30,
+    right: -30,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    opacity: 0.12,
+  },
+  proCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  proCardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  proCardIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: colors.pro,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  proCardTitle: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: colors.textPrimary,
+  },
+  proCardBadge: {
+    backgroundColor: colors.pro,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  proCardBadgeText: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  proFeatureList: {
+    gap: 10,
+    marginBottom: 16,
+  },
+  proFeatureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  proFeatureCheck: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.pro + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  proFeatureText: {
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  proUpgradeBtn: {
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  proUpgradeBtnText: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  // 头像选择弹窗
+  modalOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 100,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  modalCard: {
+    width: '80%', borderRadius: 16, padding: 24, alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+  },
+  modalTitle: {
+    fontSize: 18, fontWeight: '600',  marginBottom: 20,
+  },
+  avatarOptions: {
+    flexDirection: 'row', gap: 12, marginBottom: 20,
+  },
+  avatarOption: {
+    width: 80, height: 90, borderRadius: 14, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center', gap: 6, borderColor: colors.hairline,
+  },
+  avatarOptionEmoji: { fontSize: 32 },
+  avatarOptionLabel: { fontSize: 12, fontWeight: '600',  },
+  modalCloseBtn: {
+    paddingHorizontal: 32, paddingVertical: 10, borderRadius: 12,
+  },
+  modalCancelBtn: {
+    flex: 1, paddingVertical: 12, borderRadius: 14, alignItems: 'center',
+  },
+  modalConfirmBtn: {
+    flex: 1, paddingVertical: 12, borderRadius: 14, alignItems: 'center',
   },
   bottomPadding: {
     height: 100,
@@ -452,8 +655,20 @@ const ProfileScreen = () => {
                       <View style={styles.userInfo}>
                         <View style={styles.nameRow}>
                           <Text style={styles.userName}>{userData.name}</Text>
-                          <View style={[styles.titleBadge, isDark && styles.titleBadgeDark]}>
-                            <Text style={styles.titleBadgeText}>{userData.title}</Text>
+                          {isPro && (
+                            <View style={{ backgroundColor: colors.proBg, borderWidth: 1, borderColor: colors.proBorder, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
+                              <Text style={{ color: colors.pro, fontSize: 10, fontWeight: '700' }}>PRO</Text>
+                            </View>
+                          )}
+                        </View>
+                        <View style={{ flexDirection: 'row', gap: 16, marginTop: 6 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                            <Ionicons name="calendar" size={13} color={colors.textSecondary} />
+                            <Text style={{ color: colors.textSecondary, fontSize: 12,  }}>加入 {daysSinceJoin} 天</Text>
+                          </View>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                            <Ionicons name="grid" size={13} color={colors.textSecondary} />
+                            <Text style={{ color: colors.textSecondary, fontSize: 12,  }}>{domainCount} 个领域</Text>
                           </View>
                         </View>
                         <View style={styles.userMeta}>
@@ -490,32 +705,6 @@ const ProfileScreen = () => {
           </View>
         </View>
 
-        {isLoggedIn && (
-          <View style={styles.statsRow}>
-            {[
-              { label: '技能', value: userData.completedSkills, icon: 'diamond', color: colors.primary },
-              { label: '小时', value: userData.studyHours, icon: 'flame', color: colors.warning },
-              { label: '等级', value: userData.level, icon: 'ribbon', color: colors.success },
-            ].map((stat) => (
-              <View key={stat.label} style={styles.statCard}>
-                <Ionicons name={stat.icon as any} size={20} color={stat.color} />
-                <Text style={[styles.statValue, { color: stat.color }]}>{stat.value}</Text>
-                <Text style={styles.statLabel}>{stat.label}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        <View style={styles.tabsContainer}>
-          <View style={styles.tabs}>
-            <TouchableOpacity
-              style={styles.tabButtonActive}
-            >
-              <Text style={styles.tabButtonTextActive}>⚙️ 设置</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {renderSettings()}
 
         <View style={styles.bottomPadding} />
@@ -525,6 +714,74 @@ const ProfileScreen = () => {
         visible={showHelpModal}
         onClose={() => setShowHelpModal(false)}
       />
+
+      {/* LearnFlow 指南弹窗 —— 样式与 HelpModal 保持一致 */}
+      {showGuideModal && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ width: '90%', maxHeight: '80%', backgroundColor: colors.background, borderRadius: 4, overflow: 'hidden' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: 32, borderBottomWidth: 1, borderBottomColor: colors.borderDark }}>
+              <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '600',  }}>📖 LearnFlow 指南</Text>
+              <TouchableOpacity onPress={() => setShowGuideModal(false)} style={{ padding: 8 }}>
+                <Ionicons name="close" size={28} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ paddingHorizontal: 20, paddingVertical: 16, maxHeight: 400 }} contentContainerStyle={{ paddingBottom: 24 }}>
+              {[
+                '💪 体力系统：学习消耗体力，完成游戏可恢复。',
+                '⚡ Π 能量：通过专注学习收集，无上限。对话消耗能量 = 怪兽回复字数 × 0.05。',
+                '🎮 小游戏：每日可玩3次，恢复体力。叛逆型怪兽双倍奖励。',
+                '📚 学习地图：选择领域→技能树→点击节点→跳转学习。',
+                '⏰ 番茄钟：专注计时页面可点怪兽图标对话答疑。',
+                '🦊 小怪兽：活力型学习减时，沉稳型多体力，叛逆型双倍。',
+                '📝 自定义模块：创建专属领域，向左滑动可删除。',
+                '🕐 每日凌晨5点重置游戏次数和每日数据。',
+              ].map((tip, i) => (
+                <Text key={i} style={{ color: colors.textSecondary, fontSize: 13,  lineHeight: 26, marginBottom: 14 }}>{tip}</Text>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      )}
+
+      {/* 头像选择弹窗 */}
+      {showAvatarModal && (
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>选择头像</Text>
+            <View style={styles.avatarOptions}>
+              {[
+                { type: 'male' as const, emoji: '🧑', label: '男生' },
+                { type: 'female' as const, emoji: '👩', label: '女生' },
+                { type: 'monster' as const, emoji: '👾', label: '小怪兽' },
+              ].map(opt => (
+                <TouchableOpacity
+                  key={opt.type}
+                  style={[
+                    styles.avatarOption,
+                    { backgroundColor: pendingAvatarType === opt.type ? (colors.primary + '20') : colors.borderLight, borderColor: pendingAvatarType === opt.type ? colors.primary : 'transparent' },
+                  ]}
+                  onPress={() => handleAvatarSelect(opt.type)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.avatarOptionEmoji}>{opt.emoji}</Text>
+                  <Text style={[styles.avatarOptionLabel, { color: pendingAvatarType === opt.type ? colors.primary : colors.textSecondary }]}>{opt.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+              <TouchableOpacity style={[styles.modalCancelBtn, { backgroundColor: colors.borderLight }]} onPress={() => { setPendingAvatarType(avatarType); setShowAvatarModal(false); }}>
+                <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>取消</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalConfirmBtn, { backgroundColor: colors.primary }]} onPress={handleAvatarConfirm}>
+                <Text style={{ color: '#FFFFFF', fontWeight: '600' }}>确认修改</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Pro 付费弹窗 */}
+      <SubscriptionModal visible={showProModal} onClose={() => setShowProModal(false)} />
     </SafeAreaView>
   );
 

@@ -8,6 +8,9 @@ import {
   AuthResponse,
   MonsterSetupRequest,
   MonsterResponse,
+  MonsterChatRequest,
+  MonsterChatResponse,
+  MonsterMessagesResponse,
   // 新增：笔记相关类型
   CreateNoteRequest,
   UpdateNoteRequest,
@@ -99,9 +102,21 @@ api.interceptors.response.use(
 );
 
 export const authService = {
-  // 用户注册
-  register: async (request: CreateUserRequest): Promise<AuthResponse> => {
+  // 用户注册（邮箱验证模式，返回 { message, email }）
+  register: async (request: CreateUserRequest): Promise<{ message: string; email: string }> => {
     const response = await api.post('/auth/register', request);
+    return response.data.data;
+  },
+
+  // 验证邮箱
+  verifyEmail: async (email: string, token: string): Promise<AuthResponse> => {
+    const response = await api.post('/auth/verify-email', { email, token });
+    return response.data.data;
+  },
+
+  // 重新发送验证码
+  resendVerification: async (email: string): Promise<{ message: string }> => {
+    const response = await api.post('/auth/resend-verification', { email });
     return response.data.data;
   },
 
@@ -126,6 +141,20 @@ export const authService = {
   // 用户登出
   logout: async (): Promise<void> => {
     await api.post('/auth/logout');
+  },
+};
+
+export const proService = {
+  // 激活 Pro
+  activate: async (code: string, userId: number): Promise<{ success: boolean; planId?: string; expiresAt?: string }> => {
+    const response = await api.post('/pro/activate', { code, userId });
+    return response.data.data;
+  },
+
+  // 查询 Pro 状态
+  getStatus: async (userId: number): Promise<{ isPro: boolean; planId?: string; expiresAt?: string }> => {
+    const response = await api.get(`/pro/status/${userId}`);
+    return response.data.data;
   },
 };
 
@@ -220,6 +249,24 @@ export const monsterService = {
   // 扣除体力（学习时调用）
   consumeStamina: async (userId: number, amount: number): Promise<{ success: boolean }> => {
     const response = await api.post('/monster/stamina/consume', { userId, amount });
+    return response.data;
+  },
+
+  // 与小怪兽对话
+  chat: async (request: MonsterChatRequest): Promise<MonsterChatResponse> => {
+    const response = await api.post('/monster/chat', request);
+    return response.data;
+  },
+
+  // 获取历史对话消息
+  getMessages: async (userId: number): Promise<MonsterMessagesResponse> => {
+    const response = await api.get(`/monster/messages/${userId}`);
+    return response.data;
+  },
+
+  // 获取怪兽状态
+  getMonsterStatus: async (userId: number): Promise<MonsterResponse> => {
+    const response = await api.get(`/monster/status/${userId}`);
     return response.data;
   },
 };

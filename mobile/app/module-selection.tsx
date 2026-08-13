@@ -9,7 +9,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../src/contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PlatformType } from '../src/types/skill';
-import { API_BASE_URL } from '../src/utils/constants';
+import { API_BASE_URL, MONSTER_CONFIG } from '../src/utils/constants';
+import MonsterIcon from '../src/components/MonsterIcon';
+import { storage, STORAGE_KEYS } from '../src/utils/storage';
+import SubscriptionModal from '../src/components/SubscriptionModal';
+import { getCurrentUser } from '../src/utils/auth';
+import { proService } from '../src/services/api';
+import { SUBSCRIPTION_STORAGE_KEY } from '../src/utils/pricing';
+
 
 // ---- 平台选项（与 skill-tree 保持一致） ----
 const PLATFORM_OPTIONS: { key: PlatformType; label: string; icon: string; color: string }[] = [
@@ -22,11 +29,13 @@ const PLATFORM_OPTIONS: { key: PlatformType; label: string; icon: string; color:
 
 type ModuleType = 'ai-product-manager' | 'personal-finance' | 'english-communication' | string;
 
+type ModuleCategory = 'professional' | 'life' | 'language';
+
 interface Module {
   id: ModuleType;
   name: string;
   icon: string;
-  color: string;
+  category: ModuleCategory;
   description: string;
   difficulty: string;
 }
@@ -48,18 +57,21 @@ interface CustomNodeDraft {
 
 // ---- 预设模块列表 ----
 const predefinedModules: Module[] = [
-  {
-    id: 'ai-product-manager', name: 'AI产品经理', icon: 'hardware-chip',
-    color: '#7B75D8', description: '掌握AI产品设计与落地', difficulty: '中级',
-  },
-  {
-    id: 'personal-finance', name: '个人理财', icon: 'trending-up',
-    color: '#4A9840', description: '建立科学理财观念', difficulty: '初级',
-  },
-  {
-    id: 'english-communication', name: '英语沟通', icon: 'language',
-    color: '#D4A058', description: '提升英语听说能力', difficulty: '初级',
-  },
+  // 专业技能类（primary）
+  { id: 'ai-product-manager', name: 'AI产品经理', icon: 'hardware-chip',
+    category: 'professional', description: '掌握AI产品设计与落地', difficulty: '中级' },
+  { id: 'programming-basics', name: '编程基础', icon: 'code-slash',
+    category: 'professional', description: '从零开始学编程', difficulty: '初级' },
+  // 生活技能类（success）
+  { id: 'personal-finance', name: '理财进阶', icon: 'trending-up',
+    category: 'life', description: '深入投资理财实战', difficulty: '中级' },
+  { id: 'finance-basics', name: '理财入门', icon: 'wallet',
+    category: 'life', description: '从0到1管好钱', difficulty: '初级' },
+  // 语言学习类（orange）
+  { id: 'english-communication', name: '英语沟通', icon: 'language',
+    category: 'language', description: '提升英语听说能力', difficulty: '初级' },
+  { id: 'cet-exam', name: '四六级过关', icon: 'school',
+    category: 'language', description: '高效备战四六级', difficulty: '初级' },
 ];
 
 // ---- 工具函数 ----
@@ -68,6 +80,15 @@ const generateDraftId = () => `draft_${Date.now()}_${draftIdCounter++}`;
 
 const ModuleSelectionScreen = () => {
   const { colors } = useTheme();
+
+  // 根据分类获取颜色
+  const getCategoryColor = (category: ModuleCategory): string => {
+    switch (category) {
+      case 'professional': return colors.primary;
+      case 'life': return colors.success;
+      case 'language': return colors.orange;
+    }
+  };
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const isAddMode = mode === 'add';
 
@@ -87,6 +108,10 @@ const ModuleSelectionScreen = () => {
   const [toastMessage, setToastMessage] = useState('');
   // AI 加载状态
   const [aiLoading, setAiLoading] = useState(false);
+  // 添加模式下的 tab 切换
+  const [activeAddTab, setActiveAddTab] = useState<'official' | 'aicustom'>('official');
+  // Pro 弹窗
+  const [showProModal, setShowProModal] = useState(false);
 
   // ---- 初始化 ----
   useEffect(() => {
@@ -96,6 +121,7 @@ const ModuleSelectionScreen = () => {
         if (stored) {
           const parsed = JSON.parse(stored) as ModuleType[];
           setExistingModules(parsed);
+          // 进入添加模式时，初始选中已有模块，防止覆盖
           setSelectedModules(parsed);
         }
       };
@@ -110,21 +136,44 @@ const ModuleSelectionScreen = () => {
     }
   }, [isAddMode]);
 
-  // ---- 预设模块：过滤已选中的 ----
-  const availableModules = isAddMode
-    ? predefinedModules.filter(m => !existingModules.includes(m.id))
-    : predefinedModules;
+  // ---- 预设模块：列表（全部展示，不消失） ----
+  const availableModules = predefinedModules;
 
   // ---- 预设模块：切换选中 ----
   const toggleModule = (id: ModuleType) => {
-    if (selectedModules.includes(id)) {
-      if (isAddMode) return;
-      setSelectedModules(selectedModules.filter(m => m !== id));
+    if (isAddMode) {
+      // 添加模式下多选（追加已有模块）
+      if (selectedModules.includes(id)) {
+        setSelectedModules(selectedModules.filter(m => m !== id));
+      } else {
+        setSelectedModules([...selectedModules, id]);
+      }
     } else {
-      if (!isAddMode && selectedModules.length >= 3) return;
-      setSelectedModules([...selectedModules, id]);
+      // 初始选择模式下多选（最多3个）
+      if (selectedModules.includes(id)) {
+        setSelectedModules(selectedModules.filter(m => m !== id));
+      } else {
+        if (selectedModules.length >= 3) return;
+        setSelectedModules([...selectedModules, id]);
+      }
     }
   };
+
+  // ---- Pro 检测（以数据库 is_pro 字段为准） ----
+  const [isPro, setIsPro] = useState(false);
+
+  useEffect(() => {
+    const checkPro = async () => {
+      try {
+        const user = await getCurrentUser();
+        if (user?.id) {
+          const proStatus = await proService.getStatus(user.id);
+          setIsPro(proStatus.isPro);
+        }
+      } catch {}
+    };
+    checkPro();
+  }, []);
 
   // ===================== 自定义模块：大标题操作 =====================
 
@@ -210,6 +259,22 @@ const ModuleSelectionScreen = () => {
       Alert.alert('提示', '请先填写模块名称');
       return;
     }
+    if (!customDescription.trim()) {
+      Alert.alert('提示', '请先填写模块介绍');
+      return;
+    }
+
+    // 免费用户：检查是否已有自定义模块
+    if (!isPro) {
+      const hasCustom = existingModules.some(id => id.startsWith('custom-'));
+      if (hasCustom) {
+        Alert.alert('提示', '免费额度已用完，请升级 Pro 无限畅用', [
+          { text: '取消', style: 'cancel' },
+          { text: '了解 Pro', onPress: () => setShowProModal(true) },
+        ]);
+        return;
+      }
+    }
 
     setAiLoading(true);
     try {
@@ -219,7 +284,10 @@ const ModuleSelectionScreen = () => {
       const response = await fetch(`${API_BASE_URL}/ai/fill-module`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ moduleName: customName.trim() }),
+        body: JSON.stringify({
+          moduleName: customName.trim(),
+          moduleDescription: customDescription.trim(),
+        }),
         signal: controller.signal,
       });
 
@@ -235,8 +303,8 @@ const ModuleSelectionScreen = () => {
         throw new Error('数据解析异常，请重试');
       }
 
-      // 填充模块介绍
-      setCustomDescription(result.data.moduleDescription);
+      // 保留用户填写的模块介绍，不覆盖
+      // 只填充 AI 生成的大标题和小结点
 
       // 清空现有草稿并填充 AI 生成的大标题和小结点
       const newStages: CustomStageDraft[] = [];
@@ -272,12 +340,24 @@ const ModuleSelectionScreen = () => {
     }
   };
 
-  /** 提交自定义模块：保存 SkillTree 结构 + 自定义模块信息 + 更新 selectedModules */
+  /** 提交自定义模块 */
   const handleCreateCustomModule = async () => {
     const error = validateCustomForm();
     if (error) {
       Alert.alert('提示', error);
       return;
+    }
+
+    // 免费用户：检查是否已有自定义模块
+    if (!isPro) {
+      const hasCustom = existingModules.some(id => id.startsWith('custom-'));
+      if (hasCustom) {
+        Alert.alert('提示', '免费额度已用完，请升级 Pro 无限畅用', [
+          { text: '取消', style: 'cancel' },
+          { text: '了解 Pro', onPress: () => setShowProModal(true) },
+        ]);
+        return;
+      }
     }
 
     const moduleId = `custom-${Date.now()}`;
@@ -316,7 +396,7 @@ const ModuleSelectionScreen = () => {
     await AsyncStorage.setItem(`customNodes_${moduleId}`, JSON.stringify(formalNodes));
 
     // 3. 更新 selectedModules
-    const newSelected = [...selectedModules, moduleId];
+    const newSelected = [...existingModules, moduleId];
     await AsyncStorage.setItem('selectedModules', JSON.stringify(newSelected));
 
     setToastMessage('模块创建成功');
@@ -328,6 +408,13 @@ const ModuleSelectionScreen = () => {
 
   // ---- 预设模块：确认选择 ----
   const handleConfirmPreset = async () => {
+    const newIds = selectedModules.filter(id => !existingModules.includes(id));
+    if (newIds.length === 0) return;
+    // 免费用户检测：已有官方模块则禁止添加
+    if (!isPro && existingModules.length > 0) {
+      Alert.alert('提示', '免费用户仅可选择/拥有一个官方模块，请先删除原有模块');
+      return;
+    }
     await AsyncStorage.setItem('selectedModules', JSON.stringify(selectedModules));
     if (isAddMode) {
       router.back();
@@ -343,24 +430,24 @@ const ModuleSelectionScreen = () => {
     scrollContent: { flexGrow: 1 },
     content: { flex: 1, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 32 },
     // 标题区
-    title: { color: colors.textPrimary, fontSize: 24, fontWeight: '800', fontFamily: 'Courier', marginBottom: 4 },
-    subtitle: { color: colors.textSecondary, fontSize: 13, fontFamily: 'Courier', marginBottom: 24 },
+    title: { color: colors.textPrimary, fontSize: 24, fontWeight: '600', marginBottom: 4 },
+    subtitle: { color: colors.textSecondary, fontSize: 13, marginBottom: 24 },
     // 输入框通用
     input: {
-      backgroundColor: colors.inputBg, borderRadius: 12, borderWidth: 1,
+      backgroundColor: colors.inputBg, borderRadius: 10, borderWidth: 1,
       borderColor: colors.inputBorder, paddingHorizontal: 16, paddingVertical: 14,
-      fontSize: 16, color: colors.textPrimary, fontFamily: 'Courier', marginBottom: 16,
+      fontSize: 16, color: colors.textPrimary, marginBottom: 16,
     },
     inputMultiline: {
       minHeight: 80, textAlignVertical: 'top',
     },
     // 分区标题
     sectionTitle: {
-      color: colors.textPrimary, fontSize: 16, fontWeight: '700',
-      fontFamily: 'Courier', marginBottom: 12, marginTop: 8,
+      color: colors.textPrimary, fontSize: 16, fontWeight: '600',
+      marginBottom: 12, marginTop: 8,
     },
     sectionHint: {
-      color: colors.textTertiary, fontSize: 12, fontFamily: 'Courier',
+      color: colors.textTertiary, fontSize: 12,
       marginBottom: 16, marginTop: -8,
     },
     // 大标题卡片
@@ -371,7 +458,7 @@ const ModuleSelectionScreen = () => {
     stageHeader: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12,
     },
-    stageLabel: { color: colors.primary, fontSize: 14, fontWeight: '700', fontFamily: 'Courier' },
+    stageLabel: { color: colors.primary, fontSize: 14, fontWeight: '600' },
     stageRemoveBtn: {
       width: 28, height: 28, borderRadius: 14, backgroundColor: colors.border,
       alignItems: 'center', justifyContent: 'center',
@@ -379,28 +466,28 @@ const ModuleSelectionScreen = () => {
     stageInput: {
       backgroundColor: colors.inputBg, borderRadius: 10, borderWidth: 1,
       borderColor: colors.inputBorder, paddingHorizontal: 14, paddingVertical: 12,
-      fontSize: 15, color: colors.textPrimary, fontFamily: 'Courier', marginBottom: 14,
+      fontSize: 15, color: colors.textPrimary, marginBottom: 14,
     },
     // 小结点区域
     nodeSection: { marginTop: 4 },
-    nodeLabel: { color: colors.textSecondary, fontSize: 13, fontWeight: '600', fontFamily: 'Courier', marginBottom: 8 },
+    nodeLabel: { color: colors.textSecondary, fontSize: 13, fontWeight: '600', marginBottom: 8 },
     nodeCard: {
-      backgroundColor: colors.backgroundDark, borderRadius: 12, padding: 12,
+      backgroundColor: colors.surface, borderRadius: 14, padding: 12,
       marginBottom: 8, position: 'relative',
     },
     nodeHeader: {
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8,
     },
-    nodeIndex: { color: colors.textTertiary, fontSize: 12, fontFamily: 'Courier' },
+    nodeIndex: { color: colors.textTertiary, fontSize: 12 },
     nodeNameInput: {
-      backgroundColor: colors.inputBg, borderRadius: 8, borderWidth: 1,
+      backgroundColor: colors.inputBg, borderRadius: 10, borderWidth: 1,
       borderColor: colors.inputBorder, paddingHorizontal: 12, paddingVertical: 10,
-      fontSize: 14, color: colors.textPrimary, fontFamily: 'Courier', marginBottom: 6,
+      fontSize: 14, color: colors.textPrimary, marginBottom: 6,
     },
     nodeUrlInput: {
-      backgroundColor: colors.inputBg, borderRadius: 8, borderWidth: 1,
+      backgroundColor: colors.inputBg, borderRadius: 10, borderWidth: 1,
       borderColor: colors.inputBorder, paddingHorizontal: 12, paddingVertical: 10,
-      fontSize: 13, color: colors.textPrimary, fontFamily: 'Courier', marginBottom: 6,
+      fontSize: 13, color: colors.textPrimary, marginBottom: 6,
     },
     // 平台选择器
     platformRow: { flexDirection: 'row', gap: 6, marginTop: 4 },
@@ -415,21 +502,21 @@ const ModuleSelectionScreen = () => {
       borderWidth: 1, borderStyle: 'dashed', borderColor: colors.borderDark,
       borderRadius: 10, paddingVertical: 10, alignItems: 'center', marginTop: 4,
     },
-    addNodeBtnText: { color: colors.primary, fontSize: 13, fontWeight: '600', fontFamily: 'Courier' },
+    addNodeBtnText: { color: colors.primary, fontSize: 13, fontWeight: '600' },
     addStageBtn: {
       borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.borderDark,
       borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 8, marginBottom: 24,
     },
-    addStageBtnText: { color: colors.primary, fontSize: 14, fontWeight: '700', fontFamily: 'Courier' },
+    addStageBtnText: { color: colors.primary, fontSize: 14, fontWeight: '600' },
     // 确认按钮
     confirmBtn: {
-      backgroundColor: 'rgba(123,117,216,0.85)', borderRadius: 16, paddingVertical: 16,
+      backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 16,
       alignItems: 'center', marginTop: 4, marginBottom: 32,
-      shadowColor: colors.primary, shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.3, shadowRadius: 16, elevation: 5,
+      shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.08, shadowRadius: 12, elevation: 3,
     },
     confirmBtnDisabled: { backgroundColor: colors.border, opacity: 0.5, shadowOpacity: 0 },
-    confirmBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', fontFamily: 'Courier' },
+    confirmBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
     // Toast
     toast: {
       position: 'absolute', bottom: 40, left: 20, right: 20,
@@ -437,33 +524,81 @@ const ModuleSelectionScreen = () => {
       backgroundColor: 'rgba(0,0,0,0.85)', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12,
     },
     toastText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
-    // 预设模块卡片（复用原有设计）
-    modulesContainer: { gap: 16 },
-    moduleCard: { borderRadius: 24, borderWidth: 2, overflow: 'hidden' },
-    moduleCardContent: { padding: 20, flexDirection: 'row', alignItems: 'center', gap: 16 },
-    iconContainer: {
-      width: 56, height: 56, borderRadius: 16, alignItems: 'center',
-      justifyContent: 'center', flexShrink: 0,
+    // 添加模式 tab 切换
+    addTabs: {
+      flexDirection: 'row',
+      backgroundColor: colors.surface,
+      borderRadius: 2,
+      padding: 3,
+      marginBottom: 20,
     },
-    moduleInfo: { flex: 1 },
-    moduleName: { fontSize: 18, fontWeight: '700', fontFamily: 'Courier', marginBottom: 4 },
-    moduleDescription: { fontSize: 13, fontFamily: 'Courier', marginBottom: 6 },
-    difficultyBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-    difficultyText: { fontSize: 11, fontWeight: '600', fontFamily: 'Courier' },
-    checkMark: {
-      width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.3)',
-      alignItems: 'center', justifyContent: 'center',
+    addTab: {
+      flex: 1,
+      paddingVertical: 10,
+      borderRadius: 2,
+      alignItems: 'center',
     },
-    selectedCount: { textAlign: 'center', color: colors.textSecondary, fontSize: 13, fontFamily: 'Courier', marginTop: 24 },
+    addTabActive: {
+      backgroundColor: colors.primary,
+    },
+    addTabText: {
+      fontSize: 13,
+      fontWeight: '600',
+      fontFamily: 'Courier',
+    },
+    // 预设模块卡片 — 主页风格（水平布局）
+    modulesContainer: {
+      gap: 10,
+    },
+    moduleCard: {
+      borderRadius: 2,
+      borderWidth: 2,
+      overflow: 'hidden',
+      padding: 14,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    moduleCardIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+    },
+    moduleCardInfo: {
+      flex: 1,
+    },
+    moduleCardName: {
+      fontSize: 14,
+      fontWeight: '700',
+      fontFamily: 'Courier',
+      marginBottom: 2,
+    },
+    moduleCardCategory: {
+      fontSize: 11,
+      fontWeight: '500',
+      fontFamily: 'Courier',
+    },
+    moduleCardCheck: {
+      width: 24,
+      height: 24,
+      borderRadius: 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+    },
+    selectedCount: { textAlign: 'center', color: colors.textSecondary, fontSize: 13, marginTop: 24 },
     spacer: { flex: 1 },
     startButton: {
       paddingVertical: 16, borderRadius: 16, alignItems: 'center',
       justifyContent: 'center', marginTop: 24,
     },
-    startButtonText: { color: colors.textPrimary, fontSize: 16, fontWeight: '700', fontFamily: 'Courier' },
+    startButtonText: { color: colors.textPrimary, fontSize: 16, fontWeight: '600' },
     // no more modules hint
     emptyHint: {
-      color: colors.textSecondary, fontSize: 14, fontFamily: 'Courier',
+      color: colors.textSecondary, fontSize: 14,
       textAlign: 'center', marginTop: 40,
     },
     // 标头小怪兽
@@ -485,16 +620,16 @@ const ModuleSelectionScreen = () => {
       borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: colors.primary,
       position: 'absolute', top: -8, left: '50%', marginLeft: -8,
     },
-    bubbleText: { color: colors.textPrimary, fontSize: 14, fontFamily: 'Courier' },
+    bubbleText: { color: colors.textPrimary, fontSize: 14 },
 
     // ---- AI 填充 ----
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     nameInput: { flex: 1 },
     aiFillBtn: {
-      backgroundColor: 'rgba(123,117,216,0.85)', borderRadius: 14, paddingHorizontal: 14,
+      backgroundColor: colors.primary, borderRadius: 14, paddingHorizontal: 14,
       paddingVertical: 14, justifyContent: 'center', alignItems: 'center',
-      shadowColor: '#5D9BFA', shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3, shadowRadius: 8, elevation: 4, minWidth: 110,
+      shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.08, shadowRadius: 8, elevation: 3, minWidth: 110,
     },
     aiFillBtnDisabled: { backgroundColor: colors.border, shadowOpacity: 0 },
     aiFillBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
@@ -505,8 +640,8 @@ const ModuleSelectionScreen = () => {
       justifyContent: 'center', alignItems: 'center',
     },
     aiModalCard: {
-      backgroundColor: colors.backgroundDark, borderRadius: 20, padding: 40,
-      alignItems: 'center', borderWidth: 1, borderColor: 'rgba(123,117,216,0.2)',
+      backgroundColor: colors.surface, borderRadius: 20, padding: 40,
+      alignItems: 'center', borderWidth: 1, borderColor: colors.border,
       marginHorizontal: 40,
     },
     aiModalTitle: {
@@ -517,14 +652,15 @@ const ModuleSelectionScreen = () => {
     },
   }), [colors]);
 
-  // ---- 渲染：预设模块选择界面 ----
+  // ---- 渲染：预设模块选择界面（主页风格，水平卡片） ----
   const renderPresetSelection = () => (
-    <Animated.View style={[styles.modulesContainer, { opacity: fadeAnim }]}>
+    <View style={styles.modulesContainer}>
       {availableModules.length === 0 && isAddMode ? (
         <Text style={styles.emptyHint}>所有预设模块已添加</Text>
       ) : (
         availableModules.map((module) => {
-          const isSelected = selectedModules.includes(module.id) && !existingModules.includes(module.id);
+          const isSelected = selectedModules.includes(module.id);
+          const catColor = getCategoryColor(module.category);
           return (
             <TouchableOpacity
               key={module.id}
@@ -535,46 +671,44 @@ const ModuleSelectionScreen = () => {
                 style={[
                   styles.moduleCard,
                   {
-                    backgroundColor: isSelected ? module.color : colors.backgroundDark,
-                    borderColor: module.color,
+                    backgroundColor: isSelected ? catColor : colors.surface,
+                    borderColor: catColor,
+                    shadowColor: isSelected ? catColor : colors.shadow,
+                    shadowOffset: { width: isSelected ? 3 : 0, height: isSelected ? 3 : 0 },
+                    shadowOpacity: isSelected ? 0.5 : 0,
+                    shadowRadius: 0,
+                    elevation: isSelected ? 3 : 0,
                   },
                 ]}
               >
-                <View style={styles.moduleCardContent}>
-                  <View style={[styles.iconContainer, {
-                    backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : module.color,
-                  }]}>
-                    <Ionicons name={module.icon as any} size={28} color={isSelected ? '#FFFFFF' : colors.background} />
-                  </View>
-                  <View style={styles.moduleInfo}>
-                    <Text style={[styles.moduleName, { color: isSelected ? '#FFFFFF' : colors.textPrimary }]}>
-                      {module.name}
-                    </Text>
-                    <Text style={[styles.moduleDescription, {
-                      color: isSelected ? 'rgba(255,255,255,0.9)' : colors.textSecondary,
-                    }]}>
-                      {module.description}
-                    </Text>
-                    <View style={[styles.difficultyBadge, {
-                      backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : 'rgba(123,117,216,0.15)',
-                    }]}>
-                      <Text style={[styles.difficultyText, { color: isSelected ? '#FFFFFF' : module.color }]}>
-                        {module.difficulty}
-                      </Text>
-                    </View>
-                  </View>
-                  {isSelected && (
-                    <View style={styles.checkMark}>
-                      <Ionicons name="checkmark" size={18} color={colors.textPrimary} />
-                    </View>
-                  )}
+                <View style={[styles.moduleCardIcon, {
+                  backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : catColor,
+                }]}>
+                  <Ionicons name={module.icon as any} size={22} color={isSelected ? '#FFFFFF' : colors.background} />
                 </View>
+                <View style={styles.moduleCardInfo}>
+                  <Text
+                    style={[styles.moduleCardName, { color: isSelected ? '#FFFFFF' : colors.textPrimary }]}
+                  >
+                    {module.name}
+                  </Text>
+                  <Text
+                    style={[styles.moduleCardCategory, { color: isSelected ? 'rgba(255,255,255,0.8)' : colors.textTertiary }]}
+                  >
+                    {module.category === 'professional' ? '专业技能' : module.category === 'life' ? '生活技能' : '语言学习'}
+                  </Text>
+                </View>
+                {isSelected && (
+                  <View style={[styles.moduleCardCheck, { backgroundColor: 'rgba(255,255,255,0.3)' }]}>
+                    <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                  </View>
+                )}
               </View>
             </TouchableOpacity>
           );
         })
       )}
-    </Animated.View>
+    </View>
   );
 
   // ---- 渲染：自定义模块创建表单 ----
@@ -582,29 +716,15 @@ const ModuleSelectionScreen = () => {
     <>
       {/* ===== 第一步：输入模块名称 ===== */}
       <Text style={styles.sectionTitle}>模块名称</Text>
-      <View style={styles.nameRow}>
-        <TextInput
-          style={[styles.input, styles.nameInput]}
-          placeholder="输入自定义模块名称，如「Swift 开发」"
-          placeholderTextColor={colors.textTertiary}
-          value={customName}
-          onChangeText={setCustomName}
-          maxLength={20}
-          returnKeyType="done"
-        />
-        <TouchableOpacity
-          style={[styles.aiFillBtn, aiLoading && styles.aiFillBtnDisabled]}
-          onPress={handleAIFill}
-          disabled={aiLoading}
-          activeOpacity={0.7}
-        >
-          {aiLoading ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={styles.aiFillBtnText}>✨ AI一键填充</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+      <TextInput
+        style={[styles.input, styles.nameInput]}
+        placeholder="输入自定义模块名称，如「Swift 开发」"
+        placeholderTextColor={colors.textTertiary}
+        value={customName}
+        onChangeText={setCustomName}
+        maxLength={20}
+        returnKeyType="done"
+      />
 
       {/* ===== 第二步：输入模块介绍 ===== */}
       <Text style={styles.sectionTitle}>模块介绍</Text>
@@ -620,7 +740,21 @@ const ModuleSelectionScreen = () => {
         numberOfLines={3}
       />
 
-      {/* ===== 第三步：创建模块结点 ===== */}
+      {/* ===== 第三步：AI 一键生成 ===== */}
+      <TouchableOpacity
+        style={[styles.aiFillBtn, { width: '100%' }, aiLoading && styles.aiFillBtnDisabled]}
+        onPress={handleAIFill}
+        disabled={aiLoading}
+        activeOpacity={0.7}
+      >
+        {aiLoading ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={styles.aiFillBtnText}>✨ AI一键生成</Text>
+        )}
+      </TouchableOpacity>
+
+      {/* ===== 第四步：创建模块结点 ===== */}
       <Text style={styles.sectionTitle}>模块结点</Text>
       <Text style={styles.sectionHint}>至少需要一个大标题和一个学习结点</Text>
 
@@ -803,40 +937,61 @@ const ModuleSelectionScreen = () => {
             {/* ---- 根据模式渲染不同内容 ---- */}
             {isAddMode ? (
               <>
-                {/* 预设模块选择（add 模式下也可添加预设） */}
-                {availableModules.length > 0 && (
+                {/* Tab 切换器 */}
+                <View style={styles.addTabs}>
+                  <TouchableOpacity
+                    style={[styles.addTab, activeAddTab === 'official' && styles.addTabActive]}
+                    onPress={() => setActiveAddTab('official')}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.addTabText, {
+                      color: activeAddTab === 'official' ? '#FFFFFF' : colors.textSecondary,
+                    }]}>官方模块</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.addTab, activeAddTab === 'aicustom' && styles.addTabActive]}
+                    onPress={() => setActiveAddTab('aicustom')}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.addTabText, {
+                      color: activeAddTab === 'aicustom' ? '#FFFFFF' : colors.textSecondary,
+                    }]}>AI 自定义</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* 官方模块 tab */}
+                {activeAddTab === 'official' && (
                   <>
-                    <Text style={styles.sectionTitle}>预设模块</Text>
-                    {renderPresetSelection()}
-                    {selectedModules.length > existingModules.length && (
+                    {availableModules.length === 0 ? (
+                      <Text style={styles.emptyHint}>所有预设模块已添加</Text>
+                    ) : (
                       <>
-                        <Text style={styles.selectedCount}>
-                          新选 {selectedModules.length - existingModules.length} 个预设模块
-                        </Text>
-                        <TouchableOpacity
-                          style={[
-                            styles.startButton,
-                            {
-                              backgroundColor: 'rgba(123,117,216,0.8)',
-                              shadowColor: colors.primary,
-                              shadowOffset: { width: 0, height: 8 },
-                              shadowOpacity: 0.35,
-                              shadowRadius: 24,
-                              elevation: 5,
-                              marginBottom: 16,
-                            },
-                          ]}
-                          onPress={handleConfirmPreset}
-                          activeOpacity={0.7}
-                        >
-                          <Text style={styles.startButtonText}>确认添加预设模块 ✨</Text>
-                        </TouchableOpacity>
+                        {renderPresetSelection()}
+                    {selectedModules.length > 0 && (
+                          <>
+                            <Text style={styles.selectedCount}>已选中 1 个预设模块</Text>
+                            <TouchableOpacity
+                              style={[styles.startButton, {
+                                backgroundColor: colors.primary,
+                                shadowColor: colors.shadow,
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowOpacity: 0.08, shadowRadius: 12, elevation: 3,
+                                marginBottom: 16,
+                              }]}
+                              onPress={handleConfirmPreset}
+                              activeOpacity={0.7}
+                            >
+                              <Text style={styles.startButtonText}>确认添加预设模块 ✨</Text>
+                            </TouchableOpacity>
+                          </>
+                        )}
                       </>
                     )}
-                    <Text style={[styles.sectionTitle, { marginTop: 8 }]}>或 创建自定义模块</Text>
                   </>
                 )}
-                {renderCustomForm()}
+
+                {/* AI 自定义 tab */}
+                {activeAddTab === 'aicustom' && renderCustomForm()}
               </>
             ) : (
               <>{/* 初始选择模式：只显示预设模块 */}
@@ -854,13 +1009,13 @@ const ModuleSelectionScreen = () => {
                   style={[
                     styles.startButton,
                     {
-                      backgroundColor: selectedModules.length === 0 ? colors.border : 'rgba(123,117,216,0.8)',
+                      backgroundColor: selectedModules.length === 0 ? colors.border : colors.primary,
                       opacity: selectedModules.length === 0 ? 0.5 : 1,
-                      shadowColor: selectedModules.length === 0 ? 'transparent' : colors.primary,
-                      shadowOffset: { width: 0, height: 8 },
-                      shadowOpacity: selectedModules.length === 0 ? 0 : 0.35,
-                      shadowRadius: 24,
-                      elevation: selectedModules.length === 0 ? 0 : 5,
+                      shadowColor: selectedModules.length === 0 ? 'transparent' : colors.shadow,
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: selectedModules.length === 0 ? 0 : 0.08,
+                      shadowRadius: 12,
+                      elevation: selectedModules.length === 0 ? 0 : 3,
                     },
                   ]}
                   onPress={handleConfirmPreset}
@@ -895,6 +1050,7 @@ const ModuleSelectionScreen = () => {
           </View>
         </View>
       </Modal>
+      <SubscriptionModal visible={showProModal} onClose={() => setShowProModal(false)} />
     </SafeAreaView>
   );
 };

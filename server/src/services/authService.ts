@@ -1,8 +1,10 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import axios from 'axios';
+import crypto from 'crypto';
 import { DatabaseConnection } from '../config/database';
 import { DatabaseService } from './databaseService';
+import { EmailService } from './emailService';
 import { 
   User, CreateUserRequest, LoginRequest, AuthResponse, UserResponse 
 } from '../models';
@@ -32,7 +34,7 @@ export class AuthService {
 
     const connection = await DatabaseConnection.getConnection();
     const [rows] = await connection.execute(
-      'SELECT * FROM users WHERE email = ? AND status = "active"',
+      'SELECT * FROM users WHERE email = ?',
       [email]
     );
 
@@ -40,6 +42,16 @@ export class AuthService {
     if (!rawUser) {
       console.log(`[AuthService] 登录失败 - 用户不存在: ${email}`);
       throw new Error('用户不存在');
+    }
+
+    if (rawUser.status === 'inactive') {
+      console.log(`[AuthService] 登录失败 - 邮箱未验证: ${email}`);
+      throw new Error('邮箱未验证，请先完成验证');
+    }
+
+    if (rawUser.status !== 'active') {
+      console.log(`[AuthService] 登录失败 - 账户状态异常: ${email}`);
+      throw new Error('账户状态异常，无法登录');
     }
 
     const user = this.mapUserFromDB(rawUser);
@@ -58,8 +70,8 @@ export class AuthService {
     return authResponse;
   }
 
-  // 用户注册（数据库存储）
-  static async registerUser(request: CreateUserRequest): Promise<AuthResponse> {
+  // 用户注册（邮箱验证流程：先创建未激活用户，发送验证码）
+  static async registerUser(request: CreateUserRequest): Promise<{ message: string; email: string }> {
     const startTime = Date.now();
     const { username, email, password } = request;
 
@@ -70,74 +82,181 @@ export class AuthService {
       throw new Error('用户名、邮箱和密码不能为空');
     }
 
+    if (username.trim().length < 2) {
+      throw new Error('用户名至少2个字符');
+    }
+
     if (password.length < 6) {
       console.log(`[AuthService] 注册验证失败 - 密码长度不足`);
       throw new Error('密码长度至少6位');
     }
 
-    console.log(`[AuthService] 获取数据库连接...`);
+    const finalUsername = username.trim();
+
     const connection = await DatabaseConnection.getConnection();
     
     // 检查邮箱是否已存在
-    console.log(`[AuthService] 检查邮箱是否已存在: ${email}`);
     const [existingUsers] = await connection.execute(
-      'SELECT id FROM users WHERE email = ?',
+      'SELECT id, status FROM users WHERE email = ?',
       [email]
     );
 
-    if ((existingUsers as any[]).length > 0) {
+    const existingUser = (existingUsers as any[])[0];
+    if (existingUser) {
+      if (existingUser.status === 'inactive') {
+        // 用户已注册但未激活，重新发送验证码
+        console.log(`[AuthService] 邮箱已注册但未激活，重新发送验证码: ${email}`);
+        const code = await this.generateAndStoreCode(email);
+        await EmailService.sendVerificationCode(email, code);
+        return { message: '验证码已重新发送至邮箱', email };
+      }
       console.log(`[AuthService] 邮箱已被注册: ${email}`);
       throw new Error('邮箱已被注册');
     }
 
     // 检查用户名是否已存在
-    console.log(`[AuthService] 检查用户名是否已存在: ${username}`);
-    const [existingUsernames] = await connection.execute(
-      'SELECT id FROM users WHERE username = ?',
-      [username]
-    );
-    
-    if ((existingUsernames as any[]).length > 0) {
-      console.log(`[AuthService] 用户名已被使用: ${username}`);
-      throw new Error('用户名已被使用');
+    let uniqueUsername = finalUsername;
+    let suffix = 1;
+    while (true) {
+      const [existingUsernames] = await connection.execute(
+        'SELECT id FROM users WHERE username = ?',
+        [uniqueUsername]
+      );
+      if ((existingUsernames as any[]).length === 0) break;
+      uniqueUsername = `${finalUsername}${suffix}`;
+      suffix++;
     }
 
     // 密码加密
-    console.log(`[AuthService] 开始密码加密...`);
     const saltRounds = 12;
     const passwordHash = await bcrypt.hash(password, saltRounds);
-    console.log(`[AuthService] 密码加密完成`);
 
-    // 创建用户
-    console.log(`[AuthService] 开始创建用户记录...`);
+    // 创建未激活用户
     const [result] = await connection.execute(
       `INSERT INTO users (username, email, password_hash, status, created_at, updated_at) 
-       VALUES (?, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-      [username, email, passwordHash]
+       VALUES (?, ?, ?, 'inactive', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      [uniqueUsername, email, passwordHash]
     );
 
-    const insertResult = result as any;
-    const userId = insertResult.insertId;
-    console.log(`[AuthService] 用户创建成功 - 用户ID: ${userId}`);
+    const userId = (result as any).insertId;
+    console.log(`[AuthService] 未激活用户创建成功 - 用户ID: ${userId}, 用户名: ${uniqueUsername}`);
 
-    // 获取新创建的用户
-    console.log(`[AuthService] 获取新创建的用户信息...`);
-    const [rows] = await connection.execute(
-      'SELECT * FROM users WHERE id = ?',
-      [userId]
-    );
+    // 生成验证码并发送邮件
+    const code = await this.generateAndStoreCode(email);
+    await EmailService.sendVerificationCode(email, code);
 
-    const user = (rows as any[])[0];
-    const mappedUser = this.mapUserFromDB(user);
-
-    // 生成认证响应
-    console.log(`[AuthService] 生成认证令牌...`);
-    const authResponse = await this.generateAuthResponse(mappedUser, 'default-device', 'web', '注册设备');
-    
     const duration = Date.now() - startTime;
-    console.log(`[AuthService] 用户注册流程完成 - 用户名: ${username}, 总耗时: ${duration}ms`);
+    console.log(`[AuthService] 用户注册流程完成 - 用户名: ${uniqueUsername}, 总耗时: ${duration}ms`);
     
-    return authResponse;
+    return { message: '验证码已发送至邮箱，请查收', email };
+  }
+
+  // 生成并存储6位验证码
+  private static async generateAndStoreCode(email: string): Promise<string> {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10分钟有效
+
+    const connection = await DatabaseConnection.getConnection();
+    // 删除该邮箱过期的旧验证码
+    await connection.execute(
+      'DELETE FROM email_verification_tokens WHERE email = ?',
+      [email]
+    );
+    // 插入新验证码
+    await connection.execute(
+      'INSERT INTO email_verification_tokens (email, token, expires_at) VALUES (?, ?, ?)',
+      [email, code, expiresAt]
+    );
+
+    console.log(`[AuthService] 验证码已生成 - 邮箱: ${email}, 过期时间: ${expiresAt}`);
+    return code;
+  }
+
+  // 验证邮箱验证码并激活用户
+  static async verifyEmail(email: string, token: string): Promise<AuthResponse> {
+    const connection = await DatabaseConnection.getConnection();
+
+    // 查找有效验证码
+    const [rows] = await connection.execute(
+      'SELECT * FROM email_verification_tokens WHERE email = ? AND token = ? AND expires_at > NOW()',
+      [email, token]
+    );
+
+    const record = (rows as any[])[0];
+    if (!record) {
+      throw new Error('验证码无效或已过期');
+    }
+
+    // 检查尝试次数（最多3次）
+    if (record.attempts >= 3) {
+      await connection.execute(
+        'DELETE FROM email_verification_tokens WHERE id = ?',
+        [record.id]
+      );
+      throw new Error('验证码错误次数过多，请重新发送');
+    }
+
+    // 增加尝试次数
+    await connection.execute(
+      'UPDATE email_verification_tokens SET attempts = attempts + 1 WHERE id = ?',
+      [record.id]
+    );
+
+    // 激活用户
+    await connection.execute(
+      "UPDATE users SET status = 'active', updated_at = CURRENT_TIMESTAMP WHERE email = ? AND status = 'inactive'",
+      [email]
+    );
+
+    // 清理验证码
+    await connection.execute(
+      'DELETE FROM email_verification_tokens WHERE email = ?',
+      [email]
+    );
+
+    // 获取用户信息并生成token
+    const [userRows] = await connection.execute(
+      'SELECT * FROM users WHERE email = ?',
+      [email]
+    );
+
+    const user = this.mapUserFromDB((userRows as any[])[0]);
+    console.log(`[AuthService] 邮箱验证成功 - 用户ID: ${user.id}`);
+
+    return this.generateAuthResponse(user, 'default-device', 'web', '注册设备');
+  }
+
+  // 重新发送验证码
+  static async resendVerificationCode(email: string): Promise<{ message: string }> {
+    const connection = await DatabaseConnection.getConnection();
+
+    // 检查60秒冷却
+    const [recent] = await connection.execute(
+      'SELECT created_at FROM email_verification_tokens WHERE email = ? ORDER BY created_at DESC LIMIT 1',
+      [email]
+    );
+
+    const lastRecord = (recent as any[])[0];
+    if (lastRecord) {
+      const secondsSinceLast = (Date.now() - new Date(lastRecord.created_at).getTime()) / 1000;
+      if (secondsSinceLast < 60) {
+        const waitSeconds = Math.ceil(60 - secondsSinceLast);
+        throw new Error(`请等待 ${waitSeconds} 秒后再发送`);
+      }
+    }
+
+    const code = await this.generateAndStoreCode(email);
+    await EmailService.sendVerificationCode(email, code);
+    console.log(`[AuthService] 验证码已重新发送 - 邮箱: ${email}`);
+    return { message: '验证码已重新发送至邮箱' };
+  }
+
+  // 直接发送验证码（已登录用户修改邮箱等场景）
+  static async sendVerificationEmail(email: string): Promise<{ message: string }> {
+    const code = await this.generateAndStoreCode(email);
+    await EmailService.sendVerificationCode(email, code);
+    console.log(`[AuthService] 验证码已发送 - 邮箱: ${email}`);
+    return { message: '验证码已发送至邮箱' };
   }
 
   // 微信登录

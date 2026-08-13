@@ -561,7 +561,7 @@ const styles = useMemo(() => StyleSheet.create({
   tipsText: {
     fontSize: 12,
     color: colors.textSecondary,
-    lineHeight: 1.6,
+    lineHeight: 20,
   },
   tipsList: {
     gap: 6,
@@ -569,7 +569,7 @@ const styles = useMemo(() => StyleSheet.create({
   tipItem: {
     fontSize: 12,
     color: colors.textSecondary,
-    lineHeight: 1.6,
+    lineHeight: 20,
   },
   tutorialContent: {
     flex: 1,
@@ -614,7 +614,7 @@ const styles = useMemo(() => StyleSheet.create({
   tutorialText: {
     fontSize: 14,
     color: colors.textSecondary,
-    lineHeight: 1.6,
+    lineHeight: 22,
   },
   tutorialSteps: {
     gap: 6,
@@ -622,7 +622,7 @@ const styles = useMemo(() => StyleSheet.create({
   tutorialStep: {
     fontSize: 14,
     color: colors.textSecondary,
-    lineHeight: 1.6,
+    lineHeight: 22,
   },
   startBtn: {
     backgroundColor: colors.primary,
