@@ -91,6 +91,13 @@ export class ProService {
     activatedAt?: string;
     expiresAt?: string;
   }> {
+    // ===== Pro 付费功能已停用（2026-08-15）=====
+    // 所有用户直接享受全部 Pro 权益，状态恒为 Pro（永久），不再依赖数据库 is_pro 字段。
+    // 下方原「查询 is_pro + 过期自动降级」逻辑保留，供将来恢复付费时复用。
+    void userId;
+    return { isPro: true, planId: 'lifetime' };
+
+    /*
     const connection = await DatabaseConnection.getConnection();
     const [rows] = await connection.execute(
       'SELECT is_pro, pro_activated_at, pro_expires_at FROM users WHERE id = ?',
@@ -129,6 +136,7 @@ export class ProService {
       activatedAt: user.pro_activated_at ? new Date(user.pro_activated_at).toISOString() : undefined,
       expiresAt: user.pro_expires_at ? new Date(user.pro_expires_at).toISOString() : undefined,
     };
+    */
   }
 
   // 列出所有激活码（管理用）

@@ -32,7 +32,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.johnkiwu.learnflow"
+      "package": "com.learnflow.app"
     },
     "web": {},
     "extra": {

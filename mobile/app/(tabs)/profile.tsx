@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Switch, Image, Modal, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Switch, Image, Modal, Pressable, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +13,13 @@ import HelpModal from '../../src/components/HelpModal';
 import SubscriptionModal from '../../src/components/SubscriptionModal';
 import { useProStatus } from '../../src/hooks/useProStatus';
 import { PRIVACY_POLICY_CONTENT, TERMS_OF_SERVICE_CONTENT } from '../../src/constants/legal';
+
+// 预设头像类型 → emoji 映射（与头像选择弹窗选项一致）
+const AVATAR_EMOJIS: Record<'male' | 'female' | 'monster', string> = {
+  male: '🧑',
+  female: '👩',
+  monster: '👾',
+};
 
 const ProfileScreen = () => {
   const { isDark, colors, toggleTheme } = useTheme();
@@ -71,6 +78,17 @@ const ProfileScreen = () => {
     } catch (error: any) {
       Alert.alert('上传失败', error.message || '请稍后重试');
     }
+  };
+
+  // 选择预设头像类型（弹窗内点击某个选项）
+  const handleAvatarSelect = (type: 'male' | 'female' | 'monster') => {
+    setPendingAvatarType(type);
+  };
+
+  // 确认修改预设头像
+  const handleAvatarConfirm = () => {
+    setAvatarType(pendingAvatarType);
+    setShowAvatarModal(false);
   };
 
   useEffect(() => {
@@ -158,7 +176,7 @@ const ProfileScreen = () => {
             )}
           </View>
         ))}
-        {/* Pro 状态行 */}
+        {/* ===== Pro 状态行已停用（2026-08-15）：付费功能关闭，隐藏会员/充值入口。原代码保留供恢复付费时复用 =====
         <View style={[styles.settingItem, styles.settingItemBorder]}>
           <TouchableOpacity
             onPress={() => setShowProModal(true)}
@@ -183,6 +201,7 @@ const ProfileScreen = () => {
             )}
           </TouchableOpacity>
         </View>
+        */}
         {/* 隐私设置 */}
         <View style={styles.settingItem}>
           <View style={styles.settingIconContainer}>
@@ -235,6 +254,22 @@ const ProfileScreen = () => {
             <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
           </TouchableOpacity>
         ))}
+
+        {/* 备案号入口（ICP 备案信息，点击跳转工信部官网） */}
+        <TouchableOpacity
+          style={[styles.settingItem, styles.settingItemBorder]}
+          onPress={() => Linking.openURL('https://beian.miit.gov.cn/')}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.settingIconContainer, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
+            <Ionicons name="shield-checkmark" size={16} color={colors.textSecondary} />
+          </View>
+          <Text style={styles.settingLabel}>备案号</Text>
+          <View style={styles.settingRight}>
+            <Text style={styles.settingText}>沪ICP备2026038623号</Text>
+            <Ionicons name="open-outline" size={14} color={colors.textTertiary} />
+          </View>
+        </TouchableOpacity>
       </View>
 
       {isLoggedIn ? (
@@ -336,18 +371,6 @@ const ProfileScreen = () => {
     shadowOpacity: 0.04, shadowRadius: 3, elevation: 2,
   },
   avatarEmoji: { fontSize: 32 },
-  avatarEditBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.background,
-  },
   avatarEditBadge: {
     position: 'absolute', bottom: -2, right: -2,
     width: 22, height: 22, borderRadius: 6,
@@ -718,7 +741,17 @@ const ProfileScreen = () => {
                 {isLoggedIn ? (
                   <>
                     <View style={styles.profileInfo}>
-                      <TouchableOpacity style={styles.avatarContainer} onPress={handlePickAvatar} activeOpacity={0.7}>
+                      <TouchableOpacity
+                        style={styles.avatarContainer}
+                        onPress={() => {
+                          Alert.alert('更换头像', '请选择头像设置方式', [
+                            { text: '从相册上传', onPress: handlePickAvatar },
+                            { text: '选择预设头像', onPress: () => setShowAvatarModal(true) },
+                            { text: '取消', style: 'cancel' },
+                          ]);
+                        }}
+                        activeOpacity={0.7}
+                      >
                         <View style={[styles.avatar, isDark && styles.avatarDark]}>
                           {avatarUrl || user?.avatarUrl ? (
                             <Image
@@ -726,7 +759,7 @@ const ProfileScreen = () => {
                               style={{ width: '100%', height: '100%', borderRadius: 50 }}
                             />
                           ) : (
-                            <Text style={styles.avatarEmoji}>🧑</Text>
+                            <Text style={styles.avatarEmoji}>{AVATAR_EMOJIS[avatarType]}</Text>
                           )}
                           <View style={[styles.avatarEditBadge, { backgroundColor: colors.primary }]}>
                             <Ionicons name="camera" size={12} color="#FFFFFF" />
@@ -736,11 +769,13 @@ const ProfileScreen = () => {
                       <View style={styles.userInfo}>
                         <View style={styles.nameRow}>
                           <Text style={styles.userName}>{userData.name}</Text>
+                          {/* PRO 会员徽章已停用（2026-08-15）。原代码保留供恢复付费时复用
                           {isPro && (
                             <View style={{ backgroundColor: colors.proBg, borderWidth: 1, borderColor: colors.proBorder, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
                               <Text style={{ color: colors.pro, fontSize: 10, fontWeight: '700' }}>PRO</Text>
                             </View>
                           )}
+                          */}
                         </View>
                         <View style={{ flexDirection: 'row', gap: 16, marginTop: 6 }}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>

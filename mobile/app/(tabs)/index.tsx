@@ -342,6 +342,7 @@ const MapScreen = () => {
             <Text style={dynamicStyles.greeting}>学习地图</Text>
             <Text style={dynamicStyles.subtitle}>选择一个模块开始学习</Text>
           </View>
+          {/* ===== PRO 会员徽章已停用（2026-08-15）：付费功能关闭，隐藏会员入口。原代码保留供恢复付费时复用 =====
           <TouchableOpacity
             onPress={() => {
               if (isPro) {
@@ -364,6 +365,7 @@ const MapScreen = () => {
             <Ionicons name="diamond" size={14} color={isPro ? colors.onPrimary : colors.pro} />
             <Text style={{ fontSize: 11, fontWeight: '700' as const, color: isPro ? colors.onPrimary : colors.pro, fontFamily: 'Courier' }}>{isPro ? 'PRO' : 'Pro'}</Text>
           </TouchableOpacity>
+          */}
         </View>
 
         {/* 模块列表 */}
