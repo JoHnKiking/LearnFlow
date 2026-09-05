@@ -15,7 +15,8 @@
             "usesCleartextTraffic": true
           }
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "splash": {
       "backgroundColor": "#ffffff"

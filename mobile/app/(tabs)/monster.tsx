@@ -12,6 +12,7 @@ import { MONSTER_CONFIG } from '../../src/utils/constants';
 import { formatTimer } from '../../src/utils/helpers';
 import { useFocusEffect, router } from 'expo-router';
 import { noteService, rewardService, monsterService } from '../../src/services/api';
+import { getCurrentUser } from '../../src/utils/auth';
 import { useProStatus } from '../../src/hooks/useProStatus';
 import { SUBSCRIPTION_STORAGE_KEY } from '../../src/utils/pricing';
 

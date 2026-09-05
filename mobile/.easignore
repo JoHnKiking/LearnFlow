@@ -1,0 +1,19 @@
+# EAS Build 上传忽略清单
+# node_modules 云端会重新 install，无需上传
+node_modules/
+# Expo 本地缓存
+.expo/
+# git 元数据
+.git/
+# 日志与临时文件
+*.log
+npm-debug.*
+yarn-error.*
+.DS_Store
+# 文档与参考资料（不影响打包）
+reference.md
+DESIGN.md
+*.md
+# SSH / ngrok 等本地调试配置
+app_ssh.json
+app_ngrok.json
